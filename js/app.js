@@ -86,13 +86,13 @@ const Auth = {
 
   seedAdmin() {
     const users = this.getUsers();
-    const idx = users.findIndex(u => u.username === 'snh07800');
+    const idx = users.findIndex(u => u.username === 'snh078800');
     if (idx === -1) {
       // 쫬침 생성
       users.push({
-        id: 'admin_snh07800',
+        id: 'admin_snh078800',
         name: '관리자',
-        username: 'snh07800',
+        username: 'snh078800',
         password: 'hh7440123',
         isAdmin: true,
         createdAt: new Date().toISOString(),
@@ -101,7 +101,7 @@ const Auth = {
       // 이미 있는 계정 → 관리자 권한 강제 적용
       users[idx].isAdmin  = true;
       users[idx].password = 'hh7440123';
-      users[idx].id       = 'admin_snh07800';
+      users[idx].id       = 'admin_snh078800';
       users[idx].name     = '관리자';
     }
     this.saveUsers(users);

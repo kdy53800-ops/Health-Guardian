@@ -3,7 +3,7 @@
    건강지킴이
    =================================================== */
 
-const ADMIN_ID = 'snh07800';
+const ADMIN_ID = 'snh078800';
 const ADMIN_PW = 'hh7440123';
 
 let rankMode = 'streak';
@@ -103,7 +103,7 @@ function renderPlatformStats() {
   const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
   const weekStr = weekAgo.toISOString().split('T')[0];
 
-  const userRecs   = allRecords.filter(r => r.userId !== 'admin_snh07800');
+  const userRecs   = allRecords.filter(r => r.userId !== 'admin_snh078800');
   const totalUsers   = allUsers.length;
   const totalRecords = userRecs.length;
   const activeUsers  = new Set(userRecs.filter(r => r.date >= weekStr).map(r => r.userId)).size;
@@ -137,7 +137,7 @@ function renderDailyChart() {
     const d = new Date(); d.setDate(d.getDate() - i);
     const ds = d.toISOString().split('T')[0];
     days.push(ds.slice(5));
-    counts.push(allRecords.filter(r => r.date === ds && r.userId !== 'admin_snh07800').length);
+    counts.push(allRecords.filter(r => r.date === ds && r.userId !== 'admin_snh078800').length);
   }
   const ctx = document.getElementById('chartDailyRecords');
   if (!ctx) return;
