@@ -187,12 +187,15 @@
     const setup = await init();
     const redirectTo = `${window.location.origin}${window.location.pathname}`;
 
-    const { error } = await setup.client.auth.signInWithOAuth({
+    const { data, error } = await setup.client.auth.signInWithOAuth({
       provider: setup.config.naverProvider,
       options: { redirectTo },
     });
 
     if (error) throw error;
+    if (data && data.url) {
+      window.location.assign(data.url);
+    }
   }
 
   async function signOut() {
