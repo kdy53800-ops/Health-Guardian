@@ -1,4 +1,4 @@
-/* ===================================================
+﻿/* ===================================================
    admin.js — Admin Dashboard Logic
    건강지킴이
    =================================================== */
@@ -131,6 +131,14 @@ let chartShare = null;
 
 function renderCharts() { renderDailyChart(); renderShareChart(); }
 
+function formatPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return '-';
+  if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return phone;
+}
+
 function renderDailyChart() {
   const days = [], counts = [];
   for (let i = 29; i >= 0; i--) {
@@ -214,7 +222,7 @@ function renderRanking() {
   }).sort((a,b) => b.score - a.score);
 
   document.getElementById('rankHead').innerHTML =
-    ['순위','사용자','아이디', cfg.desc, '총 기록','스트릭','최근 기록'].map(h=>`<th>${h}</th>`).join('');
+    ['순위','사용자','아이디','전화번호', cfg.desc, '총 기록','스트릭','최근 기록'].map(h=>`<th>${h}</th>`).join('');
 
   const CLS = ['gold','silver','bronze'];
   const MED = ['🥇','🥈','🥉'];
@@ -225,18 +233,24 @@ function renderRanking() {
       <td>${rankEl}</td>
       <td><div class="user-name-cell"><div class="user-avatar-sm">${u.name.charAt(0).toUpperCase()}</div><span style="font-weight:700;">${u.name}</span></div></td>
       <td style="font-size:.8rem;color:var(--text-muted);">${u.username}</td>
+      <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(u.phone)}</td>
       <td><strong style="color:var(--primary);">${u.score.toLocaleString()}</strong><span style="font-size:.75rem;color:var(--text-muted);"> ${UNIT[rankMode]}</span></td>
       <td>${u.records}건</td>
       <td>${u.streak}일 🔥</td>
       <td style="font-size:.8rem;color:var(--text-muted);">${u.lastDate}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 데이터 없음</td></tr>`;
+  }).join('') || `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 데이터 없음</td></tr>`;
 }
 
 // ─── User Management ──────────────────────────────────
 function renderUserMgmt() {
   const q = (document.getElementById('userSearch')?.value||'').trim().toLowerCase();
-  const filtered = allUsers.filter(u => !q || u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q));
+  const filtered = allUsers.filter(u =>
+    !q ||
+    u.name.toLowerCase().includes(q) ||
+    u.username.toLowerCase().includes(q) ||
+    String(u.phone || '').toLowerCase().includes(q)
+  );
 
   const now7 = new Date(); now7.setDate(now7.getDate()-7);
   const weekStr = now7.toISOString().split('T')[0];
@@ -250,6 +264,7 @@ function renderUserMgmt() {
     return `<tr>
       <td><div class="user-name-cell"><div class="user-avatar-sm">${u.name.charAt(0).toUpperCase()}</div><span style="font-weight:600;">${u.name}</span></div></td>
       <td style="font-size:.8rem;color:var(--text-muted);">${u.username}</td>
+      <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(u.phone)}</td>
       <td style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
       <td><strong>${recs.length}</strong>건</td>
       <td style="font-size:.8rem;color:var(--text-muted);">${lastDate||'없음'}</td>
@@ -260,7 +275,7 @@ function renderUserMgmt() {
         <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;" onclick="confirmDeleteUser('${u.id}','${u.name}')">삭제</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 없음</td></tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 없음</td></tr>`;
 }
 
 // ─── View User Detail (모달) ──────────────────────────
@@ -282,7 +297,7 @@ function viewUser(userId) {
   document.getElementById('udAvatar').textContent = u.name.charAt(0).toUpperCase();
   document.getElementById('udName').textContent   = u.name;
   document.getElementById('udMeta').textContent   =
-    `@${u.username}  ·  가입일 ${u.createdAt ? u.createdAt.split('T')[0] : '-'}  ·  총 ${recs.length}건 기록`;
+    `@${u.username}  ·  ${formatPhone(u.phone)}  ·  가입일 ${u.createdAt ? u.createdAt.split('T')[0] : '-'}  ·  총 ${recs.length}건 기록`;
 
   // ── 통계 카드 4개 ──
   const statItems = [

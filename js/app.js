@@ -33,12 +33,12 @@ const Auth = {
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
   },
 
-  register(name, username, password) {
+  register(name, username, password, phone = '') {
     const users = this.getUsers();
     if (users.find(u => u.username === username)) {
       return { ok: false, msg: '이미 존재하는 아이디입니다.' };
     }
-    const user = { id: genId(), name, username, password, createdAt: new Date().toISOString() };
+    const user = { id: genId(), name, username, password, phone, createdAt: new Date().toISOString() };
     users.push(user);
     this.saveUsers(users);
     this.setUser({ id: user.id, name: user.name, username: user.username });
@@ -54,7 +54,14 @@ const Auth = {
   },
 
   logout() {
+    const user = this.getUser();
     localStorage.removeItem(KEYS.CURRENT_USER);
+
+    if (user && user.authProvider === 'naver') {
+      window.location.href = 'index.html?logout=1';
+      return;
+    }
+
     window.location.href = 'index.html';
   },
 
@@ -94,6 +101,7 @@ const Auth = {
         name: '관리자',
         username: 'snh078800',
         password: 'hh7440123',
+        phone: '',
         isAdmin: true,
         createdAt: new Date().toISOString(),
       });
@@ -102,6 +110,7 @@ const Auth = {
       users[idx].isAdmin  = true;
       users[idx].password = 'hh7440123';
       users[idx].id       = 'admin_snh078800';
+      users[idx].phone    = users[idx].phone || '';
       users[idx].name     = '관리자';
     }
     this.saveUsers(users);
