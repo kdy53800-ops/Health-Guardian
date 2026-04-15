@@ -215,6 +215,18 @@
         return { signedOut: true };
       }
 
+      const authCode = params.get('code');
+      if (authCode) {
+        const setup = await init();
+        const { error } = await setup.client.auth.exchangeCodeForSession(authCode);
+        if (error) throw error;
+
+        params.delete('code');
+        params.delete('state');
+        const clean = params.toString();
+        history.replaceState({}, '', `${window.location.pathname}${clean ? `?${clean}` : ''}`);
+      }
+
       const profile = await syncCurrentSession();
       if (!profile) return null;
 
