@@ -1,5 +1,6 @@
 (function () {
   let initPromise = null;
+  let configWarningShown = false;
 
   function normalizePhone(value) {
     if (!value) return '';
@@ -132,12 +133,69 @@
     }
   }
 
-  async function fetchConfig() {
-    const response = await fetch('/api/client-config', { cache: 'no-store' });
-    const payload = await response.json();
+  function getInlineConfig() {
+    const inline = window.__SUPABASE_CONFIG__;
+    if (!inline || !inline.supabaseUrl || !inline.supabaseAnonKey) {
+      return null;
+    }
 
-    if (!response.ok || !payload.ok) {
-      throw new Error(payload.message || 'Supabase configuration request failed.');
+    return {
+      ok: true,
+      supabaseUrl: inline.supabaseUrl,
+      supabaseAnonKey: inline.supabaseAnonKey,
+      naverProvider: inline.naverProvider || 'custom:naver',
+    };
+  }
+
+  function createConfigError(message, cause) {
+    const error = new Error(message);
+    error.code = 'SUPABASE_CONFIG_UNAVAILABLE';
+    if (cause) error.cause = cause;
+    return error;
+  }
+
+  function isConfigUnavailableError(error) {
+    return !!(error && error.code === 'SUPABASE_CONFIG_UNAVAILABLE');
+  }
+
+  function warnConfigUnavailable(error) {
+    if (configWarningShown) return;
+    configWarningShown = true;
+    console.warn('[SupabaseAuth] Supabase config unavailable. Naver login is disabled until runtime config is provided.', error);
+  }
+
+  function replaceSearch(params) {
+    const clean = params.toString();
+    history.replaceState({}, '', `${window.location.pathname}${clean ? `?${clean}` : ''}`);
+  }
+
+  async function fetchConfig() {
+    const inlineConfig = getInlineConfig();
+    if (inlineConfig) {
+      return inlineConfig;
+    }
+
+    const configUrl = new URL('api/client-config', window.location.href).toString();
+    let response;
+
+    try {
+      response = await fetch(configUrl, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      });
+    } catch (error) {
+      throw createConfigError('Supabase runtime configuration could not be loaded.', error);
+    }
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw createConfigError('Supabase runtime configuration response was invalid.', error);
+    }
+
+    if (!response.ok || !payload.ok || !payload.supabaseUrl || !payload.supabaseAnonKey) {
+      throw createConfigError(payload && payload.message ? payload.message : 'Supabase configuration request failed.');
     }
 
     return payload;
@@ -148,7 +206,7 @@
 
     initPromise = (async () => {
       if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        throw new Error('Supabase browser client is not loaded.');
+        throw createConfigError('Supabase browser client is not loaded.');
       }
 
       const config = await fetchConfig();
@@ -207,10 +265,15 @@
 
     try {
       if (params.get('logout') === '1') {
-        await signOut();
+        try {
+          await signOut();
+        } catch (error) {
+          if (!isConfigUnavailableError(error)) throw error;
+          warnConfigUnavailable(error);
+        }
+
         params.delete('logout');
-        const clean = params.toString();
-        history.replaceState({}, '', `${window.location.pathname}${clean ? `?${clean}` : ''}`);
+        replaceSearch(params);
         return { signedOut: true };
       }
 
@@ -222,11 +285,18 @@
 
         params.delete('code');
         params.delete('state');
-        const clean = params.toString();
-        history.replaceState({}, '', `${window.location.pathname}${clean ? `?${clean}` : ''}`);
+        replaceSearch(params);
       }
 
-      const profile = await syncCurrentSession();
+      let profile;
+      try {
+        profile = await syncCurrentSession();
+      } catch (error) {
+        if (!isConfigUnavailableError(error)) throw error;
+        warnConfigUnavailable(error);
+        return null;
+      }
+
       if (!profile) return null;
 
       if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
