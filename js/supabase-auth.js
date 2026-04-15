@@ -154,7 +154,6 @@
       const config = await fetchConfig();
       const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
         auth: {
-          flowType: 'pkce',
           detectSessionInUrl: true,
           persistSession: true,
           autoRefreshToken: true,
