@@ -506,7 +506,7 @@
             <p>별도의 아이디와 비밀번호를 새로 만드는 대신, 네이버 계정으로 빠르게 시작하고 필요한 최소 정보만 동의받는 구조로 바뀝니다.</p>
           </div>
 
-          <a class="btn-naver" href="/api/naver-login">
+          <a class="btn-naver" href="#" onclick="handleNaverLogin(event); return false;">
             네이버 아이디로 시작하기
           </a>
 
@@ -668,7 +668,8 @@
       });
     }
 
-    async function handleNaverLogin() {
+    async function handleNaverLogin(event) {
+      if (event) event.preventDefault();
       try {
         await SupabaseAuth.signInWithNaver();
       } catch (error) {

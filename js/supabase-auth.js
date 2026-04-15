@@ -237,6 +237,9 @@
       return profile;
     } catch (error) {
       console.error('[SupabaseAuth]', error);
+      if (params.get('code') || params.get('error_description') || params.get('error')) {
+        alert(`네이버 로그인 처리 중 오류가 발생했습니다.\n${error.message || '세션을 생성하지 못했습니다.'}`);
+      }
       return { error };
     }
   }
