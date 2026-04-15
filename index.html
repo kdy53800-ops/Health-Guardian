@@ -195,6 +195,7 @@
     }
 
     .btn-naver {
+      display: block;
       width: 100%;
       border: none;
       border-radius: 18px;
@@ -205,6 +206,8 @@
       font-size: 1rem;
       font-weight: 800;
       cursor: pointer;
+      text-align: center;
+      text-decoration: none;
       box-shadow: 0 14px 28px rgba(3, 199, 90, 0.24);
       transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
     }
@@ -503,9 +506,9 @@
             <p>별도의 아이디와 비밀번호를 새로 만드는 대신, 네이버 계정으로 빠르게 시작하고 필요한 최소 정보만 동의받는 구조로 바뀝니다.</p>
           </div>
 
-          <button type="button" class="btn-naver" onclick="handleNaverLogin()">
+          <a class="btn-naver" href="/api/naver-login">
             네이버 아이디로 시작하기
-          </button>
+          </a>
 
           <p class="naver-helper">
             Supabase에 네이버 OIDC 공급자가 연결되어 있으면 이 버튼이 실제 로그인 진입점으로 동작합니다.
