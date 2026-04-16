@@ -1,7 +1,4 @@
 (function () {
-  let initPromise = null;
-  let configWarningShown = false;
-
   function normalizePhone(value) {
     if (!value) return '';
     return String(value).replace(/[^0-9+]/g, '');
@@ -15,39 +12,19 @@
     return profile.birthday || '';
   }
 
-  function pickProfile(user) {
-    const identity = (user.identities || []).find(item => item.provider === 'custom:naver' || item.provider === 'naver');
-    const source = {
-      ...(identity && identity.identity_data ? identity.identity_data : {}),
-      ...(user.user_metadata || {}),
-      ...(user.app_metadata || {}),
-    };
-
-    return {
-      supabaseUserId: user.id,
-      oauthProviderId: source.id || source.sub || user.id,
-      authProvider: 'naver',
-      name: source.name || source.full_name || source.nickname || user.email || 'Naver User',
-      email: source.email || user.email || '',
-      gender: source.gender || '',
-      birthday: buildBirthday(source),
-      birthyear: source.birthyear || '',
-      phone: normalizePhone(source.mobile || source.mobile_e164 || source.phone || user.phone || ''),
-      avatarUrl: source.profile_image || source.avatar_url || '',
-    };
-  }
-
   function buildUsername(profile, users, existingId) {
-    const baseSource = profile.email
-      ? profile.email.split('@')[0]
-      : `naver_${String(profile.oauthProviderId || profile.supabaseUserId || 'user').slice(0, 8)}`;
+    const emailBase = profile.email ? profile.email.split('@')[0] : '';
+    const oauthBase = String(profile.oauthProviderId || profile.supabaseUserId || 'user')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(-8)
+      .toLowerCase();
 
-    const base = String(baseSource)
+    const base = String(emailBase || `naver_${oauthBase}`)
       .toLowerCase()
       .replace(/[^a-z0-9_]/g, '_')
       .replace(/^_+|_+$/g, '') || 'naver_user';
 
-    let candidate = base;
+    let candidate = oauthBase && !base.endsWith(oauthBase) ? `${base}_${oauthBase}` : base;
     let count = 1;
 
     while (users.some(user => user.username === candidate && user.id !== existingId)) {
@@ -58,10 +35,48 @@
     return candidate;
   }
 
+  function decodeBase64Url(value) {
+    const normalized = String(value)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const binary = window.atob(padded);
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  function decodeSessionPayload(value) {
+    try {
+      return JSON.parse(decodeBase64Url(value));
+    } catch (error) {
+      throw new Error('네이버 로그인 세션 정보를 읽지 못했습니다.');
+    }
+  }
+
+  function buildRedirectTo() {
+    if (!window.location || !/^https?:$/i.test(window.location.protocol)) {
+      throw new Error('네이버 로그인은 http:// 또는 https:// 주소에서만 시작할 수 있습니다.');
+    }
+
+    return `${window.location.origin}${window.location.pathname}`;
+  }
+
+  function buildServerLoginUrl(redirectTo) {
+    const loginUrl = new URL('api/naver-login', window.location.href);
+    loginUrl.searchParams.set('redirect_to', redirectTo);
+    return loginUrl.toString();
+  }
+
+  function replaceLocation(params, hashParams) {
+    const search = params.toString();
+    const hash = hashParams.toString();
+    history.replaceState({}, '', `${window.location.pathname}${search ? `?${search}` : ''}${hash ? `#${hash}` : ''}`);
+  }
+
   function upsertLocalUser(profile) {
     const users = Auth.getUsers();
     const existing = users.find(user =>
-      user.supabaseUserId === profile.supabaseUserId ||
+      (profile.supabaseUserId && user.supabaseUserId === profile.supabaseUserId) ||
       (profile.email && user.email === profile.email) ||
       (profile.oauthProviderId && user.oauthProviderId === profile.oauthProviderId)
     );
@@ -69,7 +84,7 @@
     const baseUser = existing || {
       id: `naver_${String(profile.oauthProviderId || profile.supabaseUserId || Date.now()).replace(/[^a-zA-Z0-9_-]/g, '')}`,
       createdAt: new Date().toISOString(),
-      isAdmin: false,
+      isAdmin: !!profile.isAdmin,
     };
 
     const mergedUser = {
@@ -77,14 +92,15 @@
       name: profile.name || baseUser.name || 'Naver User',
       email: profile.email || baseUser.email || '',
       gender: profile.gender || baseUser.gender || '',
-      birthday: profile.birthday || baseUser.birthday || '',
+      birthday: buildBirthday(profile) || baseUser.birthday || '',
       birthyear: profile.birthyear || baseUser.birthyear || '',
-      phone: profile.phone || baseUser.phone || '',
+      phone: normalizePhone(profile.phone || baseUser.phone || ''),
       avatarUrl: profile.avatarUrl || baseUser.avatarUrl || '',
       authProvider: 'naver',
-      supabaseUserId: profile.supabaseUserId,
-      oauthProviderId: profile.oauthProviderId,
-      username: baseUser.username || buildUsername(profile, users, baseUser.id),
+      supabaseUserId: profile.supabaseUserId || baseUser.supabaseUserId || '',
+      oauthProviderId: profile.oauthProviderId || baseUser.oauthProviderId || '',
+      username: profile.username || baseUser.username || buildUsername(profile, users, baseUser.id),
+      isAdmin: !!(profile.isAdmin || baseUser.isAdmin),
     };
 
     const nextUsers = existing
@@ -103,221 +119,67 @@
       isAdmin: !!mergedUser.isAdmin,
       authProvider: 'naver',
       supabaseUserId: mergedUser.supabaseUserId,
+      oauthProviderId: mergedUser.oauthProviderId,
     });
 
     return mergedUser;
   }
 
-  async function syncProfileRow(client, profile, localUser) {
-    const payload = {
-      id: profile.supabaseUserId,
-      username: localUser.username,
-      name: profile.name || localUser.name || '',
-      email: profile.email || localUser.email || '',
-      gender: profile.gender || localUser.gender || '',
-      birthday: profile.birthday || localUser.birthday || '',
-      birthyear: profile.birthyear || localUser.birthyear || '',
-      phone: profile.phone || localUser.phone || '',
-      avatar_url: profile.avatarUrl || localUser.avatarUrl || '',
-      auth_provider: 'naver',
-      oauth_provider_id: profile.oauthProviderId || '',
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await client
-      .from('profiles')
-      .upsert(payload, { onConflict: 'id' });
-
-    if (error) {
-      console.warn('[SupabaseAuth] profiles upsert skipped:', error.message);
-    }
-  }
-
-  function getInlineConfig() {
-    const inline = window.__SUPABASE_CONFIG__;
-    if (!inline || !inline.supabaseUrl || !inline.supabaseAnonKey) {
-      return null;
-    }
-
-    return {
-      ok: true,
-      supabaseUrl: inline.supabaseUrl,
-      supabaseAnonKey: inline.supabaseAnonKey,
-      naverProvider: inline.naverProvider || 'custom:naver',
-    };
-  }
-
-  function createConfigError(message, cause) {
-    const error = new Error(message);
-    error.code = 'SUPABASE_CONFIG_UNAVAILABLE';
-    if (cause) error.cause = cause;
-    return error;
-  }
-
-  function isConfigUnavailableError(error) {
-    return !!(error && error.code === 'SUPABASE_CONFIG_UNAVAILABLE');
-  }
-
-  function warnConfigUnavailable(error) {
-    if (configWarningShown) return;
-    configWarningShown = true;
-    console.warn('[SupabaseAuth] Supabase config unavailable. Naver login is disabled until runtime config is provided.', error);
-  }
-
-  function replaceSearch(params) {
-    const clean = params.toString();
-    history.replaceState({}, '', `${window.location.pathname}${clean ? `?${clean}` : ''}`);
-  }
-
-  async function fetchConfig() {
-    const inlineConfig = getInlineConfig();
-    if (inlineConfig) {
-      return inlineConfig;
-    }
-
-    const configUrl = new URL('api/client-config', window.location.href).toString();
-    let response;
-
-    try {
-      response = await fetch(configUrl, {
-        cache: 'no-store',
-        headers: { Accept: 'application/json' },
-      });
-    } catch (error) {
-      throw createConfigError('Supabase runtime configuration could not be loaded.', error);
-    }
-
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch (error) {
-      throw createConfigError('Supabase runtime configuration response was invalid.', error);
-    }
-
-    if (!response.ok || !payload.ok || !payload.supabaseUrl || !payload.supabaseAnonKey) {
-      throw createConfigError(payload && payload.message ? payload.message : 'Supabase configuration request failed.');
-    }
-
-    return payload;
-  }
-
-  async function init() {
-    if (initPromise) return initPromise;
-
-    initPromise = (async () => {
-      if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        throw createConfigError('Supabase browser client is not loaded.');
-      }
-
-      const config = await fetchConfig();
-      const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
-        auth: {
-          detectSessionInUrl: true,
-          persistSession: true,
-          autoRefreshToken: true,
-        },
-      });
-
-      return { client, config };
-    })().catch(error => {
-      initPromise = null;
-      throw error;
-    });
-
-    return initPromise;
-  }
-
-  async function syncCurrentSession() {
-    const setup = await init();
-    const { data, error } = await setup.client.auth.getSession();
-
-    if (error) throw error;
-    if (!data.session || !data.session.user) return null;
-
-    const profile = pickProfile(data.session.user);
-    const localUser = upsertLocalUser(profile);
-    await syncProfileRow(setup.client, profile, localUser);
-    return profile;
-  }
-
   async function signInWithNaver() {
-    const setup = await init();
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
-
-    const { data, error } = await setup.client.auth.signInWithOAuth({
-      provider: setup.config.naverProvider,
-      options: { redirectTo },
-    });
-
-    if (error) throw error;
-    if (data && data.url) {
-      window.location.assign(data.url);
-    }
+    const redirectTo = buildRedirectTo();
+    window.location.assign(buildServerLoginUrl(redirectTo));
   }
 
   async function signOut() {
-    const setup = await init();
-    await setup.client.auth.signOut();
+    return { signedOut: true };
   }
 
   async function handleIndexSession() {
     const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
     try {
       if (params.get('logout') === '1') {
-        try {
-          await signOut();
-        } catch (error) {
-          if (!isConfigUnavailableError(error)) throw error;
-          warnConfigUnavailable(error);
-        }
-
         params.delete('logout');
-        replaceSearch(params);
+        replaceLocation(params, hashParams);
         return { signedOut: true };
       }
 
-      const authCode = params.get('code');
-      if (authCode) {
-        const setup = await init();
-        const { error } = await setup.client.auth.exchangeCodeForSession(authCode);
-        if (error) throw error;
+      const sessionParam = hashParams.get('naver_session');
+      if (sessionParam) {
+        const profile = decodeSessionPayload(sessionParam);
+        upsertLocalUser(profile);
+        hashParams.delete('naver_session');
+        replaceLocation(params, hashParams);
 
-        params.delete('code');
-        params.delete('state');
-        replaceSearch(params);
+        if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+          window.location.href = 'dashboard.html';
+        }
+
+        return profile;
       }
 
-      let profile;
-      try {
-        profile = await syncCurrentSession();
-      } catch (error) {
-        if (!isConfigUnavailableError(error)) throw error;
-        warnConfigUnavailable(error);
-        return null;
+      const errorCode = params.get('error');
+      if (errorCode) {
+        const errorMessage = params.get('error_description') || '네이버 로그인 처리 중 오류가 발생했습니다.';
+        alert(`네이버 로그인 처리 중 오류가 발생했습니다.\n${errorMessage}`);
+        params.delete('error');
+        params.delete('error_description');
+        replaceLocation(params, hashParams);
+        return { error: new Error(errorMessage) };
       }
 
-      if (!profile) return null;
-
-      if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
-        window.location.href = 'dashboard.html';
-      }
-
-      return profile;
+      return null;
     } catch (error) {
       console.error('[SupabaseAuth]', error);
-      if (params.get('code') || params.get('error_description') || params.get('error')) {
-        alert(`네이버 로그인 처리 중 오류가 발생했습니다.\n${error.message || '세션을 생성하지 못했습니다.'}`);
-      }
+      alert(`네이버 로그인 처리 중 오류가 발생했습니다.\n${error.message || '세션을 생성하지 못했습니다.'}`);
       return { error };
     }
   }
 
   window.SupabaseAuth = {
-    init,
     signInWithNaver,
     signOut,
-    syncCurrentSession,
     handleIndexSession,
   };
 })();

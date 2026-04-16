@@ -19,62 +19,34 @@ Recommended callback URL:
 
 If you also test locally, add your local callback URL only when needed.
 
-## 3. Supabase Auth Provider
+## 3. Naver Callback URL
 
-In Supabase:
+Register the app callback URL in Naver Developers:
 
-1. Open `Authentication`
-2. Open `Providers`
-3. Add a custom OIDC provider for Naver
+- `https://<your-vercel-domain>/api/naver-callback`
 
-Recommended values:
+If you also test locally, add your local callback URL only when needed.
 
-- Provider ID: `custom:naver`
-- Issuer: `https://nid.naver.com`
-- Client ID: `<Naver Client ID>`
-- Client Secret: `<Naver Client Secret>`
-
-Request the scopes needed for your service and admin visibility:
-
-- `openid`
-- `name`
-- `email`
-- `gender`
-- `birthday`
-- `birthyear`
-- `mobile`
-
-## 4. Supabase Redirect URLs
-
-In Supabase URL configuration, allow:
-
-- `https://<your-vercel-domain>/index.html`
-- `https://<your-vercel-domain>/`
-- `http://localhost:3000/index.html`
-
-Use only the domains you actually need.
-
-## 5. Vercel Environment Variables
+## 4. Vercel Environment Variables
 
 Set these in the Vercel project:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `SUPABASE_NAVER_PROVIDER`
-
-Recommended value:
-
-- `SUPABASE_NAVER_PROVIDER=custom:naver`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NAVER_CLIENT_ID`
+- `NAVER_CLIENT_SECRET`
 
 See [.env.example](C:/Users/user/Desktop/Health%20Guardian/.env.example).
 
-## 6. Current App Behavior
+## 5. Current App Behavior
 
 After successful Naver login:
 
-- Supabase session is created
+- The API exchanges the Naver code for an access token
+- The API fetches the user profile from `https://openapi.naver.com/v1/nid/me`
 - The app mirrors the user into local storage for current UI compatibility
-- The app upserts the user into `public.profiles`
+- The API upserts the user into `public.profiles`
 
 Fields currently synced:
 
@@ -86,6 +58,11 @@ Fields currently synced:
 - `phone`
 - `avatar_url`
 - `oauth_provider_id`
+
+## 6. Notes
+
+- `public.profiles.id` still references `auth.users(id)`, so the callback uses the Supabase service role key to create or reuse an auth user before syncing the profile row.
+- If `SUPABASE_SERVICE_ROLE_KEY` is missing, Naver login can still complete in the browser, but Supabase profile sync will be skipped.
 
 ## 7. Next Recommended Work
 

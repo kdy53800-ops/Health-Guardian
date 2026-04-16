@@ -1,24 +1,39 @@
-module.exports = function handler(req, res) {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const provider = process.env.SUPABASE_NAVER_PROVIDER || 'custom:naver';
+const {
+  buildCallbackUrl,
+  buildNaverAuthorizeUrl,
+  createState,
+  createStateCookie,
+  getOrigin,
+  getRequestUrl,
+  redirectWithError,
+  resolveRedirectTo,
+} = require('./_lib/naver');
 
-  if (!supabaseUrl) {
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.end('Supabase URL is missing.');
+module.exports = function handler(req, res) {
+  const clientId = process.env.NAVER_CLIENT_ID || '';
+  const clientSecret = process.env.NAVER_CLIENT_SECRET || '';
+  const origin = getOrigin(req);
+  const requestUrl = getRequestUrl(req, origin, '/api/naver-login');
+  const redirectTo = resolveRedirectTo(requestUrl, origin);
+
+  if (!clientId || !clientSecret) {
+    redirectWithError(
+      res,
+      redirectTo,
+      'naver_config_missing',
+      'NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is missing.'
+    );
     return;
   }
 
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  const origin = `${proto}://${host}`;
-  const redirectTo = `${origin}/`;
-
-  const authorizeUrl = new URL('/auth/v1/authorize', supabaseUrl);
-  authorizeUrl.searchParams.set('provider', provider);
-  authorizeUrl.searchParams.set('redirect_to', redirectTo);
+  const state = createState(redirectTo);
 
   res.statusCode = 302;
-  res.setHeader('Location', authorizeUrl.toString());
+  res.setHeader('Set-Cookie', createStateCookie(state.nonce, origin));
+  res.setHeader('Location', buildNaverAuthorizeUrl({
+    clientId,
+    callbackUrl: buildCallbackUrl(origin),
+    state: state.payload,
+  }));
   res.end();
 };
