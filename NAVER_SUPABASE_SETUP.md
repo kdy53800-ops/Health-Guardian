@@ -36,6 +36,8 @@ Set these in the Vercel project:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `NAVER_CLIENT_ID`
 - `NAVER_CLIENT_SECRET`
+- `NAVER_CALLBACK_URL` (recommended, exact URL registered in Naver)
+- `NAVER_STATE_SECRET` (recommended, random secret for signed OAuth state)
 
 See [.env.example](C:/Users/user/Desktop/Health%20Guardian/.env.example).
 
@@ -63,6 +65,7 @@ Fields currently synced:
 
 - `public.profiles.id` still references `auth.users(id)`, so the callback uses the Supabase service role key to create or reuse an auth user before syncing the profile row.
 - If `SUPABASE_SERVICE_ROLE_KEY` is missing, Naver login can still complete in the browser, but Supabase profile sync will be skipped.
+- If Naver shows a "service setting error" screen, verify that the callback URL in Naver Developers exactly matches `NAVER_CALLBACK_URL` (or the runtime callback URL if `NAVER_CALLBACK_URL` is not set).
 
 ## 7. Next Recommended Work
 

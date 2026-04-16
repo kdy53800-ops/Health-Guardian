@@ -1,10 +1,12 @@
-const { randomBytes } = require('crypto');
+const { createHmac, randomBytes, timingSafeEqual } = require('crypto');
 
 const STATE_COOKIE = 'HealthGuardian_naver_state';
 
 function getOrigin(req) {
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const rawHost = req.headers['x-forwarded-host'] || req.headers.host;
+  const rawProto = req.headers['x-forwarded-proto'] || 'https';
+  const host = String(rawHost).split(',')[0].trim();
+  const proto = String(rawProto).split(',')[0].trim();
   return `${proto}://${host}`;
 }
 
@@ -44,15 +46,47 @@ function decodeBase64Url(value) {
 
 function createState(redirectTo) {
   const nonce = randomBytes(18).toString('hex');
-  const payload = encodeBase64Url(JSON.stringify({ nonce, redirectTo }));
+  const encoded = encodeBase64Url(JSON.stringify({
+    nonce,
+    redirectTo,
+    issuedAt: Date.now(),
+  }));
+  const secret = process.env.NAVER_STATE_SECRET || process.env.NAVER_CLIENT_SECRET || '';
+  const payload = secret
+    ? `${encoded}.${createHmac('sha256', secret).update(encoded).digest('hex')}`
+    : encoded;
   return { nonce, payload };
 }
 
 function readStatePayload(payload) {
+  const raw = String(payload || '');
+  if (!raw) return null;
+
+  const dotIndex = raw.lastIndexOf('.');
+  const maybeEncoded = dotIndex > 0 ? raw.slice(0, dotIndex) : raw;
+  const maybeSig = dotIndex > 0 ? raw.slice(dotIndex + 1) : '';
+
+  let verifiedBySignature = false;
+  const secret = process.env.NAVER_STATE_SECRET || process.env.NAVER_CLIENT_SECRET || '';
+  if (maybeSig) {
+    if (!secret) return null;
+    const expectedSig = createHmac('sha256', secret).update(maybeEncoded).digest('hex');
+    const provided = Buffer.from(maybeSig, 'utf8');
+    const expected = Buffer.from(expectedSig, 'utf8');
+    if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
+    verifiedBySignature = true;
+  }
+
   try {
-    const decoded = JSON.parse(decodeBase64Url(payload));
+    const decoded = JSON.parse(decodeBase64Url(maybeEncoded));
     if (!decoded || !decoded.nonce) return null;
-    return decoded;
+    const issuedAt = Number(decoded.issuedAt || 0);
+    if (issuedAt && (Date.now() - issuedAt) > (15 * 60 * 1000)) return null;
+
+    return {
+      ...decoded,
+      verifiedBySignature,
+    };
   } catch (error) {
     return null;
   }
@@ -108,6 +142,15 @@ function buildNaverAuthorizeUrl({ clientId, callbackUrl, state }) {
 }
 
 function buildCallbackUrl(origin) {
+  const configured = String(process.env.NAVER_CALLBACK_URL || '').trim();
+  if (configured) {
+    try {
+      return new URL(configured).toString();
+    } catch (error) {
+      // Ignore invalid env and fall back to request origin callback.
+    }
+  }
+
   return `${origin}/api/naver-callback`;
 }
 

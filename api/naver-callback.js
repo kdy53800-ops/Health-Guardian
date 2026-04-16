@@ -90,8 +90,11 @@ module.exports = async function handler(req, res) {
   const state = readStatePayload(statePayload);
   const cookies = parseCookies(req);
   const redirectTo = state && state.redirectTo ? state.redirectTo : `${origin}/index.html`;
+  const cookieNonce = cookies.HealthGuardian_naver_state || '';
+  const stateMatchesCookie = !!(state && cookieNonce && cookieNonce === state.nonce);
+  const stateVerifiedBySignature = !!(state && state.verifiedBySignature);
 
-  if (!state || !cookies.HealthGuardian_naver_state || cookies.HealthGuardian_naver_state !== state.nonce) {
+  if (!state || (!stateMatchesCookie && !stateVerifiedBySignature)) {
     redirectWithError(res, redirectTo, 'naver_state_invalid', '네이버 로그인 상태 검증에 실패했습니다. 다시 시도해 주세요.', cookie);
     return;
   }
