@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -564,43 +564,7 @@
             </div>
           </section>
 
-          <details class="delete-toggle">
-            <summary>로컬 계정 삭제</summary>
-            <section class="delete-card" id="deletePanel">
-              <h3>기존 로컬 계정 정리</h3>
-              <p>이메일과 비밀번호가 일치하는 계정을 삭제합니다. 비밀번호가 없는 계정은 관리자 확인이 필요할 수 있습니다.</p>
 
-              <div class="delete-warning">
-                계정을 삭제하면 운동 기록, 목표 설정, 사용자 정보가 함께 제거됩니다. 관리자 계정은 이 메뉴에서 삭제할 수 없습니다.
-              </div>
-
-              <form id="deleteForm" onsubmit="handleDelete(event)">
-                <div class="form-group">
-                  <label class="form-label" for="delEmail">이메일 확인</label>
-                  <div class="input-icon-wrap">
-                    <span class="icon">@</span>
-                    <input type="email" id="delEmail" class="form-control" placeholder="삭제할 이메일 입력" autocomplete="email" required>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="delPassword">비밀번호 확인</label>
-                  <div class="input-icon-wrap">
-                    <span class="icon">PW</span>
-                    <input type="password" id="delPassword" class="form-control" placeholder="비밀번호 입력" required>
-                  </div>
-                </div>
-
-                <label class="delete-confirm">
-                  <input type="checkbox" id="delConfirm">
-                  <span>삭제 시 로컬 데이터가 함께 제거되는 점을 확인했습니다.</span>
-                </label>
-
-                <p class="form-error" id="deleteError"></p>
-                <button type="submit" class="btn btn-block btn-lg" style="background:#b91c1c;color:white;border:none;">로컬 계정 삭제</button>
-              </form>
-            </section>
-          </details>
         </div>
 
         <div class="admin-link">
@@ -691,89 +655,7 @@
       return false;
     }
 
-    function handleDelete(e) {
-      e.preventDefault();
-      const email = document.getElementById('delEmail').value.trim();
-      const password = document.getElementById('delPassword').value;
-      const checked = document.getElementById('delConfirm').checked;
-      const errEl = document.getElementById('deleteError');
-      errEl.classList.remove('show');
 
-      if (!checked) {
-        errEl.textContent = '삭제 동의 체크박스를 확인해 주세요.';
-        errEl.classList.add('show');
-        return;
-      }
-
-      const normalizedEmail = normalizeEmail(email);
-      if (!normalizedEmail || !normalizedEmail.includes('@')) {
-        errEl.textContent = '올바른 이메일을 입력해 주세요.';
-        errEl.classList.add('show');
-        return;
-      }
-
-      let users = [];
-      try {
-        users = Array.isArray(Auth.getUsers()) ? Auth.getUsers() : [];
-      } catch (error) {
-        console.error('[Delete] failed to read users from storage:', error);
-        errEl.textContent = '계정 정보를 읽는 중 오류가 발생했습니다. 새로고침 후 다시 시도해 주세요.';
-        errEl.classList.add('show');
-        return;
-      }
-
-      const sameEmailUsers = users.filter(item => {
-        const candidate = normalizeEmail(item.email || item.username);
-        return candidate && candidate === normalizedEmail;
-      });
-      if (!sameEmailUsers.length) {
-        errEl.textContent = '입력한 이메일의 로컬 계정을 찾을 수 없습니다.';
-        errEl.classList.add('show');
-        return;
-      }
-
-      const passwordMatched = sameEmailUsers.filter(item => String(item.password || '') === String(password));
-      if (!passwordMatched.length) {
-        const hasPassword = sameEmailUsers.some(item => String(item.password || '').length > 0);
-        errEl.textContent = hasPassword
-          ? '비밀번호가 올바르지 않습니다.'
-          : '이 계정은 비밀번호가 설정되어 있지 않아 여기서 삭제할 수 없습니다. 관리자에게 문의해 주세요.';
-        errEl.classList.add('show');
-        return;
-      }
-
-      const user = passwordMatched.find(item => !isAdminAccount(item)) || passwordMatched[0];
-      if (isAdminAccount(user)) {
-        errEl.textContent = '관리자 계정은 이 메뉴에서 삭제할 수 없습니다.';
-        errEl.classList.add('show');
-        return;
-      }
-
-      Auth.saveUsers(users.filter(item => item.id !== user.id));
-
-      const allRecords = JSON.parse(localStorage.getItem('HealthGuardian_records') || '[]');
-      const userIds = new Set([String(user.id || '')].filter(Boolean));
-      localStorage.setItem('HealthGuardian_records', JSON.stringify(allRecords.filter(record => !userIds.has(String(record.userId || '')))));
-      localStorage.removeItem('HealthGuardian_goals_' + user.id);
-      if (typeof KEYS !== 'undefined' && KEYS.RECORDS_MIGRATED) {
-        localStorage.removeItem(`${KEYS.RECORDS_MIGRATED}_${user.id}`);
-      }
-
-      const currentUser = Auth.getUser();
-      if (
-        currentUser
-        && (
-          currentUser.id === user.id
-          || normalizeEmail(currentUser.email || currentUser.username) === normalizeEmail(user.email || user.username)
-          || normalizeId(currentUser.username) === normalizeId(user.username)
-        )
-      ) {
-        localStorage.removeItem('HealthGuardian_currentUser');
-      }
-
-      alert(user.name + ' 계정이 삭제되었습니다.');
-      window.location.href = 'index.html';
-    }
   </script>
 </body>
 </html>

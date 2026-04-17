@@ -71,6 +71,48 @@ const Auth = {
     window.location.href = 'index.html';
   },
 
+  async deleteAccount() {
+    if (!confirm('정말 계정을 탈퇴하시겠습니까?\n모든 기록과 설정이 영구적으로 삭제되며 복구할 수 없습니다.')) {
+      return;
+    }
+    
+    const user = this.getUser();
+    if (!user) return;
+
+    if (user.authProvider === 'naver' || String(user.id).includes('-')) {
+      try {
+        const res = await fetch(new URL('api/delete-account', window.location.href).toString(), {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          alert('계정 삭제 중 오류가 발생했습니다: ' + (data.message || '알 수 없는 오류'));
+          return;
+        }
+      } catch (err) {
+        console.error('[DeleteAccount Error]', err);
+        alert('계정 삭제 중 네트워크 오류가 발생했습니다.');
+        return;
+      }
+    }
+
+    const allRecords = JSON.parse(localStorage.getItem(KEYS.RECORDS) || '[]');
+    localStorage.setItem(KEYS.RECORDS, JSON.stringify(allRecords.filter(r => String(r.userId || '') !== String(user.id))));
+    localStorage.removeItem(KEYS.GOALS + '_' + user.id);
+    localStorage.removeItem(KEYS.RECORDS_MIGRATED + '_' + user.id);
+    const users = this.getUsers();
+    this.saveUsers(users.filter(u => String(u.id) !== String(user.id)));
+    localStorage.removeItem(KEYS.CURRENT_USER);
+
+    if (user.authProvider === 'naver') {
+      fetch(new URL('api/logout', window.location.href).toString(), { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
+    }
+
+    alert('계정이 성공적으로 탈퇴되었습니다.\n그동안 건강지킴이를 이용해 주셔서 감사합니다.');
+    window.location.href = 'index.html';
+  },
+
   require() {
     const user = this.getUser();
     if (!user) {
