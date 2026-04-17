@@ -1,0 +1,14 @@
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+.env
+.env.local
+
+# 중복 하위 폴더 방지
+Health Guardian/
