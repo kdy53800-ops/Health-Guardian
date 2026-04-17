@@ -1,0 +1,603 @@
+/* ===================================================
+   admin.js - Admin Dashboard Logic (Operator Only)
+   =================================================== */
+
+let rankMode = 'streak';
+let deleteTargetId = null;
+let allUsers = [];
+let allRecords = [];
+
+const RANK_CONFIGS = [
+  { key: 'streak', label: '🔥 연속 기록', desc: '연속 기록 일수' },
+  { key: 'records', label: '📋 총 기록수', desc: '전체 기록 건수' },
+  { key: 'walking', label: '🚶 걷기', desc: '총 걷기 (분)' },
+  { key: 'running', label: '🏃 러닝', desc: '총 러닝 (분)' },
+  { key: 'strength', label: '💪 근력', desc: '총 근력 운동 (회)' },
+  { key: 'water', label: '💧 수분', desc: '총 수분 (ml)' },
+];
+
+function getOverlayElements() {
+  return {
+    overlay: document.getElementById('adminLoginOverlay'),
+    logo: document.querySelector('.admin-login-logo p'),
+    errEl: document.getElementById('adminErr'),
+    form: document.querySelector('#adminLoginOverlay form'),
+  };
+}
+
+function ensureOverlayActionButton() {
+  const { overlay } = getOverlayElements();
+  if (!overlay) return;
+
+  let actionWrap = document.getElementById('adminOverlayAction');
+  if (actionWrap) return actionWrap;
+
+  actionWrap = document.createElement('div');
+  actionWrap.id = 'adminOverlayAction';
+  actionWrap.style.marginTop = '16px';
+  actionWrap.innerHTML = `
+    <button type="button" class="btn btn-primary btn-block btn-lg" onclick="handleAdminLogin(event)">
+      네이버 로그인으로 이동
+    </button>
+    <p style="text-align:center;margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
+      관리자 권한 계정만 접근할 수 있습니다.
+    </p>
+  `;
+  overlay.querySelector('.admin-login-card').appendChild(actionWrap);
+  return actionWrap;
+}
+
+function showAdminAccessOverlay(message) {
+  const { overlay, logo, errEl, form } = getOverlayElements();
+  if (!overlay) return;
+
+  overlay.style.display = 'flex';
+  if (logo) {
+    logo.textContent = '운영자 계정(네이버 로그인 + is_admin=true)만 접근 가능합니다.';
+  }
+  if (errEl) {
+    errEl.textContent = message || '운영자 권한이 필요합니다.';
+    errEl.classList.add('show');
+  }
+  if (form) {
+    form.style.display = 'none';
+  }
+  ensureOverlayActionButton();
+}
+
+function hideAdminAccessOverlay() {
+  const { overlay, errEl } = getOverlayElements();
+  if (errEl) errEl.classList.remove('show');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function canTryAdminApi() {
+  const user = Auth.getUser();
+  return !!(
+    user
+    && user.authProvider === 'naver'
+    && user.supabaseUserId
+  );
+}
+
+async function readApiJson(response) {
+  try {
+    return await response.json();
+  } catch (error) {
+    return null;
+  }
+}
+
+async function fetchAdminData() {
+  const response = await fetch(new URL('api/admin-data', window.location.href).toString(), {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+  const payload = await readApiJson(response);
+  if (!response.ok || !payload || !payload.ok) {
+    const error = new Error((payload && payload.message) || '운영자 데이터 조회에 실패했습니다.');
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!canTryAdminApi()) {
+    showAdminAccessOverlay('운영자 계정으로 먼저 네이버 로그인해 주세요.');
+    return;
+  }
+
+  try {
+    await enterAdmin();
+  } catch (error) {
+    const status = Number(error && error.status);
+    if (status === 401 || status === 403) {
+      showAdminAccessOverlay('운영자 권한이 없습니다. profiles.is_admin=true 계정으로 로그인해 주세요.');
+      return;
+    }
+    showAdminAccessOverlay(error.message || '관리자 데이터를 불러오는 중 오류가 발생했습니다.');
+  }
+});
+
+function handleAdminLogin(e) {
+  if (e) e.preventDefault();
+  window.location.href = 'index.html';
+}
+
+function adminLogout() {
+  Auth.logout();
+}
+
+async function enterAdmin() {
+  const user = Auth.getUser();
+  if (user) {
+    const el = document.getElementById('navUsername');
+    const av = document.getElementById('navAvatar');
+    if (el) el.textContent = user.name || '관리자';
+    if (av) av.textContent = (user.name || 'A').charAt(0).toUpperCase();
+  }
+
+  const payload = await fetchAdminData();
+  allUsers = Array.isArray(payload.users) ? payload.users.filter(item => !item.isAdmin) : [];
+  allRecords = Array.isArray(payload.records) ? payload.records : [];
+
+  hideAdminAccessOverlay();
+  renderAll();
+}
+
+function renderAll() {
+  const page = location.pathname.split('/').pop() || 'admin.html';
+
+  if (page === 'admin-ranking.html') {
+    renderRankTabs();
+    renderRanking();
+    return;
+  }
+  if (page === 'admin-users.html') {
+    renderUserMgmt();
+    return;
+  }
+
+  renderPlatformStats();
+  renderCharts();
+}
+
+function renderPlatformStats() {
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(now.getDate() - 7);
+  const weekStr = weekAgo.toISOString().split('T')[0];
+
+  const totalUsers = allUsers.length;
+  const totalRecords = allRecords.length;
+  const activeUsers = new Set(allRecords.filter(record => record.date >= weekStr).map(record => record.userId)).size;
+  const totalExMins = allRecords.reduce((sum, record) => sum + (record.walking || 0) + (record.running || 0), 0);
+
+  const stats = [
+    { icon: '👥', label: '전체 사용자', val: totalUsers, sub: '가입된 계정', cls: 'blue' },
+    { icon: '📋', label: '전체 기록수', val: totalRecords, sub: '누적 기록', cls: 'green' },
+    { icon: '✅', label: '이번 주 활성', val: activeUsers, sub: '7일 내 기록', cls: 'gold' },
+    { icon: '⏱️', label: '총 운동 시간', val: totalExMins, sub: '분 (걷기+러닝)', cls: 'purple' },
+  ];
+
+  const el = document.getElementById('platformStats');
+  if (!el) return;
+  el.innerHTML = stats.map(item => `
+    <div class="p-stat ${item.cls}">
+      <div class="p-stat-icon">${item.icon}</div>
+      <div class="p-stat-label">${item.label}</div>
+      <div class="p-stat-value">${item.val.toLocaleString()}</div>
+      <div class="p-stat-sub">${item.sub}</div>
+    </div>
+  `).join('');
+}
+
+let chartDaily = null;
+let chartShare = null;
+
+function renderCharts() {
+  renderDailyChart();
+  renderShareChart();
+}
+
+function formatPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return '-';
+  if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return String(phone || '-');
+}
+
+function renderDailyChart() {
+  const labels = [];
+  const counts = [];
+  for (let i = 29; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    labels.push(dateStr.slice(5));
+    counts.push(allRecords.filter(record => record.date === dateStr).length);
+  }
+
+  const ctx = document.getElementById('chartDailyRecords');
+  if (!ctx) return;
+  if (chartDaily) chartDaily.destroy();
+
+  chartDaily = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '기록 수',
+        data: counts,
+        borderColor: '#004680',
+        backgroundColor: 'rgba(0,70,128,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#004680',
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } },
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+function renderShareChart() {
+  const data = allUsers.map(user => ({
+    name: user.name,
+    count: allRecords.filter(record => record.userId === user.id).length,
+  }))
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  const ctx = document.getElementById('chartUserShare');
+  if (!ctx) return;
+  if (chartShare) chartShare.destroy();
+
+  if (!data.length) {
+    ctx.parentElement.innerHTML = '<div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem;">기록 데이터 없음</div>';
+    return;
+  }
+
+  const colors = ['#004680', '#DDCA4B', '#22c55e', '#8b5cf6', '#ef4444', '#f97316', '#06b6d4', '#ec4899'];
+  chartShare = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: data.map(item => item.name),
+      datasets: [{
+        data: data.map(item => item.count),
+        backgroundColor: colors.slice(0, data.length),
+        borderWidth: 2,
+        borderColor: '#fff',
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 14, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}건` } },
+      },
+    },
+  });
+}
+
+function renderRankTabs() {
+  const el = document.getElementById('rankTabs');
+  if (!el) return;
+  el.innerHTML = RANK_CONFIGS.map(config => `
+    <button class="rank-tab${rankMode === config.key ? ' active' : ''}" onclick="setRankMode('${config.key}')">${config.label}</button>
+  `).join('');
+}
+
+function setRankMode(mode) {
+  rankMode = mode;
+  renderRankTabs();
+  renderRanking();
+}
+
+function renderRanking() {
+  const cfg = RANK_CONFIGS.find(config => config.key === rankMode);
+  const ranked = allUsers.map(user => {
+    const recs = allRecords.filter(record => record.userId === user.id);
+    const streak = calcStreak(recs);
+    const walking = recs.reduce((sum, record) => sum + (record.walking || 0), 0);
+    const running = recs.reduce((sum, record) => sum + (record.running || 0), 0);
+    const strength = recs.reduce((sum, record) => sum + (record.squats || 0) + (record.pushups || 0) + (record.situps || 0), 0);
+    const water = recs.reduce((sum, record) => sum + (record.water || 0), 0);
+    const lastDate = recs.length ? recs.map(record => record.date).sort().at(-1) : '-';
+    const score = { streak, records: recs.length, walking, running, strength, water }[rankMode] || 0;
+
+    return { ...user, streak, records: recs.length, walking, running, strength, water, lastDate, score };
+  }).sort((a, b) => b.score - a.score);
+
+  const head = document.getElementById('rankHead');
+  const body = document.getElementById('rankBody');
+  if (!head || !body) return;
+
+  head.innerHTML = ['순위', '사용자', '아이디', '전화번호', cfg.desc, '총 기록', '스트릭', '최근 기록']
+    .map(label => `<th>${label}</th>`)
+    .join('');
+
+  const rankClasses = ['gold', 'silver', 'bronze'];
+  const medals = ['🥇', '🥈', '🥉'];
+  const units = { streak: '일', records: '건', walking: '분', running: '분', strength: '회', water: 'ml' };
+
+  body.innerHTML = ranked.map((user, index) => {
+    const rankBadge = index < 3
+      ? `<span class="rank-num ${rankClasses[index]}">${medals[index]}</span>`
+      : `<span class="rank-num">${index + 1}</span>`;
+
+    return `
+      <tr>
+        <td>${rankBadge}</td>
+        <td>
+          <div class="user-name-cell">
+            <div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div>
+            <span style="font-weight:700;">${user.name || '-'}</span>
+          </div>
+        </td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${user.username || '-'}</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
+        <td><strong style="color:var(--primary);">${user.score.toLocaleString()}</strong><span style="font-size:.75rem;color:var(--text-muted);"> ${units[rankMode]}</span></td>
+        <td>${user.records}건</td>
+        <td>${user.streak}일 🔥</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${user.lastDate}</td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 데이터 없음</td></tr>';
+}
+
+function renderUserMgmt() {
+  const q = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
+  const filtered = allUsers.filter(user => (
+    !q
+    || String(user.name || '').toLowerCase().includes(q)
+    || String(user.username || '').toLowerCase().includes(q)
+    || String(user.phone || '').toLowerCase().includes(q)
+  ));
+
+  const now7 = new Date();
+  now7.setDate(now7.getDate() - 7);
+  const weekStr = `${now7.getFullYear()}-${String(now7.getMonth() + 1).padStart(2, '0')}-${String(now7.getDate()).padStart(2, '0')}`;  
+
+  const body = document.getElementById('mgmtBody');
+  if (!body) return;
+
+  body.innerHTML = filtered.map(user => {
+    const recs = allRecords.filter(record => record.userId === user.id);
+    const streak = calcStreak(recs);
+    const lastDate = recs.length ? recs.map(record => record.date).sort().at(-1) : null;
+    const isActive = !!(lastDate && lastDate >= weekStr);
+    const joinDate = user.createdAt ? String(user.createdAt).split('T')[0] : '-';
+    return `
+      <tr>
+        <td><div class="user-name-cell"><div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div><span style="font-weight:600;">${user.name || '-'}</span></div></td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${user.username || '-'}</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
+        <td><strong>${recs.length}</strong>건</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${lastDate || '없음'}</td>
+        <td>${streak > 0 ? `<strong style="color:var(--primary);">${streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
+        <td>${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;" onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')">삭제</button>
+        </td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 없음</td></tr>';
+}
+
+let udChartActivity = null;
+let udChartCat = null;
+
+function viewUser(userId) {
+  const user = allUsers.find(item => item.id === userId);
+  const recs = allRecords.filter(record => record.userId === userId).sort((a, b) => (a.date < b.date ? 1 : -1));
+  if (!user) return;
+
+  const sum = key => recs.reduce((acc, record) => acc + (record[key] || 0), 0);
+  const streak = calcStreak(recs);
+  const avgCond = recs.length ? (recs.reduce((acc, record) => acc + (record.condition || 3), 0) / recs.length).toFixed(1) : '-';
+
+  document.getElementById('udAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
+  document.getElementById('udName').textContent = user.name || '-';
+  document.getElementById('udMeta').textContent =
+    `@${user.username || '-'}  ·  ${formatPhone(user.phone)}  ·  가입일 ${user.createdAt ? String(user.createdAt).split('T')[0] : '-'}  ·  총 ${recs.length}건 기록`;
+
+  const statItems = [
+    { icon: '🔥', label: '연속 스트릭', val: `${streak}일` },
+    { icon: '📋', label: '총 기록수', val: `${recs.length}건` },
+    { icon: '⏱️', label: '운동 시간', val: `${sum('walking') + sum('running')}분` },
+    { icon: '⭐', label: '평균 컨디션', val: avgCond !== '-' ? `${avgCond}/5` : '-' },
+  ];
+  document.getElementById('udStats').innerHTML = statItems.map(item => `
+    <div style="padding:16px;border-right:1px solid var(--border);text-align:center;background:var(--surface);">
+      <div style="font-size:1.4rem;margin-bottom:4px;">${item.icon}</div>
+      <div style="font-size:1.1rem;font-weight:800;color:var(--primary);">${item.val}</div>
+      <div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;">${item.label}</div>
+    </div>
+  `).join('');
+
+  const condEmoji = value => ['', '😔', '😕', '😊', '😄', '🤩'][Math.round(value) || 0] || '';
+  document.getElementById('udRecordBody').innerHTML = recs.length
+    ? recs.map(record => `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px 10px;font-size:0.82rem;font-weight:600;">${record.date}</td>
+        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.walking || '-'}${record.walking ? '분' : ''}</td>
+        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.running || '-'}${record.running ? '분' : ''}</td>
+        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.squats || '-'}${record.squats ? '회' : ''}</td>
+        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.water || '-'}${record.water ? 'ml' : ''}</td>
+        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${condEmoji(record.condition)} ${record.condition || '-'}</td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">기록 없음</td></tr>';
+
+  const days30 = [];
+  const counts30 = [];
+  for (let i = 29; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    days30.push(ds.slice(5));
+    counts30.push(recs.some(record => record.date === ds) ? 1 : 0);
+  }
+
+  setTimeout(() => {
+    const ctx1 = document.getElementById('udChartActivity');
+    if (ctx1) {
+      if (udChartActivity) udChartActivity.destroy();
+      udChartActivity = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels: days30,
+          datasets: [{
+            label: '기록 여부',
+            data: counts30,
+            backgroundColor: counts30.map(v => (v ? '#004680' : 'rgba(0,70,128,0.15)')),
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => (ctx.parsed.y ? '기록 있음' : '기록 없음') } },
+          },
+          scales: {
+            x: { ticks: { maxTicksLimit: 10, font: { size: 9 } } },
+            y: { display: false, min: 0, max: 1 },
+          },
+        },
+      });
+    }
+
+    const catCfgs = [
+      { key: '유산소', color: '#22c55e' },
+      { key: '근력', color: '#004680' },
+      { key: '유연성', color: '#8b5cf6' },
+      { key: '스포츠', color: '#DDCA4B' },
+    ];
+    const catTotals = { 유산소: 0, 근력: 0, 유연성: 0, 스포츠: 0 };
+    recs.forEach(record => {
+      (record.customExercises || []).forEach(ex => {
+        if (Object.prototype.hasOwnProperty.call(catTotals, ex.category)) {
+          catTotals[ex.category] += (ex.duration || 0);
+        }
+      });
+    });
+    const usedCats = catCfgs.filter(cat => catTotals[cat.key] > 0);
+    const totalMins = Object.values(catTotals).reduce((acc, value) => acc + value, 0);
+
+    const ctx2 = document.getElementById('udChartCat');
+    if (!ctx2) return;
+    if (udChartCat) udChartCat.destroy();
+
+    if (!usedCats.length) {
+      ctx2.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text-muted);font-size:.85rem;">카테고리 데이터 없음</div>';
+      document.getElementById('udCatList').innerHTML = '';
+      return;
+    }
+
+    udChartCat = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: usedCats.map(cat => cat.key),
+        datasets: [{
+          data: usedCats.map(cat => catTotals[cat.key]),
+          backgroundColor: usedCats.map(cat => cat.color),
+          borderWidth: 2,
+          borderColor: '#fff',
+        }],
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    });
+
+    document.getElementById('udCatList').innerHTML = usedCats.map(cat => `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:12px;height:12px;border-radius:50%;background:${cat.color};flex-shrink:0;"></div>
+        <span style="font-size:0.82rem;flex:1;">${cat.key}</span>
+        <span style="font-size:0.82rem;font-weight:700;color:var(--primary);">${catTotals[cat.key]}분</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);">${totalMins ? Math.round((catTotals[cat.key] / totalMins) * 100) : 0}%</span>
+      </div>
+    `).join('');
+  }, 50);
+
+  document.getElementById('udDeleteBtn').onclick = () => {
+    closeUserDetail();
+    confirmDeleteUser(userId, user.name || '-');
+  };
+
+  switchUdTab(0);
+  document.getElementById('userDetailModal').style.display = 'block';
+}
+
+function closeUserDetail() {
+  const modal = document.getElementById('userDetailModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function switchUdTab(idx) {
+  [0, 1, 2].forEach(i => {
+    const panel = document.getElementById(`udPanel${i}`);
+    const tab = document.getElementById(`udTab${i}`);
+    const active = i === idx;
+    panel.style.display = active ? 'block' : 'none';
+    tab.style.fontWeight = active ? '700' : '600';
+    tab.style.color = active ? 'var(--primary)' : 'var(--text-secondary)';
+    tab.style.borderBottom = active ? '2px solid var(--primary)' : 'none';
+    tab.style.marginBottom = active ? '-2px' : '0';
+  });
+}
+
+function confirmDeleteUser(userId, name) {
+  deleteTargetId = userId;
+  document.getElementById('confirmMsg').textContent = `"${name}" 사용자와 모든 기록이 영구 삭제됩니다.`;
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmDeleteBtn').onclick = deleteUser;
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('show');
+  deleteTargetId = null;
+}
+
+async function deleteUser() {
+  if (!deleteTargetId) return;
+
+  try {
+    const response = await fetch(new URL('api/admin-users', window.location.href).toString(), {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId: deleteTargetId }),
+    });
+    const payload = await readApiJson(response);
+    if (!response.ok || !payload || !payload.ok) {
+      throw new Error((payload && payload.message) || '사용자 삭제에 실패했습니다.');
+    }
+
+    closeConfirm();
+    await enterAdmin();
+    showToast('사용자가 삭제되었습니다.', 'success');
+  } catch (error) {
+    console.error('[AdminDeleteUser]', error);
+    showToast(error.message || '사용자 삭제 중 오류가 발생했습니다.', 'error');
+  }
+}
