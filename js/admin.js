@@ -28,28 +28,6 @@ function getOverlayElements() {
   };
 }
 
-function ensureOverlayActionButton() {
-  const { overlay } = getOverlayElements();
-  if (!overlay) return;
-
-  let actionWrap = document.getElementById('adminOverlayAction');
-  if (actionWrap) return actionWrap;
-
-  actionWrap = document.createElement('div');
-  actionWrap.id = 'adminOverlayAction';
-  actionWrap.style.marginTop = '16px';
-  actionWrap.innerHTML = `
-    <button type="button" class="btn btn-primary btn-block btn-lg" onclick="handleAdminLogin(event)">
-      네이버 로그인으로 이동
-    </button>
-    <p style="text-align:center;margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
-      관리자 권한 계정만 접근할 수 있습니다.
-    </p>
-  `;
-  overlay.querySelector('.admin-login-card').appendChild(actionWrap);
-  return actionWrap;
-}
-
 function showAdminAccessOverlay(message) {
   const { overlay, logo, errEl, form } = getOverlayElements();
   if (!overlay) return;
@@ -65,7 +43,6 @@ function showAdminAccessOverlay(message) {
   if (form) {
     form.style.display = 'none';
   }
-  ensureOverlayActionButton();
 }
 
 function hideAdminAccessOverlay() {
@@ -107,6 +84,10 @@ async function fetchAdminData() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.SupabaseAuth) {
+    await SupabaseAuth.handleIndexSession();
+  }
+
   if (!canTryAdminApi()) {
     showAdminAccessOverlay('운영자 계정으로 먼저 네이버 로그인해 주세요.');
     return;
