@@ -6,6 +6,9 @@ let rankMode = 'streak';
 let deleteTargetId = null;
 let allUsers = [];
 let allRecords = [];
+let fetchedUsers = [];
+let fetchedRecords = [];
+let filterSpecialOnly = false;
 
 const RANK_CONFIGS = [
   { key: 'streak', label: '🔥 연속 기록', desc: '연속 기록 일수' },
@@ -140,8 +143,9 @@ async function enterAdmin() {
   }
 
   const payload = await fetchAdminData();
-  allUsers = Array.isArray(payload.users) ? payload.users.filter(item => !item.isAdmin) : [];
-  allRecords = Array.isArray(payload.records) ? payload.records : [];
+  fetchedUsers = Array.isArray(payload.users) ? payload.users.filter(item => !item.isAdmin) : [];
+  fetchedRecords = Array.isArray(payload.records) ? payload.records : [];
+  applyFilter();
 
   hideAdminAccessOverlay();
   renderAll();
@@ -394,6 +398,7 @@ function renderUserMgmt() {
         <td>
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;" onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')">삭제</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isSpecial ? 'background:var(--gold);color:var(--primary-dark);' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" onclick="toggleSpecialTarget('${user.id}', ${!!user.isSpecial})">⭐특별관리</button>
         </td>
       </tr>
     `;
@@ -599,5 +604,50 @@ async function deleteUser() {
   } catch (error) {
     console.error('[AdminDeleteUser]', error);
     showToast(error.message || '사용자 삭제 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+function applyFilter() {
+  if (filterSpecialOnly) {
+    allUsers = fetchedUsers.filter(u => u.isSpecial);
+    const validIds = new Set(allUsers.map(u => u.id));
+    allRecords = fetchedRecords.filter(r => validIds.has(r.userId));
+  } else {
+    allUsers = [...fetchedUsers];
+    allRecords = [...fetchedRecords];
+  }
+  if (document.getElementById('platformStats') || document.getElementById('rankHead') || document.getElementById('mgmtBody')) {
+    renderAll();
+  }
+}
+
+function toggleSpecialFilter() {
+  filterSpecialOnly = !filterSpecialOnly;
+  const btn = document.getElementById('btnFilterSpecial');
+  if (btn) {
+    btn.classList.toggle('active', filterSpecialOnly);
+    btn.style.color = filterSpecialOnly ? 'var(--gold)' : '';
+  }
+  applyFilter();
+}
+
+async function toggleSpecialTarget(userId, currentStatus) {
+  try {
+    const res = await fetch(new URL('api/admin-special', window.location.href).toString(), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, isSpecial: !currentStatus }),
+      credentials: 'include'
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || '업데이트 실패');
+    
+    const userIdx = fetchedUsers.findIndex(u => u.id === userId);
+    if (userIdx > -1) {
+      fetchedUsers[userIdx].isSpecial = !currentStatus;
+      applyFilter();
+    }
+  } catch (err) {
+    alert('상태 변경 실패: ' + err.message);
   }
 }

@@ -13,6 +13,7 @@ create table if not exists public.profiles (
   auth_provider text not null default 'naver',
   oauth_provider_id text,
   is_admin boolean not null default false,
+  is_special boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

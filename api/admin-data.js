@@ -15,6 +15,7 @@ function mapProfile(row) {
     email: row.email || '',
     phone: row.phone || '',
     isAdmin: !!row.is_admin,
+    isSpecial: !!row.is_special,
     createdAt: row.created_at || new Date().toISOString(),
     supabaseUserId: row.id,
     authProvider: row.auth_provider || 'naver',
