@@ -124,7 +124,7 @@ async function enterAdmin() {
   }
 
   const payload = await fetchAdminData();
-  fetchedUsers = Array.isArray(payload.users) ? payload.users.filter(item => !item.isAdmin) : [];
+  fetchedUsers = Array.isArray(payload.users) ? payload.users : [];
   fetchedRecords = Array.isArray(payload.records) ? payload.records : [];
   applyFilter();
 
@@ -331,6 +331,7 @@ function renderRanking() {
           <div class="user-name-cell">
             <div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div>
             <span style="font-weight:700;">${user.name || '-'}</span>
+            ${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}
           </div>
         </td>
         <td style="font-size:.8rem;color:var(--text-muted);">${user.username || '-'}</td>
@@ -368,7 +369,7 @@ function renderUserMgmt() {
     const joinDate = user.createdAt ? String(user.createdAt).split('T')[0] : '-';
     return `
       <tr>
-        <td><div class="user-name-cell"><div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div><span style="font-weight:600;">${user.name || '-'}</span></div></td>
+        <td><div class="user-name-cell"><div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div><span style="font-weight:600;">${user.name || '-'}</span>${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}</div></td>
         <td style="font-size:.8rem;color:var(--text-muted);">${user.username || '-'}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
@@ -378,7 +379,7 @@ function renderUserMgmt() {
         <td>${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
         <td>
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
-          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;" onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')">삭제</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isAdmin ? 'background:var(--border);color:var(--text-muted);cursor:not-allowed;' : 'background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;'}" ${user.isAdmin ? 'disabled' : `onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')"`}>삭제</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isSpecial ? 'background:var(--gold);color:var(--primary-dark);' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" onclick="toggleSpecialTarget('${user.id}', ${!!user.isSpecial})">⭐특별관리</button>
         </td>
       </tr>
