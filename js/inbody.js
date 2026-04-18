@@ -3,11 +3,12 @@ let inbodyRecords = [];
 let charts = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await App.init();
-  if (!App.currentUser) return; // Wait for app.js to handle redirect
+  const user = Auth.require();
+  if (!user) return;
 
-  document.getElementById('navUsername').textContent = App.profile?.name || '사용자';
-  document.getElementById('navAvatar').textContent = (App.profile?.name || 'U').charAt(0).toUpperCase();
+  // Use Auth user data or fetch from profiles
+  document.getElementById('navUsername').textContent = user.name || '사용자';
+  document.getElementById('navAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
 
   await loadInbodyRecords();
 });

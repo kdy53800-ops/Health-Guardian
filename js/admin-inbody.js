@@ -9,37 +9,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set default date
   document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
 
-  try {
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if (error || !session) {
-      overlay.style.display = 'flex';
-      return;
-    }
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!profile || !profile.is_admin) {
-      document.getElementById('adminErr').textContent = '관리자 권한이 없습니다.';
-      document.getElementById('adminErr').classList.add('show');
-      overlay.style.display = 'flex';
-      return;
-    }
-    
-    // Authenticated
-    currentUser = session.user;
-    overlay.style.display = 'none';
-    
-    // Initialize
-    initDragAndDrop();
-    await loadSpecialUsers();
-
-  } catch (err) {
-    console.error('Auth error:', err);
-    overlay.style.display = 'flex';
+  const user = Auth.requireAdmin();
+  if (!user) {
+    // Auth.requireAdmin redirects to index.html or dashboard.html
+    // but we can also show the overlay as a fallback
+    if (overlay) overlay.style.display = 'flex';
+    return;
   }
+
+  // Already checked for admin in Auth.requireAdmin
+  currentUser = user;
+  if (overlay) overlay.style.display = 'none';
+
+  const el = document.getElementById('navUsername');
+  const av = document.getElementById('navAvatar');
+  if (el) el.textContent = user.name || '관리자';
+  if (av) av.textContent = (user.name || 'A').charAt(0).toUpperCase();
+  
+  // Initialize
+  initDragAndDrop();
+  await loadSpecialUsers();
 });
 
 async function adminLogout() {
