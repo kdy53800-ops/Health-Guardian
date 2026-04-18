@@ -82,19 +82,23 @@ async function loadUserRecords() {
   
   uploadSection.style.display = 'block';
   historySection.style.display = 'block';
-  
+
+  const listEl = document.getElementById('recordList');
+  listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">불러오는 중...</td></tr>';
+
   try {
-    const { data: records, error } = await supabaseClient
-      .from('inbody_records')
-      .select('*')
-      .eq('user_id', selectedUserId)
-      .order('record_date', { ascending: false });
-      
-    if (error) throw error;
+    const res = await fetch(new URL(`api/admin-inbody?userId=${selectedUserId}`, window.location.href).toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (!res.ok || !result.ok) throw new Error(result.message || '로드 실패');
     
-    renderRecords(records);
+    renderRecords(result.records);
   } catch (err) {
     console.error('Error loading records:', err);
+    listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
   }
 }
 
@@ -265,19 +269,21 @@ async function saveRecord() {
 }
 
 async function deleteRecord(id) {
-  if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+  if (!confirm('정말 삭제하시겠습니까?')) return;
   
   try {
-    const { error } = await supabaseClient
-      .from('inbody_records')
-      .delete()
-      .eq('id', id);
-      
-    if (error) throw error;
+    const res = await fetch(new URL(`api/admin-inbody?id=${id}`, window.location.href).toString(), {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (!res.ok || !result.ok) throw new Error(result.message || '삭제 실패');
     
-    loadUserRecords(); // Reload list
+    alert('삭제되었습니다.');
+    loadUserRecords();
   } catch (err) {
-    console.error('Error deleting:', err);
-    alert('삭제 중 오류가 발생했습니다.');
+    console.error('Error deleting record:', err);
+    alert('삭제 중 오류가 발생했습니다: ' + err.message);
   }
 }
