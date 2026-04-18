@@ -16,15 +16,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadInbodyRecords() {
   try {
-    const { data: records, error } = await supabaseClient
-      .from('inbody_records')
-      .select('*')
-      .eq('user_id', App.currentUser.id)
-      .order('record_date', { ascending: true }); // Ascending for charts
-      
-    if (error) throw error;
+    const res = await fetch(new URL('api/inbody-data', window.location.href).toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (!res.ok || !result.ok) throw new Error(result.message || '데이터 로드 실패');
     
-    inbodyRecords = records;
+    inbodyRecords = result.records;
     
     if (inbodyRecords.length === 0) {
       document.getElementById('noDataMessage').style.display = 'block';

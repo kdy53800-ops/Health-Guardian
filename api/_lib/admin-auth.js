@@ -27,6 +27,15 @@ async function requireAdminSession(req) {
   };
 }
 
+async function requireAuthSession(req) {
+  const session = readSessionFromRequest(req);
+  if (!session || !session.uid) {
+    return { ok: false, statusCode: 401, message: 'Login session is required.' };
+  }
+  return { ok: true, session, id: session.uid };
+}
+
 module.exports = {
   requireAdminSession,
+  requireAuthSession,
 };
