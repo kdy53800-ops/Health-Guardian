@@ -225,7 +225,7 @@
       await SupabaseAuth.handleIndexSession();
       const user = Auth.getUser();
       if (user) {
-        window.location.href = user.isAdmin ? 'admin.html' : 'dashboard.html';
+        window.location.href = 'dashboard.html';
       }
     })();
 
