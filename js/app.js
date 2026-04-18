@@ -538,6 +538,18 @@ function renderNavUser() {
       inbodyNav.style.display = 'none';
     }
   }
+
+  // 관리자 메뉴 제어 (관리자 계정만 노출)
+  const navLinks = document.querySelector('.nav-links');
+  if (navLinks && user && user.isAdmin) {
+    if (!document.querySelector('nav a[href="admin.html"]')) {
+      const li = document.createElement('li');
+      li.innerHTML = `<a href="admin.html" style="color:var(--gold); border:1px solid var(--gold); border-radius:100px; padding:5px 14px; margin-left:10px; font-weight:800; display:flex; align-items:center; gap:5px; background:rgba(221,202,75,0.1);">
+        <span class="nav-icon" style="margin:0;">⚙️</span> 관리자 모드
+      </a>`;
+      navLinks.appendChild(li);
+    }
+  }
 }
 
 // ─── Stars ─────────────────────────────────────────────
