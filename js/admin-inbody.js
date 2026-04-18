@@ -83,7 +83,7 @@ async function loadUserRecords() {
   uploadSection.style.display = 'block';
   historySection.style.display = 'block';
 
-  const listEl = document.getElementById('recordList');
+  const listEl = document.getElementById('recordListBody');
   listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">불러오는 중...</td></tr>';
 
   try {
