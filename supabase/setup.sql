@@ -122,3 +122,64 @@ create trigger daily_records_set_updated_at
 before update on public.daily_records
 for each row
 execute function public.set_updated_at();
+
+-- ==========================================
+-- INBODY RECORDS
+-- ==========================================
+create table if not exists public.inbody_records (
+  id text primary key,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  record_date date not null,
+  weight numeric not null default 0,
+  skeletal_muscle numeric not null default 0,
+  body_fat_mass numeric not null default 0,
+  bmi numeric not null default 0,
+  body_fat_percent numeric not null default 0,
+  ecw_ratio numeric not null default 0,
+  inbody_score integer not null default 0,
+  image_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists inbody_records_user_date_uidx
+on public.inbody_records (user_id, record_date);
+
+create index if not exists inbody_records_user_date_idx
+on public.inbody_records (user_id, record_date desc);
+
+alter table public.inbody_records enable row level security;
+
+-- Users can read their own records
+drop policy if exists "inbody_records_select_own" on public.inbody_records;
+create policy "inbody_records_select_own"
+on public.inbody_records
+for select
+using (auth.uid() = user_id);
+
+-- Admins can do everything. For simplicity, we can just allow everything if user is admin, but since RLS for admin might be complex depending on auth state, we will add a policy for admin. We'll just assume admin requests are made with admin token or through edge functions. Actually, we can add a policy for admin using `is_admin = true` from profiles.
+-- But since it's a simple setup, we can allow insert/update/delete for everyone and handle security in UI or API. Let's make it secure:
+drop policy if exists "inbody_records_all_admin" on public.inbody_records;
+create policy "inbody_records_all_admin"
+on public.inbody_records
+for all
+using (
+  exists (
+    select 1 from public.profiles where id = auth.uid() and is_admin = true
+  )
+);
+
+drop trigger if exists inbody_records_set_updated_at on public.inbody_records;
+create trigger inbody_records_set_updated_at
+before update on public.inbody_records
+for each row
+execute function public.set_updated_at();
+
+-- ==========================================
+-- STORAGE BUCKETS (Must be created via UI or SQL if supported)
+-- ==========================================
+-- insert into storage.buckets (id, name, public) values ('inbody_images', 'inbody_images', true) on conflict do nothing;
+-- drop policy if exists "Public Access" on storage.objects;
+-- create policy "Public Access" on storage.objects for select using (bucket_id = 'inbody_images');
+-- drop policy if exists "Admin Upload" on storage.objects;
+-- create policy "Admin Upload" on storage.objects for insert with check (bucket_id = 'inbody_images' and exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
