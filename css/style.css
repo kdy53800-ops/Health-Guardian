@@ -184,6 +184,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   font-weight: 700;
   font-size: 0.9rem;
   color: var(--primary-dark);
+  flex-shrink: 0;
 }
 
 .nav-username {
@@ -191,6 +192,153 @@ h4 { font-size: 1rem; font-weight: 600; }
   font-weight: 600;
 }
 
+/* ── 프로필 드롭다운 ── */
+.nav-profile {
+  position: relative;
+}
+
+.nav-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 100px;
+  padding: 4px 12px 4px 4px;
+  cursor: pointer;
+  color: var(--white);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-profile-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.nav-profile-btn .profile-caret {
+  font-size: 0.55rem;
+  opacity: 0.7;
+  transition: transform 0.2s;
+  margin-left: 2px;
+}
+
+.nav-profile.open .profile-caret {
+  transform: rotate(180deg);
+}
+
+/* 드롭다운 패널 */
+.nav-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.97);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nav-profile.open .nav-profile-dropdown {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* 드롭다운 헤더 (유저 정보) */
+.dropdown-user-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.dropdown-user-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.dropdown-user-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 드롭다운 아이템 */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.14s;
+}
+
+.dropdown-item:hover {
+  background: var(--surface-2);
+}
+
+.dropdown-item .di-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.dropdown-item.admin-item {
+  color: var(--gold-dark);
+}
+.dropdown-item.admin-item .di-icon {
+  background: rgba(221, 202, 75, 0.15);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.dropdown-item.logout-item {
+  color: var(--text-secondary);
+}
+.dropdown-item.logout-item .di-icon {
+  background: var(--surface-2);
+}
+
+.dropdown-item.danger-item {
+  color: #dc2626;
+}
+.dropdown-item.danger-item .di-icon {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.dropdown-item.danger-item:hover {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+/* btn-logout — 관리자 페이지 전용 유지 */
 .btn-logout {
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.2);
@@ -206,6 +354,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 .btn-logout:hover {
   background: rgba(255,255,255,0.22);
 }
+
 
 /* ===== BUTTONS ===== */
 .btn {

@@ -524,33 +524,84 @@ function setActiveNav() {
 // ─── Render Nav User ───────────────────────────────────
 function renderNavUser() {
   const user = Auth.getUser();
-  const el = document.getElementById('navUsername');
-  const avatar = document.getElementById('navAvatar');
-  if (el && user) el.textContent = user.name;
-  if (avatar && user) avatar.textContent = (user.name || 'U').charAt(0).toUpperCase();
+  const navRight = document.querySelector('.nav-right');
+  if (!navRight || !user) return;
 
   // 인바디 메뉴 제어 (특별관리 대상자만 노출)
   const inbodyNav = document.querySelector('nav a[href="inbody.html"]')?.parentElement;
   if (inbodyNav) {
-    if (user && user.isSpecial) {
-      inbodyNav.style.display = 'block';
-    } else {
-      inbodyNav.style.display = 'none';
-    }
+    inbodyNav.style.display = user.isSpecial ? 'block' : 'none';
   }
 
-  // 관리자 메뉴 제어 (관리자 계정만 노출)
-  const navLinks = document.querySelector('.nav-links');
-  if (navLinks && user && user.isAdmin) {
-    if (!document.querySelector('nav a[href="admin.html"]')) {
-      const li = document.createElement('li');
-      li.innerHTML = `<a href="admin.html" style="color:var(--gold); border:1px solid var(--gold); border-radius:100px; padding:5px 14px; margin-left:10px; font-weight:800; display:flex; align-items:center; gap:5px; background:rgba(221,202,75,0.1);">
-        <span class="nav-icon" style="margin:0;">⚙️</span> 관리자 모드
-      </a>`;
-      navLinks.appendChild(li);
-    }
-  }
+  // 기존 btn-logout 버튼들 제거 (흩어진 것들 정리)
+  navRight.querySelectorAll('.btn-logout').forEach(btn => {
+    // 관리자 페이지의 특별 필터 버튼(btnFilterSpecial)은 유지
+    if (btn.id !== 'btnFilterSpecial') btn.remove();
+  });
+
+  // 기존 nav-user, nav-profile 제거 후 재생성
+  navRight.querySelector('.nav-user')?.remove();
+  navRight.querySelector('.nav-profile')?.remove();
+
+  const initial = (user.name || user.username || '?')[0].toUpperCase();
+  const displayName = user.name || user.username || '사용자';
+
+  // 관리자 전용 항목
+  const adminItemHTML = user.isAdmin ? `
+    <a href="admin.html" class="dropdown-item admin-item">
+      <span class="di-icon">⚙️</span>
+      관리자 패널
+    </a>
+    <div class="dropdown-divider"></div>
+  ` : '';
+
+  // 프로필 드롭다운 버튼 + 메뉴
+  const profile = document.createElement('div');
+  profile.className = 'nav-profile';
+  profile.id = 'navProfile';
+  profile.innerHTML = `
+    <button class="nav-profile-btn" id="navProfileBtn" aria-haspopup="true" aria-expanded="false">
+      <div class="nav-avatar" id="navAvatar">${initial}</div>
+      <span class="nav-username" id="navUsername">${displayName}</span>
+      <span class="profile-caret">▼</span>
+    </button>
+    <div class="nav-profile-dropdown" id="navProfileDropdown" role="menu">
+      <div class="dropdown-user-header">
+        <div class="dropdown-user-name">${displayName}</div>
+        <div class="dropdown-user-sub">건강지킴이 멤버</div>
+      </div>
+      ${adminItemHTML}
+      <button class="dropdown-item logout-item" onclick="Auth.logout()" role="menuitem">
+        <span class="di-icon">🚪</span>
+        로그아웃
+      </button>
+      <button class="dropdown-item danger-item" onclick="Auth.deleteAccount()" role="menuitem">
+        <span class="di-icon">🗑️</span>
+        계정 탈퇴
+      </button>
+    </div>
+  `;
+
+  navRight.appendChild(profile);
+
+  // 클릭으로 드롭다운 토글
+  const profileBtn = profile.querySelector('#navProfileBtn');
+  profileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = profile.classList.toggle('open');
+    profileBtn.setAttribute('aria-expanded', isOpen);
+  });
+
+  // 외부 클릭 시 닫기
+  document.addEventListener('click', () => {
+    profile.classList.remove('open');
+    profileBtn.setAttribute('aria-expanded', 'false');
+  });
+
+  // 드롭다운 자체 클릭은 전파 방지
+  profile.querySelector('#navProfileDropdown').addEventListener('click', e => e.stopPropagation());
 }
+
 
 // ─── Stars ─────────────────────────────────────────────
 function renderStars(rating, max = 5) {
