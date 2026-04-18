@@ -801,8 +801,162 @@ textarea.form-control {
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .nav-links { display: none; }
-  .top-nav { padding: 0 16px; }
-  .page-content { padding: 16px 12px; }
+  .nav-right .btn-logout { display: none; }
+  .top-nav { padding: 0 14px; }
+  .page-content { padding: 16px 12px; padding-bottom: 80px; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+}
+
+/* ===== BOTTOM TAB BAR (모바일 전용) ===== */
+.bottom-tab-bar {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .bottom-tab-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 62px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,70,128,0.10);
+    z-index: 2000;
+    align-items: stretch;
+  }
+
+  .bottom-tab-bar a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 6px 4px;
+    transition: color 0.18s;
+    -webkit-tap-highlight-color: transparent;
+    min-width: 44px;
+  }
+
+  .bottom-tab-bar a .tab-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    transition: transform 0.18s;
+  }
+
+  .bottom-tab-bar a.active,
+  .bottom-tab-bar a:active {
+    color: var(--primary);
+  }
+
+  .bottom-tab-bar a.active .tab-icon {
+    transform: translateY(-2px);
+  }
+
+  .bottom-tab-bar a.tab-admin {
+    color: var(--gold-dark);
+  }
+
+  .bottom-tab-bar a.tab-admin .tab-icon {
+    background: rgba(221,202,75,0.15);
+    border-radius: 8px;
+    padding: 2px 6px;
+  }
+
+  /* 앱 레이아웃 하단 여백 (탭바 높이만큼) */
+  .app-layout {
+    padding-bottom: 62px;
+  }
+
+  /* 모달 모바일 최적화: 하단 슬라이드업 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-box {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 90dvh;
+    padding: 24px 20px;
+    animation: slideUpModal 0.28s cubic-bezier(0.4,0,0.2,1);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* 토스트 → 상단으로 이동 */
+  .toast-container {
+    bottom: auto;
+    top: 72px;
+    left: 12px;
+    right: 12px;
+    align-items: stretch;
+  }
+
+  .toast {
+    min-width: 0;
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  /* 터치 타겟 최소 44px 보장 */
+  .btn, button, input, select, textarea {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: 8px 14px;
+  }
+
+  /* 테이블 가로 스크롤 처리 */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+  }
+
+  table {
+    min-width: 560px;
+  }
+
+  /* 페이지 헤더 모바일 최적화 */
+  .page-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .page-header .subtitle {
+    margin-left: 0;
+    font-size: 0.82rem;
+  }
+
+  /* 스탯 카드 */
+  .stat-card-value {
+    font-size: 1.6rem;
+  }
+
+  /* 네비게이션 오른쪽 영역 간소화 */
+  .nav-username {
+    display: none;
+  }
+}
+
+/* safe area (iPhone notch/홈바) 대응 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-tab-bar {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(62px + env(safe-area-inset-bottom));
+  }
 }
 
 /* ===== LOGIN PAGE ===== */

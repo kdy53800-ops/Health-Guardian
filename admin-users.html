@@ -45,6 +45,21 @@
     }
     .mgmt-table tr:last-child td { border-bottom:none; }
     .mgmt-table tr:hover td { background:var(--surface-2); }
+
+    /* 테이블 모바일 스크롤 */
+    .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    .table-scroll-wrap .mgmt-table { min-width: 700px; }
+
+    @media (max-width: 600px) {
+      .platform-stats { grid-template-columns: repeat(2,1fr) !important; }
+      .admin-charts { grid-template-columns: 1fr !important; }
+    }
+
     .user-avatar-sm {
       width:34px; height:34px; border-radius:50%;
       background:linear-gradient(135deg,var(--primary),var(--primary-light));
@@ -137,7 +152,7 @@
             oninput="renderUserMgmt()">
         </div>
         <div class="chart-card-body" style="padding-top:0;">
-          <div style="overflow-x:auto;">
+          <div class="table-scroll-wrap">
             <table class="mgmt-table">
               <thead><tr>
                 <th>사용자</th><th>아이디</th><th>전화번호</th><th>가입일</th>
@@ -147,6 +162,7 @@
             </table>
           </div>
         </div>
+
       </div>
     </main>
   </div>

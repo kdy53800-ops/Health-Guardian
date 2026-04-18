@@ -579,4 +579,46 @@ document.addEventListener('DOMContentLoaded', () => {
   cleanupLegacyAdminAccount();
   setActiveNav();
   renderNavUser();
+  renderBottomTabBar();
 });
+
+// ─── Bottom Tab Bar (모바일 전용) ──────────────────────
+function renderBottomTabBar() {
+  // 로그인 페이지에서는 탭바 미표시
+  const page = window.location.pathname.split('/').pop() || 'index.html';
+  const noTabPages = ['index.html', 'admin.html', 'admin-users.html', 'admin-ranking.html', 'admin-inbody.html', 'seed-data.html', ''];
+  if (noTabPages.includes(page)) return;
+
+  const user = Auth.getUser();
+  if (!user) return;
+
+  const tabs = [
+    { href: 'dashboard.html', icon: '📊', label: '대시보드' },
+    { href: 'record.html',    icon: '✏️', label: '기록' },
+    { href: 'history.html',   icon: '📋', label: '목록' },
+    { href: 'monthly.html',   icon: '📆', label: '분석' },
+  ];
+
+  if (user.isSpecial) {
+    tabs.push({ href: 'inbody.html', icon: '💪', label: '인바디' });
+  }
+
+  if (user.isAdmin) {
+    tabs.push({ href: 'admin.html', icon: '⚙️', label: '관리자', cls: 'tab-admin' });
+  }
+
+  const bar = document.createElement('nav');
+  bar.className = 'bottom-tab-bar';
+  bar.setAttribute('aria-label', '하단 탭 내비게이션');
+
+  bar.innerHTML = tabs.map(tab => {
+    const isActive = page === tab.href;
+    return `<a href="${tab.href}" class="${isActive ? 'active' : ''} ${tab.cls || ''}" aria-label="${tab.label}">
+      <span class="tab-icon">${tab.icon}</span>
+      <span>${tab.label}</span>
+    </a>`;
+  }).join('');
+
+  document.body.appendChild(bar);
+}
+

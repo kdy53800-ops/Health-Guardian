@@ -163,9 +163,17 @@
     }
 
     @media (max-width: 900px) {
-      .inbody-grid {
-        grid-template-columns: 1fr;
-      }
+      .inbody-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .inbody-grid { grid-template-columns: 1fr; gap: 16px; }
+      .chart-card { padding: 16px; }
+      .record-list-card { padding: 16px; }
+      .project-notice { padding: 12px 14px; gap: 8px; }
+      .project-notice p { font-size: 0.85rem; }
+      /* 테이블 스크롤 */
+      .record-list-card { overflow-x: auto; }
+      .record-table { min-width: 480px; }
     }
   </style>
 </head>

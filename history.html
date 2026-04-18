@@ -246,6 +246,16 @@
       from { transform: scale(0.9); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
+
+    @media (max-width: 600px) {
+      .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; }
+      .filter-input { width: 100%; }
+      .record-count-badge { margin-left: 0; text-align: center; }
+      .record-card { padding: 14px 14px; }
+      .record-card-top { flex-wrap: wrap; }
+      .record-memo { max-width: 100%; white-space: normal; }
+      .record-footer { flex-direction: column; gap: 8px; align-items: flex-start; }
+    }
   </style>
 </head>
 <body>

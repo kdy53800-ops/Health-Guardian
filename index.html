@@ -19,17 +19,19 @@
       margin: 0;
       padding: 0;
       font-family: 'Pretendard', 'Inter', sans-serif;
-      overflow: hidden;
+      overflow-x: hidden;
       background: #f8fafc;
     }
 
     .login-container {
       position: relative;
       width: 100vw;
-      height: 100vh;
+      min-height: 100dvh;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 20px 0;
     }
 
     /* 밝은 배경 이미지 및 오버레이 */
@@ -53,9 +55,9 @@
     .login-card {
       position: relative;
       z-index: 10;
-      width: 100%;
+      width: calc(100% - 40px);
       max-width: 440px;
-      padding: 55px 40px;
+      padding: 48px 40px;
       background: var(--glass-white);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -177,10 +179,15 @@
     /* 모바일 대응 */
     @media (max-width: 480px) {
       .login-card {
-        margin: 0 20px;
-        padding: 45px 30px;
+        padding: 36px 24px;
+        border-radius: 28px;
       }
-      .brand-name { font-size: 2rem; }
+      .brand-name { font-size: 1.9rem; }
+      .tagline { font-size: 0.92rem; }
+      .logo-img { width: 68px; height: 68px; margin-bottom: 16px; }
+      .btn-naver { height: 56px; font-size: 1rem; margin: 32px 0 20px; }
+      .badge-group { gap: 6px; }
+      .badge { font-size: 0.72rem; padding: 6px 10px; }
     }
   </style>
 </head>

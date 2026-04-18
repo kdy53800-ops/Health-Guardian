@@ -66,6 +66,13 @@
       background:var(--white); cursor:pointer; transition:all .15s;
     }
     .rank-tab.active { background:var(--primary); border-color:var(--primary); color:white; }
+
+    /* 테이블 모바일 스크롤 */
+    .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-scroll-wrap .rank-table { min-width: 620px; }
   </style>
 </head>
 <body>
@@ -127,7 +134,7 @@
           <div class="rank-tabs" id="rankTabs"></div>
         </div>
         <div class="chart-card-body" style="padding-top:0;">
-          <div style="overflow-x:auto;">
+          <div class="table-scroll-wrap">
             <table class="rank-table"><thead><tr id="rankHead"></tr></thead><tbody id="rankBody"></tbody></table>
           </div>
         </div>
