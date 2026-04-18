@@ -40,7 +40,7 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const records = await fetchSupabase(`/rest/v1/inbody_records?user_id=eq.${userId}&order=record_date.desc`, {
+      const records = await fetchSupabase(`/rest/v1/inbody_records?user_id=eq.${encodeURIComponent(userId)}&order=record_date.desc`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
@@ -111,9 +111,18 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      await fetchSupabase(`/rest/v1/inbody_records?id=eq.${id}`, {
-        method: 'DELETE'
+      // Perform delete and verify it happened
+      const deletedRows = await fetchSupabase(`/rest/v1/inbody_records?id=eq.${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=representation' }
       });
+      
+      const success = Array.isArray(deletedRows) && deletedRows.length > 0;
+      if (!success) {
+        sendJson(res, 404, { ok: false, message: 'Record not found or already deleted.' });
+        return;
+      }
+
       sendJson(res, 200, { ok: true });
       return;
     }

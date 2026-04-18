@@ -272,7 +272,7 @@ async function deleteRecord(id) {
   if (!confirm('정말 삭제하시겠습니까?')) return;
   
   try {
-    const res = await fetch(new URL(`api/admin-inbody?id=${id}`, window.location.href).toString(), {
+    const res = await fetch(new URL(`api/admin-inbody?id=${encodeURIComponent(id)}`, window.location.href).toString(), {
       method: 'DELETE',
       headers: { 'Accept': 'application/json' },
       credentials: 'include'
