@@ -34,10 +34,10 @@ function showAdminAccessOverlay(message) {
 
   overlay.style.display = 'flex';
   if (logo) {
-    logo.textContent = '운영자 계정(네이버 로그인 + is_admin=true)만 접근 가능합니다.';
+    logo.textContent = '관리자 인증이 필요한 서비스입니다.';
   }
   if (errEl) {
-    errEl.textContent = message || '운영자 권한이 필요합니다.';
+    errEl.textContent = message || '관리자 권한이 필요합니다.';
     errEl.classList.add('show');
   }
   if (form) {
@@ -76,7 +76,7 @@ async function fetchAdminData() {
   });
   const payload = await readApiJson(response);
   if (!response.ok || !payload || !payload.ok) {
-    const error = new Error((payload && payload.message) || '운영자 데이터 조회에 실패했습니다.');
+    const error = new Error((payload && payload.message) || '데이터 조회 권한이 없습니다.');
     error.status = response.status;
     throw error;
   }
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (!canTryAdminApi()) {
-    showAdminAccessOverlay('운영자 계정으로 먼저 네이버 로그인해 주세요.');
+    showAdminAccessOverlay('먼저 네이버 로그인 후 이용해 주세요.');
     return;
   }
 
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     const status = Number(error && error.status);
     if (status === 401 || status === 403) {
-      showAdminAccessOverlay('운영자 권한이 없습니다. profiles.is_admin=true 계정으로 로그인해 주세요.');
+      showAdminAccessOverlay('접근 권한이 없습니다. 관리자 계정으로 로그인해 주세요.');
       return;
     }
     showAdminAccessOverlay(error.message || '관리자 데이터를 불러오는 중 오류가 발생했습니다.');
