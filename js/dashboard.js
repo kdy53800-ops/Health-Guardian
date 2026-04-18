@@ -245,11 +245,12 @@ function renderDashboard() {
         </div>
       </div>
       <div class="chart-card-body">
-        <div style="display:grid; grid-template-columns:1fr 260px; gap:20px; align-items:stretch;">
-          <div class="chart-wrap" style="height:360px;"><canvas id="chartCustomEx"></canvas></div>
-          <div id="customExSummary" style="height:360px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface-2); padding:16px; box-sizing:border-box; scrollbar-width:thin; scrollbar-color:var(--border) transparent;"></div>
+        <div class="custom-ex-chart-grid">
+          <div class="chart-wrap custom-ex-chart-wrap"><canvas id="chartCustomEx"></canvas></div>
+          <div id="customExSummary" class="custom-ex-summary"></div>
         </div>
       </div>
+
     </div>
 
     <!-- Recent Activity -->

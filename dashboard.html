@@ -68,6 +68,59 @@
       .streak-info .streak-count { font-size: 2.2rem; }
     }
 
+    /* ── 개인 운동 현황 그리드 ── */
+    .custom-ex-chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .custom-ex-chart-wrap {
+      height: 360px;
+    }
+
+    .custom-ex-summary {
+      height: 360px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      padding: 16px;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    @media (max-width: 900px) {
+      .custom-ex-chart-grid {
+        grid-template-columns: 1fr;
+      }
+      .custom-ex-chart-wrap {
+        height: 260px;
+      }
+      .custom-ex-summary {
+        height: auto;
+        max-height: 220px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .custom-ex-chart-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .custom-ex-chart-wrap {
+        height: 200px;
+      }
+      .custom-ex-summary {
+        height: auto;
+        max-height: 180px;
+        padding: 12px;
+        font-size: 0.82rem;
+      }
+    }
+
     /* Weekly checklist */
     .week-grid {
       display: flex;
