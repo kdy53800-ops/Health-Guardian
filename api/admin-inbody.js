@@ -111,7 +111,31 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      // Perform delete and verify it happened
+      // 1. Get the record first to check for image_url
+      const records = await fetchSupabase(`/rest/v1/inbody_records?id=eq.${encodeURIComponent(id)}&select=image_url`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      const record = Array.isArray(records) && records[0] ? records[0] : null;
+      
+      if (record && record.image_url) {
+        try {
+          // Extract storage path: /public/inbody_images/userId/fileName
+          const urlParts = record.image_url.split('/storage/v1/object/public/inbody_images/');
+          if (urlParts.length === 2) {
+            const storagePath = `inbody_images/${urlParts[1]}`;
+            await fetchSupabase(`/storage/v1/object/${storagePath}`, {
+              method: 'DELETE'
+            });
+          }
+        } catch (storageErr) {
+          console.warn('[AdminInbodyAPI] Failed to delete storage object:', storageErr.message);
+          // Continue with DB deletion even if storage fails
+        }
+      }
+
+      // 2. Perform DB delete
       const deletedRows = await fetchSupabase(`/rest/v1/inbody_records?id=eq.${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { 'Prefer': 'return=representation' }
