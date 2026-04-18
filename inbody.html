@@ -3,117 +3,122 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>인바디(BWA) — 건강지킴이</title>
+  <title>인바디(BWA) 분석 — 건강지킴이</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    .inbody-charts-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+    .inbody-header {
       margin-bottom: 24px;
     }
-    
-    .chart-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      padding: 20px;
+    .header-title-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
-    
-    .chart-card h3 {
-      font-size: 1rem;
+    .header-title-group h1 {
+      font-size: 1.5rem;
       font-weight: 800;
-      color: var(--text);
-      margin-bottom: 16px;
+      margin: 0;
+    }
+    .header-title-group p {
+      color: var(--text-muted);
+      margin: 4px 0 0;
+    }
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    /* 안내 문구 스타일 */
+    .project-notice {
+      background: linear-gradient(to right, #f0f9ff, #e0f2fe);
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .notice-icon {
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+    .project-notice p {
+      margin: 0;
+      color: #0369a1;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+    .project-notice strong {
+      color: var(--primary-dark);
+      font-weight: 800;
+    }
+
+    .inbody-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .chart-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+    .chart-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     
-    .record-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .record-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      transition: all 0.2s;
-    }
-    
-    .record-item:hover {
-      border-color: var(--primary);
+    .record-list-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 24px;
       box-shadow: var(--shadow-sm);
-      transform: translateY(-2px);
+      border: 1px solid var(--border);
+      margin-top: 24px;
     }
     
-    .record-date-badge {
-      background: var(--primary);
-      color: white;
-      font-weight: 800;
-      font-size: 0.85rem;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      text-align: center;
-      min-width: 90px;
+    .record-table {
+      width: 100%;
+      border-collapse: collapse;
     }
-    
-    .record-details {
-      display: flex;
-      gap: 20px;
-      flex: 1;
-      flex-wrap: wrap;
-    }
-    
-    .detail-stat {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .detail-label {
-      font-size: 0.7rem;
+    .record-table th {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 2px solid var(--border);
       color: var(--text-muted);
-      font-weight: 600;
+      font-size: 0.85rem;
     }
-    
-    .detail-val {
+    .record-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
       font-size: 0.95rem;
-      font-weight: 800;
-      color: var(--text);
     }
     
-    .btn-view-image {
-      background: rgba(0,70,128,0.1);
-      color: var(--primary);
-      border: none;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      font-weight: 700;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    
-    .btn-view-image:hover {
-      background: var(--primary);
-      color: white;
-    }
-    
-    /* Image Modal */
     #imageModal {
-      display: none;
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.8);
-      z-index: 10000;
+      z-index: 9999;
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -158,9 +163,9 @@
     }
 
     @media (max-width: 900px) {
-      .inbody-charts-grid { grid-template-columns: 1fr; }
-      .record-item { flex-direction: column; align-items: flex-start; }
-      .btn-view-image { align-self: flex-end; }
+      .inbody-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -176,7 +181,7 @@
       <li><a href="monthly.html"><span class="nav-icon">📆</span> 월별 분석</a></li>
       <li><a href="record.html"><span class="nav-icon">✏️</span> 기록하기</a></li>
       <li><a href="history.html"><span class="nav-icon">📋</span> 기록 목록</a></li>
-      <li><a href="inbody.html" class="active"><span class="nav-icon">💪</span> 인바디(BWA)</a></li>
+      <li><a href="inbody.html"><span class="nav-icon">💪</span> 인바디(BWA)</a></li>
     </ul>
     <div class="nav-right">
       <div class="nav-user">
@@ -188,28 +193,40 @@
   </nav>
 
   <div class="app-layout">
-    <main class="page-content fade-in" id="mainContent">
-      <div class="page-header" style="margin-bottom:24px;">
-        <h1><div class="page-icon">💪</div> 인바디(BWA) 분석</h1>
-        <p class="subtitle">체성분 변화 추이와 인바디 검사 결과를 확인하세요.</p>
+    <main class="page-content">
+      <div class="inbody-header">
+        <div class="header-title-group">
+          <div class="icon-box">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div>
+            <h1>인바디(BWA) 분석</h1>
+            <p>체성분 변화 추이와 인바디 검사 결과를 확인하세요.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 안내 문구 -->
+      <div class="project-notice">
+        <div class="notice-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <p>이 공간은 <strong>해운대 나눔과행복병원 갑상선 프로젝트</strong>에 함께하시는 분들의 건강한 변화를 지원하기 위해 마련되었습니다.</p>
       </div>
 
       <div id="noDataMessage" class="no-data" style="display: none;">
-        <div style="font-size: 3rem; margin-bottom: 10px;">📉</div>
-        <h3>아직 등록된 인바디 기록이 없습니다</h3>
-        <p>관리자가 인바디 결과를 업로드하면 이곳에서 확인하실 수 있습니다.</p>
+        <p>등록된 인바디 기록이 없습니다. 관리자에게 문의하세요.</p>
       </div>
 
-      <div id="inbodyContent" style="display: none;">
-        <div class="inbody-charts-grid">
-          <!-- 체성분 비교 차트 (최근 기록 기준) -->
+      <div id="inbodyContent">
+        <div class="inbody-grid">
+          <!-- 체성분 구성 차트 -->
           <div class="chart-card">
-            <h3>📊 체성분 구성 (최근 기록)</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">체중, 골격근량, 체지방량 비교를 통한 C, I, D 형태 분석</p>
+            <h3>📊 체성분 구성 (최근 측정 기준)</h3>
             <div style="height: 250px;"><canvas id="chartComposition"></canvas></div>
           </div>
-
-          <!-- 주요 지표 변화 추이 차트 -->
+          
+          <!-- 주요 지표 추이 차트 -->
           <div class="chart-card">
             <h3>📈 주요 지표 변화 추이</h3>
             <div style="height: 250px;"><canvas id="chartTrends"></canvas></div>
@@ -228,24 +245,70 @@
           </div>
         </div>
 
-        <div class="chart-card">
-          <h3>📋 나의 인바디 기록</h3>
-          <div class="record-list" id="recordList">
-            <!-- Records injected here -->
+        <div class="record-list-card">
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px;">검사 기록 목록</h3>
+          <div style="overflow-x: auto;">
+            <table class="record-table">
+              <thead>
+                <tr>
+                  <th>측정일자</th>
+                  <th>체중</th>
+                  <th>골격근량</th>
+                  <th>체지방률</th>
+                  <th>인바디점수</th>
+                  <th>결과지</th>
+                </tr>
+              </thead>
+              <tbody id="recordListBody">
+                <!-- Records injected here -->
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </main>
   </div>
 
-  <div id="imageModal" onclick="closeImageModal()">
-    <button class="close-modal" onclick="closeImageModal()">✕</button>
-    <img id="modalImg" src="" alt="인바디 결과지" onclick="event.stopPropagation()">
+  <!-- Image Modal -->
+  <div id="imageModal">
+    <button class="close-modal" onclick="closeImageModal()">&times;</button>
+    <img id="modalImage" src="" alt="인바디 결과지">
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app.js"></script>
-  <script src="js/supabase-config.js"></script>
   <script src="js/inbody.js"></script>
+  <script>
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.remove('show');
+    }
+    
+    // UI function for list rendering (called from inbody.js)
+    function renderRecordList() {
+      const tbody = document.getElementById('recordListBody');
+      tbody.innerHTML = '';
+      
+      inbodyRecords.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${r.record_date}</strong></td>
+          <td>${r.weight} kg</td>
+          <td>${r.skeletal_muscle} kg</td>
+          <td>${r.body_fat_percent} %</td>
+          <td>${r.inbody_score} 점</td>
+          <td>
+            ${r.image_url ? `<button class="btn" style="padding:4px 8px; font-size:0.8rem;" onclick="viewImage('${r.image_url}')">보기</button>` : '-'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function viewImage(url) {
+      const modal = document.getElementById('imageModal');
+      const img = document.getElementById('modalImage');
+      img.src = url;
+      modal.classList.add('show');
+    }
+  </script>
 </body>
 </html>

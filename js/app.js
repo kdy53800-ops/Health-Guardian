@@ -385,8 +385,6 @@ function genId() {
 }
 
 function today() {
-  // toISOString()은 UTC 기준이므로 한국(UTC+9) 등에서 날짜가 틀릴 수 있음
-  // 로컬 날짜를 직접 포맷
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, '0');
@@ -424,18 +422,12 @@ function calcStreak(records) {
   const todayStr     = today();
   const yesterdayStr = prevDay(todayStr);
 
-  // 미래 날짜 제외 후 Set 생성 (O(1) 조회)
   const dateSet = new Set(
     records.map(r => r.date).filter(d => d <= todayStr)
   );
   if (!dateSet.size) return 0;
 
-  // 시작점 결정:
-  //   오늘 기록 있음  → 오늘부터 거슬러 올라감
-  //   오늘 기록 없음  → 어제부터 거슬러 올라감 (오늘 하루가 아직 진행 중)
   const startDate = dateSet.has(todayStr) ? todayStr : yesterdayStr;
-
-  // 시작점에도 기록이 없으면 스트릭 없음
   if (!dateSet.has(startDate)) return 0;
 
   let streak = 0;
@@ -448,7 +440,7 @@ function calcStreak(records) {
 }
 
 function prevDay(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00'); // 로컬 자정
+  const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() - 1);
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, '0');
@@ -461,15 +453,11 @@ function getLast7Days() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const yyyy = d.getFullYear();
-    const mm   = String(d.getMonth() + 1).padStart(2, '0');
-    const dd   = String(d.getDate()).padStart(2, '0');
-    result.push(`${yyyy}-${mm}-${dd}`);
+    result.push(localDateStr(d));
   }
   return result;
 }
 
-// 로컬 날짜 문자열 반환 헬퍼 (toISOString 대신 사용)
 function localDateStr(d) {
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, '0');
@@ -487,11 +475,9 @@ function getLast30Days() {
   return result;
 }
 
-// 이번 주 월요일~일요일 날짜 배열 반환 (한 주 시작: 월요일)
 function getCurrentWeekDays() {
   const todayDate = new Date();
-  const dow = todayDate.getDay(); // 0=일, 1=월 ... 6=토
-  // 월요일까지 거슬러 올라가는 일수 (일요일이면 6일 전이 월요일)
+  const dow = todayDate.getDay(); 
   const diffToMonday = dow === 0 ? 6 : dow - 1;
   const monday = new Date(todayDate);
   monday.setDate(todayDate.getDate() - diffToMonday);
@@ -502,7 +488,7 @@ function getCurrentWeekDays() {
     d.setDate(monday.getDate() + i);
     result.push(localDateStr(d));
   }
-  return result; // [월, 화, 수, 목, 금, 토, 일]
+  return result; 
 }
 
 // ─── Toast ────────────────────────────────────────────
@@ -541,7 +527,17 @@ function renderNavUser() {
   const el = document.getElementById('navUsername');
   const avatar = document.getElementById('navAvatar');
   if (el && user) el.textContent = user.name;
-  if (avatar && user) avatar.textContent = user.name.charAt(0).toUpperCase();
+  if (avatar && user) avatar.textContent = (user.name || 'U').charAt(0).toUpperCase();
+
+  // 인바디 메뉴 제어 (특별관리 대상자만 노출)
+  const inbodyNav = document.querySelector('nav a[href="inbody.html"]')?.parentElement;
+  if (inbodyNav) {
+    if (user && user.isSpecial) {
+      inbodyNav.style.display = 'block';
+    } else {
+      inbodyNav.style.display = 'none';
+    }
+  }
 }
 
 // ─── Stars ─────────────────────────────────────────────

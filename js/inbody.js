@@ -3,9 +3,15 @@ let inbodyRecords = [];
 let charts = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await initSupabase();
   const user = Auth.require();
   if (!user) return;
+
+  // 특별관리 대상자 체크
+  if (!user.isSpecial) {
+    alert('이 페이지는 특별관리 대상자분들께만 제공됩니다.');
+    window.location.href = 'dashboard.html';
+    return;
+  }
 
   // Use Auth user data or fetch from profiles
   document.getElementById('navUsername').textContent = user.name || '사용자';
