@@ -13,8 +13,14 @@ async function initSupabase() {
       return null;
     }
     
-    // Initialize Supabase client
-    supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    // Initialize Supabase client with auth disabled to avoid JWT conflicts
+    supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
     return supabaseClient;
   } catch (err) {
     console.error('Failed to initialize Supabase:', err);

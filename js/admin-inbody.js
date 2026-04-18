@@ -202,45 +202,42 @@ async function saveRecord() {
   btn.disabled = true;
 
   try {
-    let imageUrl = null;
-    
-    // Upload image if selected
+    let imageBase64 = null;
+    let fileName = null;
+
+    // Convert image to Base64 if selected
     if (selectedFile) {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${selectedUserId}/${date}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabaseClient.storage
-        .from('inbody_images')
-        .upload(fileName, selectedFile);
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from('inbody_images')
-        .getPublicUrl(fileName);
-        
-      imageUrl = publicUrl;
+      fileName = selectedFile.name;
+      imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
     }
-    
-    // Insert into DB
-    const recordId = `inbody_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
-    const { error: dbError } = await supabaseClient
-      .from('inbody_records')
-      .upsert({
-        id: recordId,
-        user_id: selectedUserId,
-        record_date: date,
-        weight: parseFloat(weight),
-        skeletal_muscle: parseFloat(skeletalMuscle),
-        body_fat_mass: parseFloat(bodyFatMass),
-        bmi: parseFloat(bmi),
-        body_fat_percent: parseFloat(bodyFatPercent),
-        ecw_ratio: parseFloat(ecwRatio),
-        inbody_score: parseInt(inbodyScore),
-        image_url: imageUrl
-      }, { onConflict: 'user_id, record_date' });
-      
-    if (dbError) throw dbError;
+
+    // Call API
+    const res = await fetch(new URL('api/admin-inbody', window.location.href).toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: selectedUserId,
+        date,
+        weight,
+        skeletalMuscle,
+        bodyFatMass,
+        bmi,
+        bodyFatPercent,
+        ecwRatio,
+        inbodyScore,
+        imageBase64,
+        fileName
+      }),
+      credentials: 'include'
+    });
+
+    const result = await res.json();
+    if (!res.ok || !result.ok) throw new Error(result.message || '저장 실패');
     
     alert('저장되었습니다.');
     
