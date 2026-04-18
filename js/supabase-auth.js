@@ -200,7 +200,9 @@
         hashParams.delete('naver_session');
         replaceLocation(params, hashParams);
 
-        if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+        // 관리자 페이지에 있거나 이미 관리자로 판명된 경우 대시보드로 튕기지 않음
+        const isAdminPage = window.location.pathname.includes('admin');
+        if (!isAdminPage && (window.location.pathname.endsWith('index.html') || window.location.pathname === '/')) {
           window.location.href = 'dashboard.html';
         }
 

@@ -224,7 +224,9 @@
     (async function () {
       await SupabaseAuth.handleIndexSession();
       const user = Auth.getUser();
-      if (user) window.location.href = 'dashboard.html';
+      if (user) {
+        window.location.href = user.isAdmin ? 'admin.html' : 'dashboard.html';
+      }
     })();
 
     async function handleNaverLogin(event) {
