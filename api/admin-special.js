@@ -56,10 +56,6 @@ module.exports = async function handler(req, res) {
     const userId = String(body.userId).trim();
     const isSpecial = !!body.isSpecial;
 
-    if (userId === auth.profile.id) {
-      sendJson(res, 400, { ok: false, message: 'Cannot change your own special status.' });
-      return;
-    }
 
     const rows = await fetchSupabase(`/rest/v1/profiles?id=eq.${encodeEq(userId)}`, {
       method: 'PATCH',
