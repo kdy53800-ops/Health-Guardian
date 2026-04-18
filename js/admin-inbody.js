@@ -38,16 +38,23 @@ async function adminLogout() {
 
 async function loadSpecialUsers() {
   try {
-    const { data: users, error } = await supabaseClient
-      .from('profiles')
-      .select('id, name, username')
-      .eq('is_special', true)
-      .order('name');
-      
-    if (error) throw error;
+    const response = await fetch(new URL('api/admin-data', window.location.href).toString(), {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    const payload = await response.json();
+    
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message || '사용자 목록 로드 실패');
+    }
+
+    const specialUsers = (payload.users || []).filter(u => u.isSpecial);
     
     const select = document.getElementById('userSelect');
-    users.forEach(u => {
+    select.innerHTML = '<option value="">사용자를 선택하세요...</option>'; // Clear and add default
+    
+    specialUsers.forEach(u => {
       const option = document.createElement('option');
       option.value = u.id;
       option.textContent = `${u.name || '이름없음'} (${u.username})`;
