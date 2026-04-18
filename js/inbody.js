@@ -3,6 +3,7 @@ let inbodyRecords = [];
 let charts = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
+  await initSupabase();
   const user = Auth.require();
   if (!user) return;
 

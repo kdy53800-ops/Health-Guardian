@@ -6,6 +6,9 @@ let selectedFile = null;
 document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('adminLoginOverlay');
   
+  // Initialize Supabase Client
+  await initSupabase();
+  
   // Set default date
   document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
 
