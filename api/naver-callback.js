@@ -29,6 +29,7 @@ function buildSessionPayload(naverProfile, syncedProfile) {
     authProvider: 'naver',
     username: syncedProfile.username || '',
     isAdmin: !!syncedProfile.is_admin,
+    isSpecial: !!syncedProfile.is_special,
     name: naverProfile.name || naverProfile.nickname || 'Naver User',
     email: naverProfile.email || '',
     gender: naverProfile.gender || '',

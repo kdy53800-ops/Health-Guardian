@@ -115,6 +115,7 @@
       id: `naver_${String(profile.oauthProviderId || profile.supabaseUserId || Date.now()).replace(/[^a-zA-Z0-9_-]/g, '')}`,
       createdAt: new Date().toISOString(),
       isAdmin: !!profile.isAdmin,
+      isSpecial: !!profile.isSpecial,
     };
     const preferredId = profile.supabaseUserId || baseUser.supabaseUserId || baseUser.id;
 
@@ -133,6 +134,7 @@
       oauthProviderId: profile.oauthProviderId || baseUser.oauthProviderId || '',
       username: profile.username || baseUser.username || buildUsername(profile, users, preferredId),
       isAdmin: !!(profile.isAdmin || baseUser.isAdmin),
+      isSpecial: !!(profile.isSpecial || baseUser.isSpecial),
     };
 
     const nextUsers = existing
@@ -153,6 +155,7 @@
       gender: mergedUser.gender,
       birthday: mergedUser.birthday,
       isAdmin: !!mergedUser.isAdmin,
+      isSpecial: !!mergedUser.isSpecial,
       authProvider: 'naver',
       supabaseUserId: mergedUser.supabaseUserId,
       oauthProviderId: mergedUser.oauthProviderId,
