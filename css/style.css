@@ -900,107 +900,265 @@ textarea.form-control {
 }
 
 /* ======================================================
-   BOTTOM TAB BAR
-   항상 화면 하단에 고정 — 모바일에서만 표시
+   MOBILE HAMBURGER MENU DRAWER
+   모바일에서 상단 우측 ☰ 버튼 → 오른쪽 슬라이드 드로어
    ====================================================== */
-.bottom-tab-bar {
-  display: none; /* 기본: 숨김 (데스크탑) */
+
+/* 햄버거 버튼 — 모바일에서만 표시 */
+.nav-hamburger {
+  display: none;
 }
 
 @media (max-width: 600px) {
-  .bottom-tab-bar {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 62px;
-    background: var(--white);
-    border-top: 1.5px solid var(--border);
-    box-shadow: 0 -4px 24px rgba(0, 70, 128, 0.10);
-    z-index: 3000; /* 모달보다 아래, 탑 네비보다 위 */
-    align-items: stretch;
-    /* iPhone 홈바 safe area */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    height: calc(62px + env(safe-area-inset-bottom, 0px));
+  /* 상단 네비 콘텐츠 하단 패딩 불필요 (탭바 없음) */
+  .page-content {
+    padding-bottom: 24px;
   }
 
-  .bottom-tab-bar a {
-    flex: 1;
+  /* 앱 레이아웃 — 하단 여백 불필요 */
+  .app-layout {
+    padding-bottom: 0;
+  }
+
+  /* 햄버거 버튼 */
+  .nav-hamburger {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    text-decoration: none;
-    color: var(--text-muted);
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    padding: 6px 2px;
-    transition: color 0.15s, background 0.15s;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--white);
+    font-size: 1.3rem;
     -webkit-tap-highlight-color: transparent;
-    position: relative;
-    min-width: 0;
-  }
-
-  .bottom-tab-bar a::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 2px;
-    background: transparent;
-    border-radius: 0 0 3px 3px;
     transition: background 0.15s;
+    flex-shrink: 0;
   }
 
-  .bottom-tab-bar a.active::before {
-    background: var(--primary);
-  }
-
-  .bottom-tab-bar a .tab-icon {
-    font-size: 1.4rem;
-    line-height: 1;
-    transition: transform 0.18s, filter 0.18s;
-  }
-
-  .bottom-tab-bar a span:last-child {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    text-align: center;
-  }
-
-  .bottom-tab-bar a.active {
-    color: var(--primary);
-  }
-
-  .bottom-tab-bar a.active .tab-icon {
-    transform: translateY(-1px) scale(1.08);
-  }
-
-  /* 관리자 탭 */
-  .bottom-tab-bar a.tab-admin {
-    color: var(--gold-dark);
-  }
-  .bottom-tab-bar a.tab-admin::before {
-    background: var(--gold-dark);
-  }
-  .bottom-tab-bar a.tab-admin .tab-icon {
-    background: rgba(221, 202, 75, 0.15);
-    border-radius: 8px;
-    padding: 2px 5px;
-  }
-
-  /* 앱 레이아웃 하단 여백 — 탭바가 콘텐츠를 가리지 않도록 */
-  .app-layout {
-    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+  .nav-hamburger:active {
+    background: rgba(255, 255, 255, 0.28);
   }
 }
 
+/* 드로어 오버레이 (배경 어두워짐) */
+.drawer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 4000;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: overlayFadeIn 0.22s ease;
+}
+
+.drawer-overlay.open {
+  display: block;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 드로어 본체 */
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 76vw;
+  max-width: 300px;
+  background: var(--white);
+  z-index: 4001;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.nav-drawer.open {
+  transform: translateX(0);
+}
+
+/* 드로어 헤더 — 유저 정보 */
+.drawer-header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  padding: 20px 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.drawer-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+  flex-shrink: 0;
+}
+
+.drawer-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-user-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-user-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+}
+
+.drawer-close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: var(--white);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 드로어 스크롤 영역 */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 드로어 섹션 레이블 */
+.drawer-section-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 16px 20px 6px;
+}
+
+/* 드로어 메뉴 아이템 */
+.drawer-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.drawer-nav-item:active,
+.drawer-nav-item:hover {
+  background: var(--surface-2);
+}
+
+.drawer-nav-item.active {
+  color: var(--primary);
+  background: rgba(0, 70, 128, 0.06);
+}
+
+.drawer-nav-item.active .drawer-item-icon {
+  background: rgba(0, 70, 128, 0.12);
+}
+
+.drawer-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.drawer-item-label {
+  flex: 1;
+}
+
+.drawer-item-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: var(--gold);
+  color: var(--primary-dark);
+  padding: 2px 7px;
+  border-radius: 100px;
+}
+
+/* 구분선 */
+.drawer-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 20px;
+}
+
+/* 위험 영역 (탈퇴/로그아웃) */
+.drawer-nav-item.danger {
+  color: #dc2626;
+}
+
+.drawer-nav-item.danger .drawer-item-icon {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.drawer-nav-item.danger:active {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.drawer-nav-item.logout-item {
+  color: var(--text-secondary);
+}
+
+/* 드로어 푸터 */
+.drawer-footer {
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  flex-shrink: 0;
+}
 
 
 /* ===== LOGIN PAGE ===== */

@@ -579,46 +579,138 @@ document.addEventListener('DOMContentLoaded', () => {
   cleanupLegacyAdminAccount();
   setActiveNav();
   renderNavUser();
-  renderBottomTabBar();
+  renderMobileNav();
 });
 
-// ─── Bottom Tab Bar (모바일 전용) ──────────────────────
-function renderBottomTabBar() {
-  // 로그인 페이지에서는 탭바 미표시
+// ─── 모바일 햄버거 드로어 메뉴 ──────────────────────────
+function renderMobileNav() {
+  // 관리자 전용·로그인 페이지는 제외
   const page = window.location.pathname.split('/').pop() || 'index.html';
-  const noTabPages = ['index.html', 'admin.html', 'admin-users.html', 'admin-ranking.html', 'admin-inbody.html', 'seed-data.html', ''];
-  if (noTabPages.includes(page)) return;
+  const noDrawerPages = ['index.html', 'admin.html', 'admin-users.html', 'admin-ranking.html', 'admin-inbody.html', 'seed-data.html', ''];
+  if (noDrawerPages.includes(page)) return;
 
   const user = Auth.getUser();
   if (!user) return;
 
-  const tabs = [
+  // ① 햄버거 버튼을 상단 네비 오른쪽 끝에 추가
+  const navRight = document.querySelector('.nav-right');
+  if (navRight) {
+    const hamburger = document.createElement('button');
+    hamburger.className = 'nav-hamburger';
+    hamburger.setAttribute('aria-label', '메뉴 열기');
+    hamburger.innerHTML = '☰';
+    hamburger.onclick = openDrawer;
+    navRight.appendChild(hamburger);
+  }
+
+  // ② 현재 페이지 판별
+  const isActive = (href) => page === href ? 'active' : '';
+
+  // ③ 메뉴 항목 구성
+  const navItems = [
     { href: 'dashboard.html', icon: '📊', label: '대시보드' },
-    { href: 'record.html',    icon: '✏️', label: '기록' },
-    { href: 'history.html',   icon: '📋', label: '목록' },
-    { href: 'monthly.html',   icon: '📆', label: '분석' },
+    { href: 'record.html',    icon: '✏️', label: '기록하기' },
+    { href: 'history.html',   icon: '📋', label: '기록 목록' },
+    { href: 'monthly.html',   icon: '📆', label: '월별 분석' },
   ];
-
   if (user.isSpecial) {
-    tabs.push({ href: 'inbody.html', icon: '💪', label: '인바디' });
+    navItems.push({ href: 'inbody.html', icon: '💪', label: '인바디(BWA)' });
   }
 
-  if (user.isAdmin) {
-    tabs.push({ href: 'admin.html', icon: '⚙️', label: '관리자', cls: 'tab-admin' });
-  }
+  const navHTML = navItems.map(item => `
+    <a href="${item.href}" class="drawer-nav-item ${isActive(item.href)}">
+      <span class="drawer-item-icon">${item.icon}</span>
+      <span class="drawer-item-label">${item.label}</span>
+    </a>
+  `).join('');
 
-  const bar = document.createElement('nav');
-  bar.className = 'bottom-tab-bar';
-  bar.setAttribute('aria-label', '하단 탭 내비게이션');
+  // ④ 관리자 섹션 (관리자 계정만)
+  const adminHTML = user.isAdmin ? `
+    <div class="drawer-divider"></div>
+    <div class="drawer-section-label">관리자</div>
+    <a href="admin.html" class="drawer-nav-item">
+      <span class="drawer-item-icon">⚙️</span>
+      <span class="drawer-item-label">관리자 패널</span>
+      <span class="drawer-item-badge">ADMIN</span>
+    </a>
+  ` : '';
 
-  bar.innerHTML = tabs.map(tab => {
-    const isActive = page === tab.href;
-    return `<a href="${tab.href}" class="${isActive ? 'active' : ''} ${tab.cls || ''}" aria-label="${tab.label}">
-      <span class="tab-icon">${tab.icon}</span>
-      <span>${tab.label}</span>
-    </a>`;
-  }).join('');
+  // ⑤ 유저 아바타 이니셜
+  const initial = (user.name || user.username || '?')[0].toUpperCase();
 
-  document.body.appendChild(bar);
+  // ⑥ 드로어 HTML 생성
+  const overlay = document.createElement('div');
+  overlay.className = 'drawer-overlay';
+  overlay.id = 'drawerOverlay';
+  overlay.onclick = closeDrawer;
+
+  const drawer = document.createElement('nav');
+  drawer.className = 'nav-drawer';
+  drawer.id = 'navDrawer';
+  drawer.setAttribute('aria-label', '사이드 메뉴');
+  drawer.innerHTML = `
+    <div class="drawer-header">
+      <div class="drawer-avatar">${initial}</div>
+      <div class="drawer-user-info">
+        <div class="drawer-user-name">${user.name || user.username || '사용자'}</div>
+        <div class="drawer-user-sub">건강지킴이 멤버</div>
+      </div>
+      <button class="drawer-close-btn" onclick="closeDrawer()" aria-label="메뉴 닫기">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="drawer-section-label">메뉴</div>
+      ${navHTML}
+      ${adminHTML}
+
+      <div class="drawer-divider"></div>
+      <div class="drawer-section-label">계정</div>
+
+      <button class="drawer-nav-item logout-item" onclick="Auth.logout()">
+        <span class="drawer-item-icon">🚪</span>
+        <span class="drawer-item-label">로그아웃</span>
+      </button>
+
+      <button class="drawer-nav-item danger" onclick="confirmDeleteAccount()">
+        <span class="drawer-item-icon">🗑️</span>
+        <span class="drawer-item-label">계정 탈퇴</span>
+      </button>
+    </div>
+
+    <div class="drawer-footer">건강지킴이 © 2025</div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(drawer);
 }
 
+function openDrawer() {
+  const overlay = document.getElementById('drawerOverlay');
+  const drawer  = document.getElementById('navDrawer');
+  if (!overlay || !drawer) return;
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+  document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+}
+
+function closeDrawer() {
+  const overlay = document.getElementById('drawerOverlay');
+  const drawer  = document.getElementById('navDrawer');
+  if (!overlay || !drawer) return;
+  overlay.classList.remove('open');
+  drawer.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function confirmDeleteAccount() {
+  closeDrawer();
+  // 기존 계정탈퇴 confirm 로직 재사용
+  if (typeof Auth !== 'undefined' && typeof Auth.deleteAccount === 'function') {
+    Auth.deleteAccount();
+  }
+}
+
+// ESC 키로 드로어 닫기
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});

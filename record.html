@@ -270,13 +270,15 @@
       .section-card { padding: 16px; }
       .cond-btn { min-width: 56px; padding: 8px 4px; }
       .cond-btn .cond-emoji { font-size: 1.3rem; }
-      /* 저장 버튼: 탭바(62px) 위 고정, safe-area 포함 */
+      /* 저장 버튼: 화면 하단에 고정, safe-area 포함 */
       .sticky-actions {
         position: fixed;
-        bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+        bottom: 0;
+        bottom: env(safe-area-inset-bottom, 0px);
         left: 0;
         right: 0;
         padding: 10px 14px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
         margin: 0;
         z-index: 1500;
         border-radius: 0;
@@ -286,11 +288,12 @@
         max-width: 100% !important;
       }
       .sticky-actions .btn { flex: 1; }
-      /* 폼 하단이 저장버튼(~60px) + 탭바(62px) 뒤에 가리지 않도록 */
+      /* 폼 하단이 저장버튼(~64px)에 가리지 않도록 */
       form#recordForm {
-        padding-bottom: 130px;
+        padding-bottom: 80px;
       }
     }
+
 
 
 
