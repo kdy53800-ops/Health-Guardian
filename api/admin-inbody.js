@@ -7,7 +7,23 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+async function readBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  if (!chunks.length) return null;
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+
 module.exports = async function handler(req, res) {
+  const requestUrl = new URL(req.url, 'http://localhost');
+
   try {
     // 1. Check Admin Session
     const auth = await requireAdminSession(req);
@@ -18,7 +34,7 @@ module.exports = async function handler(req, res) {
 
     // --- GET: Fetch records for a specific user ---
     if (req.method === 'GET') {
-      const { userId } = req.query;
+      const userId = requestUrl.searchParams.get('userId');
       if (!userId) {
         sendJson(res, 400, { ok: false, message: 'Missing userId' });
         return;
@@ -34,7 +50,13 @@ module.exports = async function handler(req, res) {
 
     // --- POST: Save or Update record ---
     if (req.method === 'POST') {
-      const { userId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, imageBase64, fileName } = req.body;
+      const body = await readBody(req);
+      if (!body) {
+        sendJson(res, 400, { ok: false, message: 'JSON body is required' });
+        return;
+      }
+
+      const { userId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, imageBase64, fileName } = body;
 
       if (!userId || !date) {
         sendJson(res, 400, { ok: false, message: 'Missing required fields' });
@@ -83,7 +105,7 @@ module.exports = async function handler(req, res) {
 
     // --- DELETE: Remove a record ---
     if (req.method === 'DELETE') {
-      const { id } = req.query;
+      const id = requestUrl.searchParams.get('id');
       if (!id) {
         sendJson(res, 400, { ok: false, message: 'Missing record id' });
         return;
