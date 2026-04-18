@@ -790,40 +790,139 @@ textarea.form-control {
 
 .pulse { animation: pulse 2s ease-in-out infinite; }
 
-/* ===== RESPONSIVE ===== */
+/* ===================================================================
+   RESPONSIVE SYSTEM
+   Breakpoints: 480px (small mobile), 600px (mobile), 900px (tablet)
+   =================================================================== */
+
+/* ── 태블릿 (900px 이하) ── */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
-  .page-content { padding: 20px 16px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .page-content { padding: 22px 18px; }
+  .top-nav { padding: 0 20px; }
 }
 
+/* ── 모바일 (600px 이하) ── */
 @media (max-width: 600px) {
+  /* 레이아웃 */
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+
+  /* 상단 네비 간소화 */
   .nav-links { display: none; }
   .nav-right .btn-logout { display: none; }
+  .nav-username { display: none; }
   .top-nav { padding: 0 14px; }
-  .page-content { padding: 16px 12px; padding-bottom: 80px; }
-  h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.25rem; }
+
+  /* 콘텐츠 영역 — 하단 탭바(62px) + 여유(8px) 확보 */
+  .page-content {
+    padding: 16px 14px;
+    padding-bottom: 78px;
+  }
+
+  /* 타이포그래피 */
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.2rem; }
+  h3 { font-size: 1rem; }
+
+  /* 페이지 헤더 */
+  .page-header { margin-bottom: 18px; }
+  .page-header h1 { font-size: 1.3rem; }
+  .page-header .subtitle { margin-left: 0; font-size: 0.82rem; margin-top: 6px; }
+
+  /* 스탯 카드 */
+  .stat-card { padding: 16px; }
+  .stat-card-value { font-size: 1.5rem; }
+
+  /* 카드 */
+  .card-body { padding: 16px; }
+  .card-header { padding: 16px 16px 0; }
+
+  /* 테이블 */
+  table { min-width: 520px; }
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 버튼 터치 타겟 */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 36px; padding: 8px 14px; }
+  button, input, select, textarea { min-height: 44px; }
+
+  /* 모달 — 하단 슬라이드업 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-box {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 88dvh;
+    max-height: 88vh;
+    padding: 24px 18px;
+    width: 100%;
+    max-width: 100%;
+    animation: slideUpModal 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* 토스트 — 상단 배치 */
+  .toast-container {
+    bottom: auto;
+    top: calc(var(--nav-height) + 8px);
+    left: 12px;
+    right: 12px;
+    align-items: stretch;
+  }
+  .toast {
+    min-width: 0;
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  /* 섹션 제목 */
+  .section-title { font-size: 0.95rem; }
+
+  /* 차트 기본 높이 */
+  .chart-wrap { height: 180px; }
 }
 
-/* ===== BOTTOM TAB BAR (모바일 전용) ===== */
+/* ── 소형 모바일 (480px 이하) ── */
+@media (max-width: 480px) {
+  .page-content { padding: 14px 12px; padding-bottom: 78px; }
+  .stat-card-value { font-size: 1.35rem; }
+  .nav-brand-name { font-size: 1rem; }
+}
+
+/* ======================================================
+   BOTTOM TAB BAR
+   항상 화면 하단에 고정 — 모바일에서만 표시
+   ====================================================== */
 .bottom-tab-bar {
-  display: none;
+  display: none; /* 기본: 숨김 (데스크탑) */
 }
 
 @media (max-width: 600px) {
   .bottom-tab-bar {
     display: flex;
     position: fixed;
-    bottom: 0; left: 0; right: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     height: 62px;
     background: var(--white);
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -4px 20px rgba(0,70,128,0.10);
-    z-index: 2000;
+    border-top: 1.5px solid var(--border);
+    box-shadow: 0 -4px 24px rgba(0, 70, 128, 0.10);
+    z-index: 3000; /* 모달보다 아래, 탑 네비보다 위 */
     align-items: stretch;
+    /* iPhone 홈바 safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
   }
 
   .bottom-tab-bar a {
@@ -835,129 +934,74 @@ textarea.form-control {
     gap: 3px;
     text-decoration: none;
     color: var(--text-muted);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    padding: 6px 4px;
-    transition: color 0.18s;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    padding: 6px 2px;
+    transition: color 0.15s, background 0.15s;
     -webkit-tap-highlight-color: transparent;
-    min-width: 44px;
+    position: relative;
+    min-width: 0;
+  }
+
+  .bottom-tab-bar a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: transparent;
+    border-radius: 0 0 3px 3px;
+    transition: background 0.15s;
+  }
+
+  .bottom-tab-bar a.active::before {
+    background: var(--primary);
   }
 
   .bottom-tab-bar a .tab-icon {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     line-height: 1;
-    transition: transform 0.18s;
+    transition: transform 0.18s, filter 0.18s;
   }
 
-  .bottom-tab-bar a.active,
-  .bottom-tab-bar a:active {
+  .bottom-tab-bar a span:last-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .bottom-tab-bar a.active {
     color: var(--primary);
   }
 
   .bottom-tab-bar a.active .tab-icon {
-    transform: translateY(-2px);
+    transform: translateY(-1px) scale(1.08);
   }
 
+  /* 관리자 탭 */
   .bottom-tab-bar a.tab-admin {
     color: var(--gold-dark);
   }
-
+  .bottom-tab-bar a.tab-admin::before {
+    background: var(--gold-dark);
+  }
   .bottom-tab-bar a.tab-admin .tab-icon {
-    background: rgba(221,202,75,0.15);
+    background: rgba(221, 202, 75, 0.15);
     border-radius: 8px;
-    padding: 2px 6px;
+    padding: 2px 5px;
   }
 
-  /* 앱 레이아웃 하단 여백 (탭바 높이만큼) */
+  /* 앱 레이아웃 하단 여백 — 탭바가 콘텐츠를 가리지 않도록 */
   .app-layout {
-    padding-bottom: 62px;
-  }
-
-  /* 모달 모바일 최적화: 하단 슬라이드업 */
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-
-  .modal-box {
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    max-height: 90dvh;
-    padding: 24px 20px;
-    animation: slideUpModal 0.28s cubic-bezier(0.4,0,0.2,1);
-    width: 100%;
-    max-width: 100%;
-  }
-
-  @keyframes slideUpModal {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-
-  /* 토스트 → 상단으로 이동 */
-  .toast-container {
-    bottom: auto;
-    top: 72px;
-    left: 12px;
-    right: 12px;
-    align-items: stretch;
-  }
-
-  .toast {
-    min-width: 0;
-    width: 100%;
-    font-size: 0.85rem;
-  }
-
-  /* 터치 타겟 최소 44px 보장 */
-  .btn, button, input, select, textarea {
-    min-height: 44px;
-  }
-
-  .btn-sm {
-    min-height: 36px;
-    padding: 8px 14px;
-  }
-
-  /* 테이블 가로 스크롤 처리 */
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: var(--radius-md);
-  }
-
-  table {
-    min-width: 560px;
-  }
-
-  /* 페이지 헤더 모바일 최적화 */
-  .page-header h1 {
-    font-size: 1.3rem;
-  }
-
-  .page-header .subtitle {
-    margin-left: 0;
-    font-size: 0.82rem;
-  }
-
-  /* 스탯 카드 */
-  .stat-card-value {
-    font-size: 1.6rem;
-  }
-
-  /* 네비게이션 오른쪽 영역 간소화 */
-  .nav-username {
-    display: none;
+    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px));
   }
 }
 
-/* safe area (iPhone notch/홈바) 대응 */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .bottom-tab-bar {
-    padding-bottom: env(safe-area-inset-bottom);
-    height: calc(62px + env(safe-area-inset-bottom));
-  }
-}
+
 
 /* ===== LOGIN PAGE ===== */
 .login-page {

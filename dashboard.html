@@ -459,14 +459,25 @@
       #monthlyView > div { grid-template-columns: 1fr !important; }
     }
     @media (max-width: 600px) {
-      .hero-stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .goal-rings-grid { grid-template-columns: repeat(2, 1fr); }
-      .ring-canvas-wrap { width: 60px; height: 60px; }
-      .ring-canvas-wrap canvas { width: 60px !important; height: 60px !important; }
-      .ring-pct { font-size: 0.75rem; }
-      .best-records-list { grid-template-columns: repeat(2, 1fr); }
+      .hero-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .goal-rings-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .ring-canvas-wrap { width: 64px; height: 64px; }
+      .ring-canvas-wrap canvas { width: 64px !important; height: 64px !important; }
+      .ring-pct { font-size: 0.8rem; }
+      .ring-label { font-size: 0.65rem; }
+      .best-records-list { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .best-record-item { padding: 14px 10px 12px; }
       .chart-wrap { height: 160px; }
+      .chart-card-header { flex-wrap: wrap; gap: 8px; }
+      .chart-card-header .filter-btns { margin-left: 0; }
+      .week-grid { gap: 4px; }
+      .week-day-dot { width: 30px; height: 30px; font-size: 0.7rem; }
+      .week-day-label { font-size: 0.65rem; }
+      .week-date-label { font-size: 0.6rem; }
+      .activity-date { min-width: 70px; font-size: 0.78rem; }
+      .activity-summary { font-size: 0.78rem; }
     }
+
   </style>
 </head>
 <body>

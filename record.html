@@ -260,23 +260,38 @@
       .form-grid-2 { grid-template-columns: 1fr; }
       .record-summary-bar {
         flex-direction: column;
-        gap: 12px;
-        padding: 16px;
+        gap: 10px;
+        padding: 14px 16px;
         text-align: center;
       }
-      .summary-stats { justify-content: center; gap: 14px; }
-      .section-card { padding: 18px 16px; }
+      .summary-stats { justify-content: center; gap: 12px; }
+      .summary-stat-val { font-size: 1.1rem; }
+      .summary-date { font-size: 0.95rem; }
+      .section-card { padding: 16px; }
+      .cond-btn { min-width: 56px; padding: 8px 4px; }
+      .cond-btn .cond-emoji { font-size: 1.3rem; }
+      /* 저장 버튼: 탭바(62px) 위 고정, safe-area 포함 */
       .sticky-actions {
         position: fixed;
-        bottom: 62px; /* 하단 탭바 위 */
-        left: 0; right: 0;
-        padding: 12px 16px;
+        bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+        left: 0;
+        right: 0;
+        padding: 10px 14px;
         margin: 0;
         z-index: 1500;
         border-radius: 0;
+        border-top: 1px solid var(--border);
       }
-      .sticky-actions .btn { width: 100%; }
+      .sticky-actions > div {
+        max-width: 100% !important;
+      }
+      .sticky-actions .btn { flex: 1; }
+      /* 폼 하단이 저장버튼(~60px) + 탭바(62px) 뒤에 가리지 않도록 */
+      form#recordForm {
+        padding-bottom: 130px;
+      }
     }
+
 
 
     /* Sticky action bar */
