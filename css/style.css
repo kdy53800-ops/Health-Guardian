@@ -962,6 +962,8 @@ textarea.form-control {
   /* 상단 네비 간소화 */
   .nav-links { display: none; }
   .nav-right .btn-logout { display: none; }
+  .nav-right .btn-gold { display: none; } /* 개인 대시보드 버튼 숨김 (드로어에서 접근) */
+  .admin-badge { display: none; }         /* 관리자 배지 숨김 */
   .nav-username { display: none; }
   .top-nav { padding: 0 14px; }
 

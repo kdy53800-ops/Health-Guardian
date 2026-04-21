@@ -635,9 +635,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── 모바일 햄버거 드로어 메뉴 ──────────────────────────
 function renderMobileNav() {
-  // 관리자 전용·로그인 페이지는 제외
   const page = window.location.pathname.split('/').pop() || 'index.html';
-  const noDrawerPages = ['index.html', 'admin.html', 'admin-users.html', 'admin-ranking.html', 'admin-inbody.html', 'seed-data.html', ''];
+  const noDrawerPages = ['index.html', 'seed-data.html', ''];
   if (noDrawerPages.includes(page)) return;
 
   const user = Auth.getUser();
@@ -657,7 +656,7 @@ function renderMobileNav() {
   // ② 현재 페이지 판별
   const isActive = (href) => page === href ? 'active' : '';
 
-  // ③ 메뉴 항목 구성
+  // ③ 메뉴 항목 구성 (사용자 메뉴)
   const navItems = [
     { href: 'dashboard.html', icon: '📊', label: '대시보드' },
     { href: 'record.html',    icon: '✏️', label: '기록하기' },
@@ -676,15 +675,25 @@ function renderMobileNav() {
   `).join('');
 
   // ④ 관리자 섹션 (관리자 계정만)
-  const adminHTML = user.isAdmin ? `
-    <div class="drawer-divider"></div>
-    <div class="drawer-section-label">관리자</div>
-    <a href="admin.html" class="drawer-nav-item">
-      <span class="drawer-item-icon">⚙️</span>
-      <span class="drawer-item-label">관리자 패널</span>
-      <span class="drawer-item-badge">ADMIN</span>
-    </a>
-  ` : '';
+  let adminHTML = '';
+  if (user.isAdmin) {
+    const adminItems = [
+      { href: 'admin.html', icon: '📊', label: '관리 현황' },
+      { href: 'admin-ranking.html', icon: '🏆', label: '사용자 랭킹' },
+      { href: 'admin-users.html', icon: '👥', label: '사용자 관리' },
+      { href: 'admin-inbody.html', icon: '💪', label: '인바디 관리' },
+    ];
+    adminHTML = `
+      <div class="drawer-divider"></div>
+      <div class="drawer-section-label">관리자 메뉴</div>
+      ${adminItems.map(item => `
+        <a href="${item.href}" class="drawer-nav-item ${isActive(item.href)}">
+          <span class="drawer-item-icon">${item.icon}</span>
+          <span class="drawer-item-label">${item.label}</span>
+        </a>
+      `).join('')}
+    `;
+  }
 
   // ⑤ 유저 아바타 이니셜
   const initial = (user.name || user.username || '?')[0].toUpperCase();
