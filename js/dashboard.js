@@ -215,8 +215,8 @@ function renderDashboard() {
         <div class="chart-card-header">
           <div class="chart-card-title">⭐ 컨디션 변화</div>
           <div class="filter-btns">
-            <button class="filter-btn active" id="condFilter7" onclick="setFilter('condition','7')">7일</button>
-            <button class="filter-btn" id="condFilter30" onclick="setFilter('condition','30')">30일</button>
+            <button class="filter-btn active" id="conditionFilter7" onclick="setFilter('condition','7')">7일</button>
+            <button class="filter-btn" id="conditionFilter30" onclick="setFilter('condition','30')">30일</button>
           </div>
         </div>
         <div class="chart-card-body">
@@ -229,6 +229,10 @@ function renderDashboard() {
     <div class="chart-card mb-20">
       <div class="chart-card-header">
         <div class="chart-card-title">⚖️ 체중 변화</div>
+        <div class="filter-btns">
+          <button class="filter-btn active" id="weightFilter7" onclick="setFilter('weight','7')">7일</button>
+          <button class="filter-btn" id="weightFilter30" onclick="setFilter('weight','30')">30일</button>
+        </div>
       </div>
       <div class="chart-card-body">
         <div id="weightChartWrap" class="chart-wrap"><canvas id="chartWeight"></canvas></div>
@@ -479,19 +483,25 @@ function drawCharts(period) {
   });
 
   // ⑥ 체중 변화
-  const weightData = userRecords.filter(r => r.weight > 0).slice(-30);
-  if (weightData.length > 0) {
+  const weightData = days.map(d => {
+    const r = recordMap[d];
+    return (r && r.weight > 0) ? r.weight : null; // weight가 0이면 null로 처리하여 그래프가 끊기게 하거나 이전값 유지 고려
+  });
+
+  // null이 아닌 데이터가 하나라도 있어야 그림
+  if (weightData.some(v => v !== null)) {
     charts.weight = new Chart(document.getElementById('chartWeight'), {
       type: 'line',
       data: {
-        labels: weightData.map(r => formatDateShort(r.date)),
+        labels,
         datasets: [{
           label: '체중(kg)',
-          data: weightData.map(r => r.weight),
+          data: weightData,
           borderColor: CHART_COLORS.primary,
           backgroundColor: CHART_COLORS.primaryBg,
           fill: true,
           tension: 0.4,
+          spanGaps: true, // 데이터가 없는 날은 선으로 이어줌
           pointRadius: 4,
           pointHoverRadius: 6,
           pointBackgroundColor: CHART_COLORS.primary,
@@ -642,6 +652,14 @@ function setFilter(section, period) {
     charts.condition.data.labels = labels;
     charts.condition.data.datasets[0].data = days.map(d => getVal(d,'condition'));
     charts.condition.update();
+  }
+  if (section === 'weight' && charts.weight) {
+    charts.weight.data.labels = labels;
+    charts.weight.data.datasets[0].data = days.map(d => {
+      const v = getVal(d, 'weight');
+      return v > 0 ? v : null;
+    });
+    charts.weight.update();
   }
   if (section === 'custom') {
     const catCfgs = ['유산소', '근력', '유연성', '스포츠'];
