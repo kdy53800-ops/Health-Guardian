@@ -126,6 +126,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 /* ===== ADMIN FILTER BAR ===== */
 .admin-filter-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   background: var(--surface);
