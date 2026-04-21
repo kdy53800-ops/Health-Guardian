@@ -150,7 +150,11 @@
           </select>
         </div>
         <div class="filter-group" style="margin-left: auto;">
-          <button class="btn-logout" id="btnFilterSpecial" onclick="toggleSpecialFilter()" style="border-color:var(--gold); padding: 6px 12px; font-size: 0.8rem;">⭐ 특별관리 보기 (OFF)</button>
+          <span class="filter-label">⭐ 대상</span>
+          <select id="filterSpecial" class="filter-select" onchange="updateFilters()" style="border-color:var(--gold);">
+            <option value="all">전체 사용자</option>
+            <option value="special">특별관리 대상</option>
+          </select>
         </div>
       </div>
 

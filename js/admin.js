@@ -636,9 +636,11 @@ function applyFilter() {
 function updateFilters() {
   const gSelect = document.getElementById('filterGender');
   const aSelect = document.getElementById('filterAge');
+  const sSelect = document.getElementById('filterSpecial');
   
   if (gSelect) filterGender = gSelect.value;
   if (aSelect) filterAge = aSelect.value;
+  if (sSelect) filterSpecialOnly = (sSelect.value === 'special');
   
   applyFilter();
 }
@@ -646,27 +648,13 @@ function updateFilters() {
 function syncFilterUI() {
   const gSelect = document.getElementById('filterGender');
   const aSelect = document.getElementById('filterAge');
-  const btn = document.getElementById('btnFilterSpecial');
+  const sSelect = document.getElementById('filterSpecial');
   
   if (gSelect) gSelect.value = filterGender;
   if (aSelect) aSelect.value = filterAge;
-  if (btn) {
-    btn.classList.toggle('active', filterSpecialOnly);
-    btn.style.color = filterSpecialOnly ? 'var(--gold)' : '';
-    btn.innerHTML = filterSpecialOnly ? '⭐ 특별관리 보기 (ON)' : '⭐ 특별관리 보기 (OFF)';
-  }
+  if (sSelect) sSelect.value = filterSpecialOnly ? 'special' : 'all';
 }
 
-function toggleSpecialFilter() {
-  filterSpecialOnly = !filterSpecialOnly;
-  const btn = document.getElementById('btnFilterSpecial');
-  if (btn) {
-    btn.classList.toggle('active', filterSpecialOnly);
-    btn.style.color = filterSpecialOnly ? 'var(--gold)' : '';
-    btn.innerHTML = filterSpecialOnly ? '⭐ 특별관리 보기 (ON)' : '⭐ 특별관리 보기 (OFF)';
-  }
-  applyFilter();
-}
 
 async function toggleSpecialTarget(userId, currentStatus) {
   try {
