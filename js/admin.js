@@ -9,6 +9,8 @@ let allRecords = [];
 let fetchedUsers = [];
 let fetchedRecords = [];
 let filterSpecialOnly = false;
+let filterGender = 'all';
+let filterAge = 'all';
 
 const RANK_CONFIGS = [
   { key: 'streak', label: '🔥 연속 기록', desc: '연속 기록 일수' },
@@ -130,10 +132,12 @@ async function enterAdmin() {
   fetchedUsers = Array.isArray(payload.users) ? payload.users : [];
   fetchedRecords = Array.isArray(payload.records) ? payload.records : [];
   applyFilter();
+  syncFilterUI();
 
   hideAdminAccessOverlay();
   renderAll();
 }
+
 
 function renderAll() {
   const page = location.pathname.split('/').pop() || 'admin.html';
@@ -594,16 +598,62 @@ async function deleteUser() {
 }
 
 function applyFilter() {
-  if (filterSpecialOnly) {
-    allUsers = fetchedUsers.filter(u => u.isSpecial);
-    const validIds = new Set(allUsers.map(u => u.id));
-    allRecords = fetchedRecords.filter(r => validIds.has(r.userId));
-  } else {
-    allUsers = [...fetchedUsers];
-    allRecords = [...fetchedRecords];
-  }
-  if (document.getElementById('platformStats') || document.getElementById('rankHead') || document.getElementById('mgmtBody')) {
-    renderAll();
+  const currentYear = new Date().getFullYear();
+
+  allUsers = fetchedUsers.filter(u => {
+    // 1. 특별관리 필터
+    if (filterSpecialOnly && !u.isSpecial) return false;
+    
+    // 2. 성별 필터
+    if (filterGender !== 'all' && u.gender !== filterGender) return false;
+    
+    // 3. 연령대 필터
+    if (filterAge !== 'all') {
+      const birthYear = Number(u.birthyear);
+      if (!birthYear) return false;
+      const age = currentYear - birthYear + 1; // 한국식 나이 또는 단순 차이
+      
+      if (filterAge === '20') {
+        if (age < 20 || age >= 30) return false;
+      } else if (filterAge === '30') {
+        if (age < 30 || age >= 40) return false;
+      } else if (filterAge === '40') {
+        if (age < 40 || age >= 50) return false;
+      } else if (filterAge === '50') {
+        if (age < 50) return false;
+      }
+    }
+    
+    return true;
+  });
+
+  const validIds = new Set(allUsers.map(u => u.id));
+  allRecords = fetchedRecords.filter(r => validIds.has(r.userId));
+
+  renderAll();
+}
+
+function updateFilters() {
+  const gSelect = document.getElementById('filterGender');
+  const aSelect = document.getElementById('filterAge');
+  
+  if (gSelect) filterGender = gSelect.value;
+  if (aSelect) filterAge = aSelect.value;
+  
+  applyFilter();
+}
+
+function syncFilterUI() {
+  const gSelect = document.getElementById('filterGender');
+  const aSelect = document.getElementById('filterAge');
+  const btn = document.getElementById('btnFilterSpecial');
+  
+  if (gSelect) gSelect.value = filterGender;
+  if (aSelect) aSelect.value = filterAge;
+  if (btn) {
+    btn.classList.toggle('active', filterSpecialOnly);
+    btn.style.color = filterSpecialOnly ? 'var(--gold)' : '';
+    btn.innerHTML = filterSpecialOnly ? '⭐ 특별관리 보기 (ON)' : '⭐ 특별관리 보기 (OFF)';
   }
 }
 

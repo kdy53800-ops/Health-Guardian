@@ -165,6 +165,31 @@
         <p class="subtitle">특별관리 대상자의 인바디 기록을 업로드하고 관리합니다.</p>
       </div>
 
+      <!-- ── ADMIN FILTER BAR ── -->
+      <div class="admin-filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">🚻 성별</span>
+          <select id="filterGender" class="filter-select" onchange="updateFilters()">
+            <option value="all">전체</option>
+            <option value="남">남성</option>
+            <option value="여">여성</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">🎂 연령대</span>
+          <select id="filterAge" class="filter-select" onchange="updateFilters()">
+            <option value="all">전체</option>
+            <option value="20">20대</option>
+            <option value="30">30대</option>
+            <option value="40">40대</option>
+            <option value="50">50대 이상</option>
+          </select>
+        </div>
+        <div class="filter-group" style="margin-left: auto;">
+          <button class="btn-logout" id="btnFilterSpecial" onclick="toggleSpecialFilter()" style="border-color:var(--gold); padding: 6px 12px; font-size: 0.8rem;">⭐ 특별관리 보기 (OFF)</button>
+        </div>
+      </div>
+
       <div class="chart-card mb-20" style="padding: 24px;">
         <div class="form-group" style="margin-bottom: 20px; max-width: 400px;">
           <label>대상자 선택 (특별관리 대상자만 표시됩니다)</label>

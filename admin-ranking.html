@@ -114,7 +114,6 @@
     </ul>
     <div class="nav-right">
       <a href="dashboard.html" class="btn btn-gold btn-sm" style="margin-right:8px; text-decoration:none;">🏠 개인 대시보드</a>
-      <button class="btn-logout" id="btnFilterSpecial" onclick="toggleSpecialFilter()" style="margin-right:8px; border-color:var(--gold);">⭐ 특별관리 보기 (OFF)</button>
       <div class="nav-user">
         <div class="nav-avatar" id="navAvatar">A</div>
         <span class="nav-username" id="navUsername">관리자</span>
@@ -129,6 +128,32 @@
         <h1><div class="page-icon">🏆</div> 사용자 랭킹</h1>
         <p class="subtitle">카테고리별 사용자 순위 비교</p>
       </div>
+      
+      <!-- ── ADMIN FILTER BAR ── -->
+      <div class="admin-filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">🚻 성별</span>
+          <select id="filterGender" class="filter-select" onchange="updateFilters()">
+            <option value="all">전체</option>
+            <option value="남">남성</option>
+            <option value="여">여성</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">🎂 연령대</span>
+          <select id="filterAge" class="filter-select" onchange="updateFilters()">
+            <option value="all">전체</option>
+            <option value="20">20대</option>
+            <option value="30">30대</option>
+            <option value="40">40대</option>
+            <option value="50">50대 이상</option>
+          </select>
+        </div>
+        <div class="filter-group" style="margin-left: auto;">
+          <button class="btn-logout" id="btnFilterSpecial" onclick="toggleSpecialFilter()" style="border-color:var(--gold); padding: 6px 12px; font-size: 0.8rem;">⭐ 특별관리 보기 (OFF)</button>
+        </div>
+      </div>
+
       <div class="chart-card mb-20">
         <div class="chart-card-header" style="flex-wrap:wrap;gap:10px;">
           <div class="chart-card-title">🏆 사용자 랭킹</div>

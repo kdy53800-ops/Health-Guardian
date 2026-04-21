@@ -19,6 +19,8 @@ function mapProfile(row) {
     createdAt: row.created_at || new Date().toISOString(),
     supabaseUserId: row.id,
     authProvider: row.auth_provider || 'naver',
+    gender: row.gender || '',
+    birthyear: row.birthyear || '',
   };
 }
 

@@ -117,10 +117,39 @@
 
   <div class="app-layout">
     <main class="page-content fade-in">
-      <div class="page-header" style="margin-bottom:24px;">
-        <h1><div class="page-icon">📊</div> 관리 현황</h1>
-        <p class="subtitle">전체 사용자 데이터 분석 및 플랫폼 통계</p>
+      <header class="page-header">
+        <div class="ph-icon">📊</div>
+        <div class="ph-text">
+          <h1>관리 현황</h1>
+          <p>전체 사용자 데이터 분석 및 플랫폼 통계</p>
+        </div>
+      </header>
+
+      <!-- ── ADMIN FILTER BAR ── -->
+      <div class="admin-filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">🚻 성별</span>
+          <select id="filterGender" class="filter-select" onchange="updateFilters()">
+            <option value="all">전체</option>
+            <option value="남">남성</option>
+            <option value="여">여성</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">🎂 연령대</span>
+          <select id="filterAge" class="filter-select" onchange="updateFilters()">
+            <option value="all">전체</option>
+            <option value="20">20대</option>
+            <option value="30">30대</option>
+            <option value="40">40대</option>
+            <option value="50">50대 이상</option>
+          </select>
+        </div>
+        <div class="filter-group" style="margin-left: auto;">
+          <button class="btn-logout" id="btnFilterSpecial" onclick="toggleSpecialFilter()" style="border-color:var(--gold); padding: 6px 12px; font-size: 0.8rem;">⭐ 특별관리 보기 (OFF)</button>
+        </div>
       </div>
+
       <div class="platform-stats" id="platformStats"></div>
       <div class="admin-charts">
         <div class="chart-card">
