@@ -89,7 +89,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (!canTryAdminApi()) {
-    showAdminAccessOverlay('먼저 네이버 로그인 후 이용해 주세요.');
+    alert('관리자 인증이 필요합니다. 먼저 네이버로 로그인해 주세요.');
+    window.location.href = 'index.html';
     return;
   }
 
@@ -98,10 +99,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     const status = Number(error && error.status);
     if (status === 401 || status === 403) {
-      showAdminAccessOverlay('접근 권한이 없습니다. 관리자 계정으로 로그인해 주세요.');
+      alert('접근 권한이 없습니다. 관리자 계정으로 로그인해 주세요.');
+      window.location.href = 'index.html';
       return;
     }
-    showAdminAccessOverlay(error.message || '관리자 데이터를 불러오는 중 오류가 발생했습니다.');
+    alert(error.message || '관리자 데이터를 불러오는 중 오류가 발생했습니다.');
+    window.location.href = 'index.html';
   }
 });
 

@@ -126,7 +126,11 @@ const Auth = {
   requireAdmin() {
     const user = this.getUser();
     if (!user) { window.location.href = 'index.html'; return null; }
-    if (!user.isAdmin) { window.location.href = 'dashboard.html'; return null; }
+    if (user.isAdmin !== true) {
+      alert('관리자 권한이 필요한 페이지입니다. 관리자 계정으로 다시 로그인해 주세요.');
+      window.location.href = 'index.html';
+      return null;
+    }
     return user;
   },
 
