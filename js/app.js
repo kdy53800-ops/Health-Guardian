@@ -728,7 +728,7 @@ function renderMobileNav() {
       </button>
     </div>
 
-    <div class="drawer-footer">건강지킴이 © 2025</div>
+
   `;
 
   document.body.appendChild(overlay);

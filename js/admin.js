@@ -609,6 +609,7 @@ function toggleSpecialFilter() {
   if (btn) {
     btn.classList.toggle('active', filterSpecialOnly);
     btn.style.color = filterSpecialOnly ? 'var(--gold)' : '';
+    btn.innerHTML = filterSpecialOnly ? '⭐ 특별관리 보기 (ON)' : '⭐ 특별관리 보기 (OFF)';
   }
   applyFilter();
 }
