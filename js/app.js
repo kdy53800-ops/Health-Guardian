@@ -9,7 +9,7 @@ const APP_NAME = 'HealthGuardian';
 const KEYS = {
   RECORDS: `${APP_NAME}_records`,
   USERS: `${APP_NAME}_users`,
-  CURRENT_USER: `${APP_NAME}_currentUser`,
+  CURRENT_USER: `${APP_NAME}_userSession_v2`,
   GOALS: `${APP_NAME}_goals`,
   RECORDS_MIGRATED: `${APP_NAME}_recordsMigrated`,
 };
