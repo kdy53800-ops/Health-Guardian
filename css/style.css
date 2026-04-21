@@ -141,7 +141,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .nav-links a:hover,
@@ -245,6 +245,8 @@ h4 { font-size: 1rem; font-weight: 600; }
   transform: translateY(-8px) scale(0.97);
   pointer-events: none;
   transition: opacity 0.18s ease, transform 0.18s ease;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .nav-profile.open .nav-profile-dropdown {
@@ -348,7 +350,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
 }
 
 .btn-logout:hover {
@@ -370,7 +372,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   font-size: 0.95rem;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  transition: background-color 0.22s cubic-bezier(0.4,0,0.2,1), color 0.22s cubic-bezier(0.4,0,0.2,1), border-color 0.22s cubic-bezier(0.4,0,0.2,1), transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s cubic-bezier(0.4,0,0.2,1);
   white-space: nowrap;
 }
 
@@ -485,7 +487,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   padding: 20px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
-  transition: all 0.25s;
+  transition: box-shadow 0.25s, transform 0.25s;
   position: relative;
   overflow: hidden;
 }
@@ -580,7 +582,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   font-family: inherit;
   color: var(--text);
   background: var(--white);
-  transition: all 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
   outline: none;
   appearance: none;
 }
@@ -874,6 +876,8 @@ textarea.form-control {
   font-weight: 500;
   min-width: 240px;
   animation: slideInToast 0.3s cubic-bezier(0.4,0,0.2,1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .toast.success { background: #15803d; }
@@ -1131,6 +1135,8 @@ textarea.form-control {
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: -8px 0 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .nav-drawer.open {
@@ -1410,7 +1416,7 @@ textarea.form-control {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
 }
 
 .login-tab.active {
@@ -1431,7 +1437,7 @@ textarea.form-control {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
-  transition: all 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
   position: relative;
   overflow: hidden;
 }
@@ -1517,6 +1523,8 @@ textarea.form-control {
   overflow-y: auto;
   box-shadow: 0 30px 100px rgba(0,0,0,0.25);
   animation: scaleIn 0.25s cubic-bezier(0.4,0,0.2,1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 @keyframes scaleIn {
@@ -1543,7 +1551,7 @@ textarea.form-control {
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .modal-close:hover {
