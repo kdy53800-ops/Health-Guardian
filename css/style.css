@@ -91,8 +91,9 @@ h4 { font-size: 1rem; font-weight: 600; }
   align-items: center;
   justify-content: space-between;
   padding: 0 28px;
-  z-index: 1000;
+  z-index: 5000;
   box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  overflow: visible;
 }
 
 .nav-brand {
