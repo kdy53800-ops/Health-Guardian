@@ -311,7 +311,7 @@ function renderRanking() {
   const body = document.getElementById('rankBody');
   if (!head || !body) return;
 
-  head.innerHTML = ['순위', '사용자', '아이디', '전화번호', cfg.desc, '총 기록', '스트릭', '최근 기록']
+  head.innerHTML = ['순위', '사용자', '이메일', '전화번호', cfg.desc, '총 기록', '스트릭', '최근 기록']
     .map(label => `<th>${label}</th>`)
     .join('');
 
@@ -334,7 +334,7 @@ function renderRanking() {
             ${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}
           </div>
         </td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${user.username || '-'}</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
         <td><strong style="color:var(--primary);">${user.score.toLocaleString()}</strong><span style="font-size:.75rem;color:var(--text-muted);"> ${units[rankMode]}</span></td>
         <td>${user.records}건</td>
@@ -351,6 +351,7 @@ function renderUserMgmt() {
     !q
     || String(user.name || '').toLowerCase().includes(q)
     || String(user.username || '').toLowerCase().includes(q)
+    || String(user.email || '').toLowerCase().includes(q)
     || String(user.phone || '').toLowerCase().includes(q)
   ));
 
@@ -370,7 +371,7 @@ function renderUserMgmt() {
     return `
       <tr>
         <td><div class="user-name-cell"><div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div><span style="font-weight:600;">${user.name || '-'}</span>${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}</div></td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${user.username || '-'}</td>
+        <td style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
         <td><strong>${recs.length}</strong>건</td>
@@ -402,7 +403,7 @@ function viewUser(userId) {
   document.getElementById('udAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
   document.getElementById('udName').textContent = user.name || '-';
   document.getElementById('udMeta').textContent =
-    `@${user.username || '-'}  ·  ${formatPhone(user.phone)}  ·  가입일 ${user.createdAt ? String(user.createdAt).split('T')[0] : '-'}  ·  총 ${recs.length}건 기록`;
+    `${user.email || '-'}  ·  ${formatPhone(user.phone)}  ·  가입일 ${user.createdAt ? String(user.createdAt).split('T')[0] : '-'}  ·  총 ${recs.length}건 기록`;
 
   const statItems = [
     { icon: '🔥', label: '연속 스트릭', val: `${streak}일` },

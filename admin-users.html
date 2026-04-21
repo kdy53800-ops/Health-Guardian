@@ -148,7 +148,7 @@
       <div class="chart-card mb-20">
         <div class="chart-card-header">
           <div class="chart-card-title">👥 사용자 목록</div>
-          <input type="text" id="userSearch" placeholder="이름/아이디 검색…"
+          <input type="text" id="userSearch" placeholder="이름/이메일 검색…"
             style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:.83rem;font-family:inherit;outline:none;width:180px;"
             oninput="renderUserMgmt()">
         </div>
@@ -156,7 +156,7 @@
           <div class="table-scroll-wrap">
             <table class="mgmt-table">
               <thead><tr>
-                <th>사용자</th><th>아이디</th><th>전화번호</th><th>가입일</th>
+                <th>사용자</th><th>이메일</th><th>전화번호</th><th>가입일</th>
                 <th>총 기록</th><th>최근 기록</th><th>스트릭</th><th>상태</th><th>관리</th>
               </tr></thead>
               <tbody id="mgmtBody"></tbody>
