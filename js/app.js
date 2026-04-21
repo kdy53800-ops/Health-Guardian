@@ -548,7 +548,7 @@ function renderNavUser() {
   const displayName = user.name || user.username || '사용자';
 
   // 관리자 전용 항목
-  const adminItemHTML = user.isAdmin ? `
+  const adminItemHTML = (user.isAdmin === true) ? `
     <a href="admin.html" class="dropdown-item admin-item">
       <span class="di-icon">⚙️</span>
       관리자 패널
@@ -614,15 +614,13 @@ function renderStars(rating, max = 5) {
 }
 
 function cleanupLegacyAdminAccount() {
-  const users = Auth.getUsers();
-  const filtered = users.filter(user => user.id !== 'admin_snh078800' && user.username !== 'snh078800');
-  if (filtered.length !== users.length) {
-    Auth.saveUsers(filtered);
-  }
-
   const current = Auth.getUser();
-  if (current && (current.id === 'admin_snh078800' || current.username === 'snh078800')) {
+  if (!current) return;
+
+  // 1. 구형 관리자 ID 기반 계정 삭제
+  if (current.id === 'admin_snh078800' || current.username === 'snh078800') {
     localStorage.removeItem(KEYS.CURRENT_USER);
+    return;
   }
 }
 
@@ -677,7 +675,7 @@ function renderMobileNav() {
 
   // ④ 관리자 섹션 (관리자 계정만)
   let adminHTML = '';
-  if (user.isAdmin) {
+  if (user.isAdmin === true) {
     const adminItems = [
       { href: 'admin.html', icon: '📊', label: '관리 현황' },
       { href: 'admin-ranking.html', icon: '🏆', label: '사용자 랭킹' },
