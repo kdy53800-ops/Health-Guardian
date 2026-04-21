@@ -59,6 +59,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   currentUser = Auth.require();
   if (!currentUser) return;
 
+  // 날짜 제한 설정 (미래 불가, 오늘 포함 3일)
+  const todayStr = today();
+  const minDate = prevDay(prevDay(todayStr));
+  const dateInput = document.getElementById('fDate');
+  if (dateInput) {
+    dateInput.setAttribute('max', todayStr);
+    dateInput.setAttribute('min', minDate);
+  }
+
   userGoals = Goals.get(currentUser.id);
   userRecords = await Records.getUserRecordsAsync(currentUser.id);
 
@@ -76,8 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = 'history.html';
     }
   } else {
-    // 신규 기록: 오늘 날짜만 세팅, 자동 불러오기 없음
-    document.getElementById('fDate').value = today();
+    // 신규 기록: 오늘 날짜 기본 세팅
+    if (dateInput) dateInput.value = todayStr;
   }
 
   // 날짜 변경 시 기존 기록 여부 확인
@@ -278,6 +287,18 @@ async function handleSave(e) {
   const dateVal = document.getElementById('fDate').value;
   if (!dateVal) {
     showToast('날짜를 선택해주세요.', 'error');
+    return;
+  }
+
+  // 날짜 제한 검증 (미래 불가, 3일 이내만 가능)
+  const todayStr = today();
+  const minDate  = prevDay(prevDay(todayStr));
+  if (dateVal > todayStr) {
+    showToast('미래 날짜는 기록할 수 없습니다. 🚫', 'error');
+    return;
+  }
+  if (dateVal < minDate) {
+    showToast('최근 3일 이내의 기록만 작성 가능합니다. ⏳', 'error');
     return;
   }
 
