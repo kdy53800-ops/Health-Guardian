@@ -64,6 +64,7 @@ const Auth = {
         credentials: 'include',
         keepalive: true,
       }).catch(() => {});
+      localStorage.removeItem(KEYS.CURRENT_USER);
       window.location.href = 'index.html?logout=1';
       return;
     }

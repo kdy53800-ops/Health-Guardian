@@ -133,8 +133,8 @@
       supabaseUserId: profile.supabaseUserId || baseUser.supabaseUserId || '',
       oauthProviderId: profile.oauthProviderId || baseUser.oauthProviderId || '',
       username: profile.username || baseUser.username || buildUsername(profile, users, preferredId),
-      isAdmin: !!(profile.isAdmin || baseUser.isAdmin),
-      isSpecial: !!(profile.isSpecial || baseUser.isSpecial),
+      isAdmin: profile.isAdmin !== undefined ? !!profile.isAdmin : !!baseUser.isAdmin,
+      isSpecial: profile.isSpecial !== undefined ? !!profile.isSpecial : !!baseUser.isSpecial,
     };
 
     const nextUsers = existing
@@ -154,6 +154,7 @@
       phone: mergedUser.phone,
       gender: mergedUser.gender,
       birthday: mergedUser.birthday,
+      birthyear: mergedUser.birthyear,
       isAdmin: !!mergedUser.isAdmin,
       isSpecial: !!mergedUser.isSpecial,
       authProvider: 'naver',
@@ -188,6 +189,7 @@
 
     try {
       if (params.get('logout') === '1') {
+        localStorage.removeItem(KEYS.CURRENT_USER);
         params.delete('logout');
         replaceLocation(params, hashParams);
         return { signedOut: true };
