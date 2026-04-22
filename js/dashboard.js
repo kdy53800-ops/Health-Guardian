@@ -692,28 +692,26 @@ function renderBestRecords(records = []) {
     { label: '윗몸',   icon: '🔄', key: 'situps',   unit: '회' },
   ];
 
-  const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
-  const rankClasses = ['rank-1', 'rank-2', 'rank-3', '', ''];
-
   const cards = bests.map(({ label, icon, key, unit }, idx) => {
     const best = [...records].filter(r => r[key] > 0).sort((a, b) => b[key] - a[key])[0];
+    
     if (!best) {
       return `
-        <div class="best-record-item" style="opacity:0.4;">
-          <div class="best-record-rank">${medals[idx]}</div>
+        <div class="best-record-item" style="opacity:0.5;">
+          <div class="best-record-icon-bg">${icon}</div>
           <div class="best-record-info">
-            <div class="best-record-label">${icon} ${label}</div>
-            <div class="best-record-val" style="font-size:1rem; color:var(--text-muted);">-</div>
-            <div class="best-record-date">기록 없음</div>
+            <div class="best-record-label">${label}</div>
+            <div class="best-record-val" style="font-size:1rem; color:var(--text-muted); margin-top:4px;">기록 없음</div>
           </div>
         </div>
       `;
     }
+
     return `
       <div class="best-record-item">
-        <div class="best-record-rank ${rankClasses[idx]}">${medals[idx]}</div>
+        <div class="best-record-icon-bg">${icon}</div>
         <div class="best-record-info">
-          <div class="best-record-label">${icon} ${label}</div>
+          <div class="best-record-label">${label}</div>
           <div class="best-record-val">${best[key]}<span class="best-record-unit"> ${unit}</span></div>
           <div class="best-record-date">${formatDate(best.date, { month: 'numeric', day: 'numeric' })}</div>
         </div>
