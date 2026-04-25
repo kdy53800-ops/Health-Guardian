@@ -608,6 +608,46 @@ function renderNavUser() {
 }
 
 
+
+// ─── Render Footer ─────────────────────────────────────
+function renderFooter() {
+  // 이미 푸터가 존재하면 중복 생성 방지
+  if (document.querySelector('.app-footer')) return;
+
+  const footer = document.createElement('footer');
+  footer.className = 'app-footer';
+  footer.innerHTML = `
+    <div class="footer-content">
+      <div class="footer-info-grid">
+        <div class="footer-info-item">
+          <span class="footer-info-label">등록번호</span>
+          <span class="footer-info-val">580-82-00671</span>
+        </div>
+        <div class="footer-info-item">
+          <span class="footer-info-label">법인명</span>
+          <span class="footer-info-val">의료법인 나눔과행복의료재단</span>
+        </div>
+        <div class="footer-info-item">
+          <span class="footer-info-label">대표자</span>
+          <span class="footer-info-val">백선미</span>
+        </div>
+        <div class="footer-info-item">
+          <span class="footer-info-label">주소</span>
+          <span class="footer-info-val">부산광역시 해운대구 좌동순환로 502, 3~9층(중동)</span>
+        </div>
+        <div class="footer-info-item">
+          <span class="footer-info-label">업태/종목</span>
+          <span class="footer-info-val">보건업 / 일반병원</span>
+        </div>
+      </div>
+      <div class="footer-copyright">
+        &copy; 2026 의료법인 나눔과행복의료재단. All rights reserved.
+      </div>
+    </div>
+  `;
+  document.body.appendChild(footer);
+}
+
 // ─── Stars ─────────────────────────────────────────────
 function renderStars(rating, max = 5) {
   let html = '';
@@ -634,6 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setActiveNav();
   renderNavUser();
   renderMobileNav();
+  renderFooter();
 });
 
 // ─── 모바일 햄버거 드로어 메뉴 ──────────────────────────
