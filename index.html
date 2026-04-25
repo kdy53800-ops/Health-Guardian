@@ -177,6 +177,51 @@
       border: 1px solid #e2e8f0;
     }
 
+    /* 환영 메시지 스타일 */
+    .welcome-section {
+      background: rgba(241, 245, 249, 0.5);
+      border-radius: 24px;
+      padding: 24px;
+      margin: 25px 0;
+      text-align: center;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .welcome-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .welcome-text {
+      font-size: 0.9rem;
+      line-height: 1.75;
+      color: #475569;
+      margin: 0;
+      word-break: keep-all;
+    }
+
+    .welcome-text p {
+      margin-bottom: 10px;
+    }
+
+    .welcome-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    .welcome-highlight {
+      color: #004680;
+      font-weight: 700;
+    }
+
+    .welcome-closing {
+      font-weight: 800;
+      color: var(--text-dark);
+      margin-top: 18px !important;
+    }
+
     /* 모바일 대응 */
     @media (max-width: 480px) {
       .login-card {
@@ -186,7 +231,10 @@
       .brand-name { font-size: 1.9rem; }
       .tagline { font-size: 0.92rem; }
       .logo-img { width: 68px; height: 68px; margin-bottom: 16px; }
-      .btn-naver { height: 56px; font-size: 1rem; margin: 32px 0 20px; }
+      .welcome-section { padding: 20px 16px; margin: 20px 0; }
+      .welcome-title { font-size: 1rem; }
+      .welcome-text { font-size: 0.85rem; }
+      .btn-naver { height: 56px; font-size: 1rem; margin: 25px 0 20px; }
       .badge-group { gap: 6px; }
       .badge { font-size: 0.72rem; padding: 6px 10px; }
     }
@@ -210,6 +258,29 @@
         <span class="badge">운동 추적</span>
         <span class="badge">체성분 분석</span>
         <span class="badge">생활 기록</span>
+      </div>
+
+      <div class="welcome-section">
+        <span class="welcome-title">건강지킴이에 오신 것을 환영합니다.</span>
+        <div class="welcome-text">
+          <p>
+            건강지킴이는<br>
+            <span class="welcome-highlight">해운대나눔과행복병원</span>에서 제공하는 건강 관리 프로그램으로,<br>
+            갑상선 환자분들의 지속적인 건강 관리와 일상 속 회복을 지원하기 위해 시작되었습니다.
+          </p>
+          <p>
+            이제 본 프로그램은 환자분들뿐 아니라,<br>
+            건강한 생활 습관을 만들어가고자 하는 모든 분들께 열려 있습니다.
+          </p>
+          <p>
+            운동 기록, 생활 관리, 신체 데이터 분석을 통해<br>
+            스스로의 변화를 확인하고, 보다 체계적인 건강 관리를 경험해보세요.
+          </p>
+          <p class="welcome-closing">
+            해운대나눔과행복병원과 함께,<br>
+            건강한 변화의 시작을 만들어가시기 바랍니다.
+          </p>
+        </div>
       </div>
 
       <a href="#" class="btn-naver" onclick="handleNaverLogin(event); return false;">
