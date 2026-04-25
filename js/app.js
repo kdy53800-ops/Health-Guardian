@@ -618,6 +618,10 @@ function renderFooter() {
   footer.className = 'app-footer';
   footer.innerHTML = `
     <div class="footer-content">
+      <div class="footer-links" style="margin-bottom: 20px; display: flex; gap: 20px; font-weight: 700;">
+        <a href="terms.html" style="color: var(--text-secondary); text-decoration: none;">이용약관</a>
+        <a href="privacy.html" style="color: var(--primary); text-decoration: none;">개인정보처리방침</a>
+      </div>
       <div class="footer-info-grid">
         <div class="footer-info-item">
           <span class="footer-info-label">등록번호</span>
