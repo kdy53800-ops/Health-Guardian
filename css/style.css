@@ -1647,9 +1647,38 @@ textarea.form-control {
   color: var(--text-muted);
 }
 
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.footer-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: var(--primary);
+}
+
+.footer-link.privacy {
+  color: var(--primary);
+}
+
 @media (max-width: 600px) {
   .app-footer {
     padding: 32px 20px;
+  }
+  .footer-links {
+    gap: 16px;
+    justify-content: center;
   }
   .footer-info-grid {
     grid-template-columns: 1fr;
