@@ -707,9 +707,9 @@ function renderMobileNav() {
   // ③ 메뉴 항목 구성 (사용자 메뉴)
   const navItems = [
     { href: 'dashboard.html', icon: '📊', label: '대시보드' },
+    { href: 'monthly.html',   icon: '📆', label: '월별 분석' },
     { href: 'record.html',    icon: '✏️', label: '기록하기' },
     { href: 'history.html',   icon: '📋', label: '기록 목록' },
-    { href: 'monthly.html',   icon: '📆', label: '월별 분석' },
   ];
   if (user.isSpecial) {
     navItems.push({ href: 'inbody.html', icon: '💪', label: '인바디(BWA)' });

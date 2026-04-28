@@ -90,19 +90,19 @@
       margin-top: 20px;
     }
     .record-list-table th {
-      text-align: left;
-      padding: 10px;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      border-bottom: 2px solid var(--border);
-      background: var(--surface-2);
+      text-align: left; padding: 12px 10px; font-size: 0.8rem; color: var(--text-secondary); border-bottom: 2px solid var(--border); white-space: nowrap;
     }
     .record-list-table td {
-      padding: 12px 10px;
-      font-size: 0.85rem;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+      padding: 12px 10px; font-size: 0.9rem; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap;
     }
+    
+    /* 테이블 모바일 스크롤 */
+    .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+    .table-scroll-wrap .record-list-table { min-width: 800px; }
     
     @media (max-width: 900px) {
       .form-grid { grid-template-columns: repeat(2, 1fr); }
@@ -263,7 +263,7 @@
 
       <div class="chart-card" id="historySection" style="display: none; padding: 24px;">
         <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 16px;">기존 인바디 기록</h3>
-        <div style="overflow-x: auto;">
+        <div class="table-scroll-wrap">
           <table class="record-list-table">
             <thead>
               <tr>

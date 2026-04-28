@@ -48,6 +48,7 @@
     .rank-board {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);
+      overflow: hidden;
     }
     .rank-table { width: 100%; border-collapse: collapse; }
     .rank-table th {
@@ -56,6 +57,14 @@
     .rank-table td {
       padding: 14px 10px; font-size: 0.9rem; border-bottom: 1px solid var(--border); vertical-align: middle;
     }
+    
+    /* 테이블 모바일 스크롤 */
+    .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+    .table-scroll-wrap .rank-table { min-width: 620px; }
     .r-badge {
       display: inline-flex; align-items: center; justify-content: center;
       width: 24px; height: 24px; border-radius: 50%; font-size: 0.8rem; font-weight: 800; color: #fff;

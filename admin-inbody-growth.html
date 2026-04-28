@@ -36,14 +36,26 @@
     .rank-board {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);
+      overflow: hidden;
     }
     .rank-table { width: 100%; border-collapse: collapse; }
     .rank-table th {
       text-align: left; padding: 12px 10px; font-size: 0.8rem; color: var(--text-secondary); border-bottom: 2px solid var(--border);
     }
     .rank-table td {
-      padding: 14px 10px; font-size: 0.9rem; border-bottom: 1px solid var(--border); vertical-align: middle;
+      padding: 14px 10px; font-size: 0.9rem; border-bottom: 1px solid var(--border); vertical-align: middle; cursor: pointer; transition: background 0.2s;
     }
+    .rank-table tr:hover td { background: rgba(0,70,128,0.03); }
+    .rank-table tr.active-user td { background: rgba(0,70,128,0.08); font-weight: bold; }
+    
+    /* 테이블 모바일 스크롤 */
+    .table-scroll-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+    .table-scroll-wrap .rank-table { min-width: 620px; }
+
     .r-badge {
       display: inline-flex; align-items: center; justify-content: center;
       width: 24px; height: 24px; border-radius: 50%; font-size: 0.8rem; font-weight: 800; color: #fff;
@@ -161,7 +173,7 @@
               💡 <strong>점수 산정 기준:</strong> [근육량 증가(kg) × 2] + [체지방률 감소(%) × 1.5] + [인바디 점수 상승]
             </div>
           </div>
-          <div style="overflow-x: auto;">
+          <div class="table-scroll-wrap">
             <table class="rank-table" id="growthTable">
               <thead>
                 <tr>

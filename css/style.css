@@ -1151,7 +1151,7 @@ textarea.form-control {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 4000;
+  z-index: 6000;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   animation: overlayFadeIn 0.22s ease;
@@ -1175,7 +1175,7 @@ textarea.form-control {
   width: 76vw;
   max-width: 300px;
   background: var(--white);
-  z-index: 4001;
+  z-index: 6001;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -1734,9 +1734,7 @@ textarea.form-control {
     padding: 0 16px;
     
   }
-  .nav-brand-name {
-    display: none; /* Hide text on very small screens, keep logo */
-  }
+  .nav-brand-name { display: block; font-size: 1.1rem; } /* Show text, slightly smaller */
   .nav-links {
     display: none; /* Hide main links on mobile if they take up too much space */
   }
@@ -1819,4 +1817,14 @@ textarea.form-control {
   .form-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* Global Table Scroll */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+.table-scroll-wrap table {
+  min-width: 620px;
 }
