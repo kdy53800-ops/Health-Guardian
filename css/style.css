@@ -1685,3 +1685,140 @@ textarea.form-control {
     gap: 8px;
   }
 }
+
+/* 式式 Admin Sub Nav Tabs 式式 */
+.sub-nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+.sub-nav-tabs a {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.sub-nav-tabs a:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.sub-nav-tabs a.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 70, 128, 0.2);
+}
+
+
+/* ===================================================
+   MOBILE OPTIMIZATION (max-width: 768px)
+   =================================================== */
+@media (max-width: 768px) {
+  /* Layout */
+  .page-content {
+    padding: 16px 14px;
+  }
+  .app-layout {
+    padding-top: calc(var(--nav-height) - 10px);
+  }
+  
+  /* Top Navigation */
+  .top-nav {
+    padding: 0 16px;
+    height: calc(var(--nav-height) - 10px);
+  }
+  .nav-brand-name {
+    display: none; /* Hide text on very small screens, keep logo */
+  }
+  .nav-links {
+    display: none; /* Hide main links on mobile if they take up too much space */
+  }
+  .nav-right .btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  .nav-username {
+    display: none;
+  }
+  .nav-avatar {
+    margin-right: 0;
+  }
+  .admin-badge {
+    margin-left: 8px;
+    font-size: 0.65rem;
+  }
+
+  /* Admin Filter Bar */
+  .admin-filter-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+  .filter-left, .filter-right, .filter-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-left: 0 !important;
+  }
+  .filter-group label, .filter-group span {
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+  }
+  .filter-select, .filter-group input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Sub Nav Tabs */
+  .sub-nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .sub-nav-tabs a {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  /* Admin Charts & Stats */
+  .admin-charts, .platform-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .chart-card {
+    grid-column: 1 / -1 !important;
+    padding: 16px !important;
+  }
+
+  /* Tables */
+  .rank-table th, .rank-table td, 
+  .record-list-table th, .record-list-table td {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .user-name-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* Forms */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

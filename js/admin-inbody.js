@@ -2,6 +2,25 @@
 let currentUser = null;
 let selectedUserId = null;
 let selectedFile = null;
+let specialUsersData = [];
+
+function filterUserSelect() {
+  const query = document.getElementById('userSearch') ? document.getElementById('userSearch').value.toLowerCase() : '';
+  const select = document.getElementById('userSelect');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">사용자를 선택하세요...</option>';
+  
+  specialUsersData.forEach(u => {
+    const text = `${u.name || '이름없음'} (${u.username})`;
+    if (text.toLowerCase().includes(query)) {
+      const option = document.createElement('option');
+      option.value = u.id;
+      option.textContent = text;
+      select.appendChild(option);
+    }
+  });
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('adminLoginOverlay');
@@ -52,18 +71,27 @@ async function loadSpecialUsers() {
       throw new Error(payload.message || '사용자 목록 로드 실패');
     }
 
-    const specialUsers = (payload.users || []).filter(u => u.isSpecial);
-    
-    const select = document.getElementById('userSelect');
-    select.innerHTML = '<option value="">사용자를 선택하세요...</option>'; // Clear and add default
-    
-    specialUsers.forEach(u => {
-      const option = document.createElement('option');
-      option.value = u.id;
-      option.textContent = `${u.name || '이름없음'} (${u.username})`;
-      select.appendChild(option);
-    });
+    specialUsersData = (payload.users || []).filter(u => u.isSpecial);
+    filterUserSelect();
   } catch (err) {
+    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+      const allUsers = [
+        { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
+        { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
+        { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
+        { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
+        { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
+      ];
+      
+      let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
+      allUsers.forEach(u => {
+        if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
+      });
+      
+      specialUsersData = allUsers.filter(u => u.isSpecial);
+      filterUserSelect();
+      return;
+    }
     console.error('Error loading special users:', err);
     alert('사용자 목록을 불러오는 중 오류가 발생했습니다.');
   }
@@ -97,6 +125,23 @@ async function loadUserRecords() {
     
     renderRecords(result.records);
   } catch (err) {
+    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+       renderRecords([
+         {
+           id: 'mock_1',
+           record_date: new Date().toISOString().split('T')[0],
+           weight: 75.2,
+           skeletal_muscle: 35.1,
+           body_fat_mass: 13.5,
+           bmi: 23.4,
+           body_fat_percent: 18.0,
+           ecw_ratio: 0.380,
+           inbody_score: 82,
+           image_url: null
+         }
+       ]);
+       return;
+    }
     console.error('Error loading records:', err);
     listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
   }
@@ -107,7 +152,7 @@ function renderRecords(records) {
   tbody.innerHTML = '';
   
   if (!records || records.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);">기록이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px; color: var(--text-muted);">기록이 없습니다.</td></tr>';
     return;
   }
   
@@ -117,7 +162,10 @@ function renderRecords(records) {
       <td><strong>${r.record_date}</strong></td>
       <td>${r.weight} kg</td>
       <td>${r.skeletal_muscle} kg</td>
+      <td>${r.body_fat_mass !== undefined ? r.body_fat_mass + ' kg' : '-'}</td>
+      <td>${r.bmi !== undefined ? r.bmi : '-'}</td>
       <td>${r.body_fat_percent} %</td>
+      <td>${r.ecw_ratio !== undefined ? r.ecw_ratio : '-'}</td>
       <td>${r.inbody_score} 점</td>
       <td>
         ${r.image_url ? `<a href="${r.image_url}" target="_blank" style="color: var(--primary); text-decoration: underline; font-size: 0.8rem;">보기</a>` : '<span style="color:var(--text-muted);font-size:0.8rem;">없음</span>'}
@@ -260,6 +308,21 @@ async function saveRecord() {
     loadUserRecords(); // Reload list
     
   } catch (err) {
+    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+      alert('[로컬 테스트 모드] 가상으로 저장되었습니다.');
+      document.getElementById('weight').value = '';
+      document.getElementById('skeletalMuscle').value = '';
+      document.getElementById('bodyFatMass').value = '';
+      document.getElementById('bmi').value = '';
+      document.getElementById('bodyFatPercent').value = '';
+      document.getElementById('ecwRatio').value = '';
+      document.getElementById('inbodyScore').value = '';
+      document.getElementById('fileInput').value = '';
+      document.getElementById('imagePreview').style.display = 'none';
+      selectedFile = null;
+      loadUserRecords();
+      return;
+    }
     console.error('Error saving record:', err);
     alert('저장 중 오류가 발생했습니다: ' + err.message);
   } finally {
@@ -283,6 +346,11 @@ async function deleteRecord(id) {
     alert('삭제되었습니다.');
     loadUserRecords();
   } catch (err) {
+    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+      alert('[로컬 테스트 모드] 가상으로 삭제되었습니다.');
+      loadUserRecords();
+      return;
+    }
     console.error('Error deleting record:', err);
     alert('삭제 중 오류가 발생했습니다: ' + err.message);
   }

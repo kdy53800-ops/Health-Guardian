@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>사용자 랭킹 — 건강지킴이 Admin</title>
+  <title>인바디 랭킹 — 건강지킴이 Admin</title>
   <link rel="icon" type="image/png" href="images/logo.png">
   <link rel="stylesheet" href="css/style.css">
   <style>
@@ -32,53 +32,53 @@
       letter-spacing: .05em; text-transform: uppercase; margin-left: 6px;
     }
 
-    /* ── Tables ── */
-    .rank-table { width:100%; border-collapse:collapse; }
+    /* ── Rank Tabs ── */
+    .rank-tabs {
+      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .rank-tab {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 100px; padding: 10px 20px; font-size: 0.9rem; font-weight: 700;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+    }
+    .rank-tab:hover { background: rgba(0,70,128,0.05); }
+    .rank-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,70,128,0.3); }
+
+    /* ── Rank Board ── */
+    .rank-board {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);
+    }
+    .rank-table { width: 100%; border-collapse: collapse; }
     .rank-table th {
-      text-align:left; padding:10px 14px; font-size:.73rem; font-weight:700;
-      color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em;
-      border-bottom:2px solid var(--border); background:var(--surface-2);
+      text-align: left; padding: 12px 10px; font-size: 0.8rem; color: var(--text-secondary); border-bottom: 2px solid var(--border);
     }
     .rank-table td {
-      padding:11px 14px; font-size:.83rem; color:var(--text);
-      border-bottom:1px solid var(--border); vertical-align:middle;
+      padding: 14px 10px; font-size: 0.9rem; border-bottom: 1px solid var(--border); vertical-align: middle;
     }
-    .rank-table tr:last-child td { border-bottom:none; }
-    .rank-table tr:hover td { background:var(--surface-2); }
-    .rank-num {
-      display:inline-flex; align-items:center; justify-content:center;
-      width:26px; height:26px; border-radius:50%; font-size:.78rem; font-weight:800;
-      background:var(--surface-2); color:var(--text-secondary);
+    .r-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%; font-size: 0.8rem; font-weight: 800; color: #fff;
     }
-    .rank-num.gold   { background:rgba(221,202,75,.2);  color:var(--gold-dark); }
-    .rank-num.silver { background:rgba(156,163,175,.2); color:#6b7280; }
-    .rank-num.bronze { background:rgba(180,83,9,.15);   color:#b45309; }
-    .user-avatar-sm {
-      width:34px; height:34px; border-radius:50%;
-      background:linear-gradient(135deg,var(--primary),var(--primary-light));
-      color:white; display:flex; align-items:center; justify-content:center;
-      font-size:.85rem; font-weight:700; flex-shrink:0;
+    .r-badge.r1 { background: linear-gradient(135deg, #fbbf24, #d97706); width: 30px; height: 30px; font-size: 1rem; }
+    .r-badge.r2 { background: linear-gradient(135deg, #94a3b8, #475569); width: 28px; height: 28px; font-size: 0.9rem; }
+    .r-badge.r3 { background: linear-gradient(135deg, #b45309, #78350f); width: 26px; height: 26px; font-size: 0.85rem; }
+    .r-badge.other { background: #e2e8f0; color: #475569; }
+    
+    .u-info { display: flex; align-items: center; gap: 12px; }
+    .u-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--primary-light);
+      color: var(--primary); display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.9rem;
     }
-    .user-name-cell { display:flex; align-items:center; gap:10px; }
-    .rank-tabs { display:flex; gap:6px; flex-wrap:wrap; }
-    .rank-tab {
-      padding:6px 14px; border:1.5px solid var(--border); border-radius:100px;
-      font-size:.78rem; font-weight:600; color:var(--text-secondary);
-      background:var(--white); cursor:pointer; transition:all .15s;
-    }
-    .rank-tab.active { background:var(--primary); border-color:var(--primary); color:white; }
-
-    /* 테이블 모바일 스크롤 */
-    .table-scroll-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .table-scroll-wrap .rank-table { min-width: 620px; }
+    .u-name { font-weight: 700; color: var(--text); }
+    .u-special { font-size: 0.7rem; background: var(--gold); color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .u-val { font-size: 1.1rem; font-weight: 900; color: var(--primary); }
   </style>
 </head>
 <body>
 
-  <!-- ★ 관리자 로그인 오버레이 -->
+  <!-- 관리자 로그인 오버레이 -->
   <div id="adminLoginOverlay">
     <div class="admin-login-card">
       <div class="admin-login-logo">
@@ -108,8 +108,8 @@
       <span class="admin-badge">⚙️ Admin</span>
     </a>
     <ul class="nav-links">
-      <li><a href="admin.html" class="active">🏃 일반 지표</a></li>
-      <li><a href="admin-inbody.html">💪 체성분 관리</a></li>
+      <li><a href="admin.html">🏃 일반 지표</a></li>
+      <li><a href="admin-inbody.html" class="active">💪 체성분 관리</a></li>
       <li><a href="admin-users.html">👥 사용자 관리</a></li>
     </ul>
     <div class="nav-right">
@@ -125,57 +125,49 @@
   <div class="app-layout">
     <main class="page-content fade-in">
       <div class="sub-nav-tabs">
-        <a href="admin.html">📊 대시보드</a>
-        <a href="admin-ranking.html" class="active">🏆 사용자 랭킹</a>
-        <a href="admin-growth.html">📈 성장 랭킹</a>
+        <a href="admin-inbody.html">🛠️ 기록 관리 (업로드)</a>
+        <a href="admin-inbody-ranking.html" class="active">🏆 인바디 랭킹</a>
+        <a href="admin-inbody-growth.html">📈 인바디 개선도</a>
       </div>
 
       <div class="page-header" style="margin-bottom:24px;">
-        <h1><div class="page-icon">🏆</div> 사용자 랭킹</h1>
-        <p class="subtitle">카테고리별 사용자 순위 비교</p>
+        <h1><div class="page-icon">🏆</div> 인바디 랭킹</h1>
+        <p class="subtitle">특별관리 대상자의 최신 체성분 지표 순위</p>
       </div>
       
       <!-- ── ADMIN FILTER BAR ── -->
-      <div class="admin-filter-bar">
+      <div class="admin-filter-bar" style="flex-wrap: wrap; gap: 16px;">
         <div class="filter-group">
-          <span class="filter-label">🚻 성별</span>
-          <select id="filterGender" class="filter-select" onchange="updateFilters()">
-            <option value="all">전체</option>
-            <option value="남">남성</option>
-            <option value="여">여성</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">🎂 연령대</span>
-          <select id="filterAge" class="filter-select" onchange="updateFilters()">
-            <option value="all">전체</option>
-            <option value="20">20대</option>
-            <option value="30">30대</option>
-            <option value="40">40대</option>
-            <option value="50">50대 이상</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">📅 월별</span>
-          <input type="month" id="filterMonth" class="filter-select" onchange="updateFilters()">
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">⭐ 대상</span>
-          <select id="filterSpecial" class="filter-select" onchange="updateFilters()" style="border-color:var(--gold);">
-            <option value="all">전체 사용자</option>
-            <option value="special">특별관리 대상</option>
-          </select>
+          <span class="filter-label">🔍 대상자 검색</span>
+          <input type="text" id="userSearchInput" class="filter-select" placeholder="이름 또는 아이디 검색" onkeyup="filterInBodyTable()">
         </div>
       </div>
 
       <div class="chart-card mb-20">
         <div class="chart-card-header" style="flex-wrap:wrap;gap:10px;">
-          <div class="chart-card-title">🏆 사용자 랭킹</div>
-          <div class="rank-tabs" id="rankTabs"></div>
+          <div class="chart-card-title">🏆 인바디 랭킹 카테고리</div>
+          <div class="rank-tabs" id="rankTabs">
+            <button class="rank-tab active" onclick="changeRankMode('score')">인바디 점수</button>
+            <button class="rank-tab" onclick="changeRankMode('muscle')">골격근량 (높은순)</button>
+            <button class="rank-tab" onclick="changeRankMode('fat')">체지방률 (낮은순)</button>
+          </div>
         </div>
         <div class="chart-card-body" style="padding-top:0;">
           <div class="table-scroll-wrap">
-            <table class="rank-table"><thead><tr id="rankHead"></tr></thead><tbody id="rankBody"></tbody></table>
+            <table class="rank-table">
+              <thead>
+                <tr>
+                  <th style="width:60px;">순위</th>
+                  <th>대상자</th>
+                  <th id="rankValueHead">측정 수치</th>
+                  <th>측정일자</th>
+                  <th>체중</th>
+                </tr>
+              </thead>
+              <tbody id="rankBody">
+                <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">데이터를 불러오는 중입니다...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -184,6 +176,6 @@
 
   <script src="js/app.js"></script>
   <script src="js/supabase-auth.js"></script>
-  <script src="js/admin.js"></script>
+  <script src="js/admin-inbody-ranking.js"></script>
 </body>
 </html>

@@ -100,10 +100,9 @@
       <span class="admin-badge">⚙️ Admin</span>
     </a>
     <ul class="nav-links">
-      <li><a href="admin.html" class="active">📊 관리 현황</a></li>
-      <li><a href="admin-ranking.html">🏆 사용자 랭킹</a></li>
+      <li><a href="admin.html" class="active">🏃 일반 지표</a></li>
+      <li><a href="admin-inbody.html">💪 체성분 관리</a></li>
       <li><a href="admin-users.html">👥 사용자 관리</a></li>
-      <li><a href="admin-inbody.html">💪 인바디 관리</a></li>
     </ul>
     <div class="nav-right">
       <a href="dashboard.html" class="btn btn-gold btn-sm" style="margin-right:8px; text-decoration:none;">🏠 개인 대시보드</a>
@@ -117,6 +116,12 @@
 
   <div class="app-layout">
     <main class="page-content fade-in">
+      <div class="sub-nav-tabs">
+        <a href="admin.html" class="active">📊 대시보드</a>
+        <a href="admin-ranking.html">🏆 사용자 랭킹</a>
+        <a href="admin-growth.html">📈 성장 랭킹</a>
+      </div>
+
       <div class="page-header" style="margin-bottom:24px;">
         <h1><div class="page-icon">📊</div> 관리 현황</h1>
         <p class="subtitle">전체 사용자 데이터 분석 및 플랫폼 통계</p>
@@ -143,6 +148,10 @@
               <option value="50">50대 이상</option>
             </select>
           </div>
+          <div class="filter-group">
+            <span class="filter-label">📅 월별</span>
+            <input type="month" id="filterMonth" class="filter-select" onchange="updateFilters()">
+          </div>
         </div>
         <div class="filter-right" style="margin-left: auto;">
           <div class="filter-group">
@@ -164,6 +173,10 @@
         <div class="chart-card">
           <div class="chart-card-header"><div class="chart-card-title">🥧 사용자별 기록 비율</div></div>
           <div class="chart-card-body"><div class="chart-wrap"><canvas id="chartUserShare"></canvas></div></div>
+        </div>
+        <div class="chart-card" style="grid-column: 1 / -1;">
+          <div class="chart-card-header"><div class="chart-card-title">🏋️ 운동 항목별 1회 평균 데이터 (참여자 기준)</div></div>
+          <div class="chart-card-body"><div class="chart-wrap" style="height:250px;"><canvas id="chartExerciseAvg"></canvas></div></div>
         </div>
       </div>
     </main>

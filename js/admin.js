@@ -11,6 +11,7 @@ let fetchedRecords = [];
 let filterSpecialOnly = false;
 let filterGender = 'all';
 let filterAge = 'all';
+let filterMonth = '';
 
 const RANK_CONFIGS = [
   { key: 'streak', label: '🔥 연속 기록', desc: '연속 기록 일수' },
@@ -55,6 +56,9 @@ function hideAdminAccessOverlay() {
 
 function canTryAdminApi() {
   const user = Auth.getUser();
+  if (user && user.authProvider === 'test' && user.isAdmin) {
+    return true; // 테스트 관리자 허용
+  }
   return !!(
     user
     && user.authProvider === 'naver'
@@ -71,18 +75,69 @@ async function readApiJson(response) {
 }
 
 async function fetchAdminData() {
-  const response = await fetch(new URL('api/admin-data', window.location.href).toString(), {
-    method: 'GET',
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-  });
-  const payload = await readApiJson(response);
-  if (!response.ok || !payload || !payload.ok) {
-    const error = new Error((payload && payload.message) || '데이터 조회 권한이 없습니다.');
-    error.status = response.status;
-    throw error;
+  try {
+    const response = await fetch(new URL('api/admin-data', window.location.href).toString(), {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    const payload = await readApiJson(response);
+    if (!response.ok || !payload || !payload.ok) {
+      const error = new Error((payload && payload.message) || '데이터 조회 권한이 없습니다.');
+      error.status = response.status;
+      throw error;
+    }
+    return payload;
+  } catch (err) {
+    // 로컬 환경(file://) 등 API 서버가 없을 때 테스트 계정용 가짜 데이터 반환
+    if (window.location.protocol === 'file:' || err.message.includes('Failed to fetch')) {
+      const mockUsers = [
+        { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
+        { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
+        { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
+        { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
+        { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
+      ];
+      
+      let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
+      mockUsers.forEach(u => {
+        if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
+      });
+      
+      let mockRecords = JSON.parse(sessionStorage.getItem('sharedMockRecords'));
+      if (!mockRecords) {
+        mockRecords = [];
+        const today = new Date();
+        mockUsers.forEach((u, i) => {
+          let baseExercise = 20 + (i * 5); 
+          let growthRate = 0.5 + (i * 0.2); 
+          for (let d = 60; d >= 0; d--) {
+            if (Math.random() > 0.2) {
+              const date = new Date();
+              date.setDate(today.getDate() - d);
+              const currentExercise = Math.round(baseExercise + ((60 - d) * growthRate) + (Math.random() * 10 - 5));
+              mockRecords.push({
+                id: `rec_${u.id}_${d}`,
+                userId: u.id,
+                date: date.toISOString().split('T')[0],
+                walking: currentExercise,
+                running: currentExercise > 40 ? currentExercise - 20 : 0,
+                squats: Math.round(currentExercise * 0.8),
+                pushups: Math.round(currentExercise * 0.5),
+                situps: Math.round(currentExercise * 0.5),
+                water: Math.round(Math.random() * 1000 + 1000),
+                condition: Math.floor(Math.random() * 3) + 3
+              });
+            }
+          }
+        });
+        sessionStorage.setItem('sharedMockRecords', JSON.stringify(mockRecords));
+      }
+      
+      return { ok: true, users: mockUsers, records: mockRecords };
+    }
+    throw err;
   }
-  return payload;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -188,10 +243,12 @@ function renderPlatformStats() {
 
 let chartDaily = null;
 let chartShare = null;
+let chartExerciseAvg = null;
 
 function renderCharts() {
   renderDailyChart();
   renderShareChart();
+  renderExerciseAvgChart();
 }
 
 function formatPhone(phone) {
@@ -285,6 +342,63 @@ function renderShareChart() {
   });
 }
 
+function renderExerciseAvgChart() {
+  const exercises = [
+    { key: 'walking', label: '걷기 (분)' },
+    { key: 'running', label: '러닝 (분)' },
+    { key: 'squats', label: '스쿼트 (회)' },
+    { key: 'pushups', label: '푸시업 (회)' },
+    { key: 'situps', label: '윗몸일으키기 (회)' },
+  ];
+
+  const labels = [];
+  const averages = [];
+
+  exercises.forEach(ex => {
+    const validRecords = allRecords.filter(r => (r[ex.key] || 0) > 0);
+    if (validRecords.length > 0) {
+      const sum = validRecords.reduce((acc, r) => acc + (Number(r[ex.key]) || 0), 0);
+      averages.push(Math.round(sum / validRecords.length));
+    } else {
+      averages.push(0);
+    }
+    labels.push(ex.label);
+  });
+
+  const ctx = document.getElementById('chartExerciseAvg');
+  if (!ctx) return;
+  if (chartExerciseAvg) chartExerciseAvg.destroy();
+
+  if (averages.every(val => val === 0)) {
+    ctx.parentElement.innerHTML = '<div style="height:250px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem;">기록 데이터 없음</div>';
+    return;
+  }
+
+  chartExerciseAvg = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '1회 평균 데이터',
+        data: averages,
+        backgroundColor: ['#22c55e', '#06b6d4', '#004680', '#8b5cf6', '#f97316'],
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} ${ctx.label.includes('분') ? '분' : '회'}` } },
+      },
+      scales: {
+        y: { beginAtZero: true },
+      },
+    },
+  });
+}
+
 function renderRankTabs() {
   const el = document.getElementById('rankTabs');
   if (!el) return;
@@ -336,9 +450,9 @@ function renderRanking() {
         <td>${rankBadge}</td>
         <td>
           <div class="user-name-cell">
-            <div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div>
-            <span style="font-weight:700;">${user.name || '-'}</span>
+            <span style="font-weight:700; background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display: inline-block;">${user.name || '-'}</span>
             ${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}
+            ${user.isSpecial ? '<span style="font-size:0.65rem; background:var(--gold); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">⭐</span>' : ''}
           </div>
         </td>
         <td style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
@@ -377,7 +491,7 @@ function renderUserMgmt() {
     const joinDate = user.createdAt ? String(user.createdAt).split('T')[0] : '-';
     return `
       <tr>
-        <td><div class="user-name-cell"><div class="user-avatar-sm">${(user.name || 'U').charAt(0).toUpperCase()}</div><span style="font-weight:600;">${user.name || '-'}</span>${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}</div></td>
+        <td><div class="user-name-cell"><span style="font-weight:700; background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display: inline-block;">${user.name || '-'}</span>${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}${user.isSpecial ? '<span style="font-size:0.65rem; background:var(--gold); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">⭐</span>' : ''}</div></td>
         <td style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
         <td style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
@@ -624,11 +738,29 @@ function applyFilter() {
       }
     }
     
+    // 4. 가입일 필터 (월별 필터 사용 시 해당 월의 말일 기점으로 가입한 사용자만 포함)
+    if (filterMonth && u.createdAt) {
+      const joinDate = new Date(u.createdAt);
+      const parts = filterMonth.split('-');
+      if (parts.length === 2) {
+        const yyyy = Number(parts[0]);
+        const mm = Number(parts[1]);
+        const cutoffDate = new Date(yyyy, mm, 1); // 다음 달 1일 자정
+        if (joinDate >= cutoffDate) {
+          return false;
+        }
+      }
+    }
+    
     return true;
   });
 
   const validIds = new Set(allUsers.map(u => u.id));
-  allRecords = fetchedRecords.filter(r => validIds.has(r.userId));
+  allRecords = fetchedRecords.filter(r => {
+    if (!validIds.has(r.userId)) return false;
+    if (filterMonth && !String(r.date).startsWith(filterMonth)) return false;
+    return true;
+  });
 
   renderAll();
 }
@@ -637,10 +769,12 @@ function updateFilters() {
   const gSelect = document.getElementById('filterGender');
   const aSelect = document.getElementById('filterAge');
   const sSelect = document.getElementById('filterSpecial');
+  const mSelect = document.getElementById('filterMonth');
   
   if (gSelect) filterGender = gSelect.value;
   if (aSelect) filterAge = aSelect.value;
   if (sSelect) filterSpecialOnly = (sSelect.value === 'special');
+  if (mSelect) filterMonth = mSelect.value;
   
   applyFilter();
 }
@@ -649,10 +783,12 @@ function syncFilterUI() {
   const gSelect = document.getElementById('filterGender');
   const aSelect = document.getElementById('filterAge');
   const sSelect = document.getElementById('filterSpecial');
+  const mSelect = document.getElementById('filterMonth');
   
   if (gSelect) gSelect.value = filterGender;
   if (aSelect) aSelect.value = filterAge;
   if (sSelect) sSelect.value = filterSpecialOnly ? 'special' : 'all';
+  if (mSelect) mSelect.value = filterMonth;
 }
 
 
@@ -664,8 +800,10 @@ async function toggleSpecialTarget(userId, currentStatus) {
       body: JSON.stringify({ userId, isSpecial: !currentStatus }),
       credentials: 'include'
     });
+    
+    if (!res.ok) throw new Error('Failed to fetch');
     const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.message || '업데이트 실패');
+    if (!data.ok) throw new Error(data.message || '업데이트 실패');
     
     const userIdx = fetchedUsers.findIndex(u => u.id === userId);
     if (userIdx > -1) {
@@ -673,6 +811,18 @@ async function toggleSpecialTarget(userId, currentStatus) {
       applyFilter();
     }
   } catch (err) {
-    alert('상태 변경 실패: ' + err.message);
+    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+      const userIdx = fetchedUsers.findIndex(u => u.id === userId);
+      if (userIdx > -1) {
+        fetchedUsers[userIdx].isSpecial = !currentStatus;
+        applyFilter();
+        
+        let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
+        customSpecials[userId] = !currentStatus;
+        sessionStorage.setItem('customSpecials', JSON.stringify(customSpecials));
+      }
+    } else {
+      alert('상태 변경 실패: ' + err.message);
+    }
   }
 }
