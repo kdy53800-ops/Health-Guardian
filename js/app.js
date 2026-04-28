@@ -726,10 +726,9 @@ function renderMobileNav() {
   let adminHTML = '';
   if (user.isAdmin === true) {
     const adminItems = [
-      { href: 'admin.html', icon: '📊', label: '관리 현황' },
-      { href: 'admin-ranking.html', icon: '🏆', label: '사용자 랭킹' },
+      { href: 'admin.html', icon: '🏃', label: '일반 지표' },
+      { href: 'admin-inbody-ranking.html', icon: '💪', label: '체성분 관리' },
       { href: 'admin-users.html', icon: '👥', label: '사용자 관리' },
-      { href: 'admin-inbody.html', icon: '💪', label: '인바디 관리' },
     ];
     adminHTML = `
       <div class="drawer-divider"></div>
