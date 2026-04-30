@@ -73,25 +73,6 @@ async function loadSpecialUsers() {
 
     specialUsersData = (payload.users || []).filter(u => u.isSpecial);
     filterUserSelect();
-  } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
-      const allUsers = [
-        { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
-        { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
-        { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
-        { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
-        { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
-      ];
-      
-      let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
-      allUsers.forEach(u => {
-        if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
-      });
-      
-      specialUsersData = allUsers.filter(u => u.isSpecial);
-      filterUserSelect();
-      return;
-    }
     console.error('Error loading special users:', err);
     alert('사용자 목록을 불러오는 중 오류가 발생했습니다.');
   }
@@ -124,24 +105,6 @@ async function loadUserRecords() {
     if (!res.ok || !result.ok) throw new Error(result.message || '로드 실패');
     
     renderRecords(result.records);
-  } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
-       renderRecords([
-         {
-           id: 'mock_1',
-           record_date: new Date().toISOString().split('T')[0],
-           weight: 75.2,
-           skeletal_muscle: 35.1,
-           body_fat_mass: 13.5,
-           bmi: 23.4,
-           body_fat_percent: 18.0,
-           ecw_ratio: 0.380,
-           inbody_score: 82,
-           image_url: null
-         }
-       ]);
-       return;
-    }
     console.error('Error loading records:', err);
     listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
   }

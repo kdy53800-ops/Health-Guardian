@@ -38,71 +38,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('navAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
     }
   } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
-      if (overlay) overlay.style.display = 'none';
-      generateMockData();
-    } else {
-      console.error(err);
-      alert('데이터를 불러오는데 실패했습니다.');
-    }
+    console.error(err);
+    alert('데이터를 불러오는데 실패했습니다.');
   }
   
   // 최초 로드 시 데이터 조회 실행
   loadGrowthData();
 });
-
-function generateMockData() {
-  // 테스트용 가상 사용자
-  allUsers = [
-    { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
-    { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
-    { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
-    { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
-    { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
-  ];
-  
-  let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
-  allUsers.forEach(u => {
-    if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
-  });
-  
-  // 가상 기록 생성 (최근 60일간의 데이터, 동일한 데이터 보장을 위해 세션 스토리지 활용)
-  let mockRecords = JSON.parse(sessionStorage.getItem('sharedMockRecords'));
-  if (!mockRecords) {
-    mockRecords = [];
-    const today = new Date();
-    
-    allUsers.forEach((u, i) => {
-      let baseExercise = 20 + (i * 5); // 20~40
-      let growthRate = 0.5 + (i * 0.2); // 매일 증가량
-      
-      for (let d = 60; d >= 0; d--) {
-        if (Math.random() > 0.2) {
-          const date = new Date();
-          date.setDate(today.getDate() - d);
-          
-          const currentExercise = Math.round(baseExercise + ((60 - d) * growthRate) + (Math.random() * 10 - 5));
-          
-          mockRecords.push({
-            id: `rec_${u.id}_${d}`,
-            userId: u.id,
-            date: date.toISOString().split('T')[0],
-            walking: currentExercise,
-            running: currentExercise > 40 ? currentExercise - 20 : 0,
-            squats: Math.round(currentExercise * 0.8),
-            pushups: Math.round(currentExercise * 0.5),
-            situps: Math.round(currentExercise * 0.5),
-            water: Math.round(Math.random() * 1000 + 1000),
-            condition: Math.floor(Math.random() * 3) + 3
-          });
-        }
-      }
-    });
-    sessionStorage.setItem('sharedMockRecords', JSON.stringify(mockRecords));
-  }
-  
-  allRecords = mockRecords;
-}
 
 function loadGrowthData() {
   const startStr = document.getElementById('growthStartDate').value;

@@ -27,54 +27,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('navAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
     }
   } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
-      if (overlay) overlay.style.display = 'none';
-      generateInBodyMockData();
-    } else {
-      console.error(err);
-      alert('데이터를 불러오는데 실패했습니다.');
-    }
+    console.error(err);
+    alert('데이터를 불러오는데 실패했습니다.');
   }
   
   processRankingData();
 });
-
-function generateInBodyMockData() {
-  allUsers = [
-    { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
-    { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
-    { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
-    { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
-    { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
-  ];
-  
-  let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
-  allUsers.forEach(u => {
-    if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
-  });
-  
-  const today = new Date();
-  allInBodyRecords = [];
-  
-  allUsers.forEach((u, i) => {
-    for (let d = 0; d < 3; d++) {
-      const date = new Date();
-      date.setMonth(today.getMonth() - d);
-      
-      const isImprove = d === 0; // 최신 기록이 더 좋게
-      
-      allInBodyRecords.push({
-        id: `ib_${u.id}_${d}`,
-        userId: u.id,
-        date: date.toISOString().split('T')[0],
-        weight: 70 + (i * 2) + (isImprove ? -2 : 0),
-        muscle: 30 + (i * 1.5) + (isImprove ? 1.5 : 0),
-        fat: 20 - (i * 1) + (isImprove ? -2 : 0),
-        score: 75 + (i * 3) + (isImprove ? 5 : 0)
-      });
-    }
-  });
-}
 
 function processRankingData() {
   // Get latest record for each special user

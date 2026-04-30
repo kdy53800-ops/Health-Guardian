@@ -37,54 +37,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('navAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
     }
   } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
-      if (overlay) overlay.style.display = 'none';
-      generateInBodyMockData();
-    } else {
-      console.error(err);
-      alert('데이터를 불러오는데 실패했습니다.');
-    }
+    console.error(err);
+    alert('데이터를 불러오는데 실패했습니다.');
   }
   
   loadInBodyGrowth();
 });
-
-function generateInBodyMockData() {
-  allUsers = [
-    { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
-    { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
-    { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
-    { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
-    { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
-  ];
-  
-  let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
-  allUsers.forEach(u => {
-    if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
-  });
-  
-  const today = new Date();
-  allInBodyRecords = [];
-  
-  allUsers.forEach((u, i) => {
-    // 6개월치 데이터 생성
-    for (let d = 5; d >= 0; d--) {
-      const date = new Date(today.getFullYear(), today.getMonth() - d, 15);
-      
-      const progress = 5 - d; // 0 to 5
-      
-      allInBodyRecords.push({
-        id: `ib_${u.id}_${d}`,
-        userId: u.id,
-        date: date.toISOString().split('T')[0],
-        weight: 70 + (i * 2) - (progress * 0.5),
-        muscle: 30 + (i * 1.5) + (progress * 0.3),
-        fat: 25 - (i * 1) - (progress * 0.8),
-        score: 70 + (i * 3) + (progress * 2)
-      });
-    }
-  });
-}
 
 function loadInBodyGrowth() {
   const startMonth = document.getElementById('growthStartMonth').value;

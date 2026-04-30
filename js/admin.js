@@ -88,54 +88,6 @@ async function fetchAdminData() {
       throw error;
     }
     return payload;
-  } catch (err) {
-    // 로컬 환경(file://) 등 API 서버가 없을 때 테스트 계정용 가짜 데이터 반환
-    if (window.location.protocol === 'file:' || err.message.includes('Failed to fetch')) {
-      const mockUsers = [
-        { id: 'u1', name: '김건강', username: 'health_k', email: 'kim@example.com', phone: '01087654321', gender: 'M', birthyear: '1990', isSpecial: true, createdAt: new Date().toISOString() },
-        { id: 'u2', name: '이튼튼', username: 'strong_lee', email: 'lee@example.com', phone: '01011112222', gender: 'M', birthyear: '1992', isSpecial: false, createdAt: new Date().toISOString() },
-        { id: 'u3', name: '박파워', username: 'power_p', email: 'park@example.com', phone: '01033334444', gender: 'M', birthyear: '1988', isSpecial: true, createdAt: new Date().toISOString() },
-        { id: 'u4', name: '최활력', username: 'vital_c', email: 'choi@example.com', phone: '01055556666', gender: 'F', birthyear: '1995', isSpecial: false, createdAt: new Date().toISOString() },
-        { id: 'u5', name: '정성장', username: 'growth_j', email: 'jung@example.com', phone: '01012345678', gender: 'F', birthyear: '1995', isSpecial: true, createdAt: new Date().toISOString() }
-      ];
-      
-      let customSpecials = JSON.parse(sessionStorage.getItem('customSpecials') || '{}');
-      mockUsers.forEach(u => {
-        if (customSpecials[u.id] !== undefined) u.isSpecial = customSpecials[u.id];
-      });
-      
-      let mockRecords = JSON.parse(sessionStorage.getItem('sharedMockRecords'));
-      if (!mockRecords) {
-        mockRecords = [];
-        const today = new Date();
-        mockUsers.forEach((u, i) => {
-          let baseExercise = 20 + (i * 5); 
-          let growthRate = 0.5 + (i * 0.2); 
-          for (let d = 60; d >= 0; d--) {
-            if (Math.random() > 0.2) {
-              const date = new Date();
-              date.setDate(today.getDate() - d);
-              const currentExercise = Math.round(baseExercise + ((60 - d) * growthRate) + (Math.random() * 10 - 5));
-              mockRecords.push({
-                id: `rec_${u.id}_${d}`,
-                userId: u.id,
-                date: date.toISOString().split('T')[0],
-                walking: currentExercise,
-                running: currentExercise > 40 ? currentExercise - 20 : 0,
-                squats: Math.round(currentExercise * 0.8),
-                pushups: Math.round(currentExercise * 0.5),
-                situps: Math.round(currentExercise * 0.5),
-                water: Math.round(Math.random() * 1000 + 1000),
-                condition: Math.floor(Math.random() * 3) + 3
-              });
-            }
-          }
-        });
-        sessionStorage.setItem('sharedMockRecords', JSON.stringify(mockRecords));
-      }
-      
-      return { ok: true, users: mockUsers, records: mockRecords };
-    }
     throw err;
   }
 }
