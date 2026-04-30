@@ -175,8 +175,8 @@ function renderGrowthTable(data) {
     else rankBadge = `<span class="r-badge other">${index + 1}</span>`;
     
     tr.innerHTML = `
-      <td style="text-align:center;">${rankBadge}</td>
-      <td>
+      <td data-label="순위" style="text-align:center;">${rankBadge}</td>
+      <td data-label="대상자">
         <div class="u-info">
           <div style="display:flex; flex-direction:column; align-items:flex-start;">
             <div style="display:flex; align-items:center;">
@@ -187,11 +187,11 @@ function renderGrowthTable(data) {
           </div>
         </div>
       </td>
-      <td style="font-weight:900; color:var(--primary); font-size:1.1rem;">${item.growthScore.toFixed(1)} 점</td>
-      <td>${item.first.muscle} → ${item.last.muscle}<br>${getDiffHtml(item.muscleDiff, 'kg')}</td>
-      <td>${item.first.fat} → ${item.last.fat}<br>${getReverseDiffHtml(item.fatDiff, '%')}</td>
-      <td>${item.first.score} → ${item.last.score}<br>${getDiffHtml(item.scoreDiff, '점')}</td>
-      <td style="text-align:right;">
+      <td data-label="개선 점수" style="font-weight:900; color:var(--primary); font-size:1.1rem;">${item.growthScore.toFixed(1)} 점</td>
+      <td data-label="골격근량 변화">${item.first.muscle} → ${item.last.muscle}<br>${getDiffHtml(item.muscleDiff, 'kg')}</td>
+      <td data-label="체지방률 변화">${item.first.fat} → ${item.last.fat}<br>${getReverseDiffHtml(item.fatDiff, '%')}</td>
+      <td data-label="종합 점수 변화">${item.first.score} → ${item.last.score}<br>${getDiffHtml(item.scoreDiff, '점')}</td>
+      <td data-label="상세" style="text-align:right;">
         <button class="btn btn-sm" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
       </td>
     `;

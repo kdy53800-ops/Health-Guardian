@@ -168,8 +168,8 @@ function filterAndRender(data, unit) {
     else if (currentMode === 'fat') valStr = item.latest.fat.toFixed(1);
     
     tr.innerHTML = `
-      <td style="text-align:center;">${rankBadge}</td>
-      <td>
+      <td data-label="순위" style="text-align:center;">${rankBadge}</td>
+      <td data-label="대상자">
         <div class="u-info">
           <div style="display:flex; flex-direction:column; align-items:flex-start;">
             <div style="display:flex; align-items:center;">
@@ -180,9 +180,9 @@ function filterAndRender(data, unit) {
           </div>
         </div>
       </td>
-      <td class="u-val">${valStr}<span style="font-size:0.8rem;font-weight:normal;color:var(--text-muted);margin-left:2px;">${unit}</span></td>
-      <td style="color:var(--text-muted); font-size:0.85rem;">${item.latest.date}</td>
-      <td style="color:var(--text-muted); font-size:0.85rem;">${item.latest.weight ? item.latest.weight + 'kg' : '-'}</td>
+      <td data-label="${valueHead.textContent}" class="u-val">${valStr}<span style="font-size:0.8rem;font-weight:normal;color:var(--text-muted);margin-left:2px;">${unit}</span></td>
+      <td data-label="측정일자" style="color:var(--text-muted); font-size:0.85rem;">${item.latest.date}</td>
+      <td data-label="체중" style="color:var(--text-muted); font-size:0.85rem;">${item.latest.weight ? item.latest.weight + 'kg' : '-'}</td>
     `;
     
     tbody.appendChild(tr);

@@ -159,18 +159,18 @@ function renderRecords(records) {
   records.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${r.record_date}</strong></td>
-      <td>${r.weight} kg</td>
-      <td>${r.skeletal_muscle} kg</td>
-      <td>${r.body_fat_mass !== undefined ? r.body_fat_mass + ' kg' : '-'}</td>
-      <td>${r.bmi !== undefined ? r.bmi : '-'}</td>
-      <td>${r.body_fat_percent} %</td>
-      <td>${r.ecw_ratio !== undefined ? r.ecw_ratio : '-'}</td>
-      <td>${r.inbody_score} 점</td>
-      <td>
+      <td data-label="측정일자"><strong>${r.record_date}</strong></td>
+      <td data-label="체중">${r.weight} kg</td>
+      <td data-label="골격근량">${r.skeletal_muscle} kg</td>
+      <td data-label="체지방량">${r.body_fat_mass !== undefined ? r.body_fat_mass + ' kg' : '-'}</td>
+      <td data-label="BMI">${r.bmi !== undefined ? r.bmi : '-'}</td>
+      <td data-label="체지방률">${r.body_fat_percent} %</td>
+      <td data-label="세포외수분비">${r.ecw_ratio !== undefined ? r.ecw_ratio : '-'}</td>
+      <td data-label="점수">${r.inbody_score} 점</td>
+      <td data-label="이미지">
         ${r.image_url ? `<a href="${r.image_url}" target="_blank" style="color: var(--primary); text-decoration: underline; font-size: 0.8rem;">보기</a>` : '<span style="color:var(--text-muted);font-size:0.8rem;">없음</span>'}
       </td>
-      <td>
+      <td data-label="관리">
         <button class="btn" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;padding:4px 8px;font-size:0.75rem;" onclick="deleteRecord('${r.id}')">삭제</button>
       </td>
     `;

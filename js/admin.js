@@ -447,20 +447,20 @@ function renderRanking() {
 
     return `
       <tr>
-        <td>${rankBadge}</td>
-        <td>
+        <td data-label="순위">${rankBadge}</td>
+        <td data-label="사용자">
           <div class="user-name-cell">
             <span style="font-weight:700; background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display: inline-block;">${user.name || '-'}</span>
             ${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}
             ${user.isSpecial ? '<span style="font-size:0.65rem; background:var(--gold); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">⭐</span>' : ''}
           </div>
         </td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
-        <td><strong style="color:var(--primary);">${user.score.toLocaleString()}</strong><span style="font-size:.75rem;color:var(--text-muted);"> ${units[rankMode]}</span></td>
-        <td>${user.records}건</td>
-        <td>${user.streak}일 🔥</td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${user.lastDate}</td>
+        <td data-label="이메일" style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
+        <td data-label="전화번호" style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
+        <td data-label="${cfg.desc}"><strong style="color:var(--primary);">${user.score.toLocaleString()}</strong><span style="font-size:.75rem;color:var(--text-muted);"> ${units[rankMode]}</span></td>
+        <td data-label="총 기록">${user.records}건</td>
+        <td data-label="스트릭">${user.streak}일 🔥</td>
+        <td data-label="최근 기록" style="font-size:.8rem;color:var(--text-muted);">${user.lastDate}</td>
       </tr>
     `;
   }).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 데이터 없음</td></tr>';
@@ -491,15 +491,15 @@ function renderUserMgmt() {
     const joinDate = user.createdAt ? String(user.createdAt).split('T')[0] : '-';
     return `
       <tr>
-        <td><div class="user-name-cell"><span style="font-weight:700; background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display: inline-block;">${user.name || '-'}</span>${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}${user.isSpecial ? '<span style="font-size:0.65rem; background:var(--gold); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">⭐</span>' : ''}</div></td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
-        <td><strong>${recs.length}</strong>건</td>
-        <td style="font-size:.8rem;color:var(--text-muted);">${lastDate || '없음'}</td>
-        <td>${streak > 0 ? `<strong style="color:var(--primary);">${streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
-        <td>${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
-        <td>
+        <td data-label="사용자"><div class="user-name-cell"><span style="font-weight:700; background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display: inline-block;">${user.name || '-'}</span>${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}${user.isSpecial ? '<span style="font-size:0.65rem; background:var(--gold); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">⭐</span>' : ''}</div></td>
+        <td data-label="이메일" style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
+        <td data-label="전화번호" style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
+        <td data-label="가입일" style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
+        <td data-label="총 기록"><strong>${recs.length}</strong>건</td>
+        <td data-label="최근 기록" style="font-size:.8rem;color:var(--text-muted);">${lastDate || '없음'}</td>
+        <td data-label="스트릭">${streak > 0 ? `<strong style="color:var(--primary);">${streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
+        <td data-label="상태">${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
+        <td data-label="관리">
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isAdmin ? 'background:var(--border);color:var(--text-muted);cursor:not-allowed;' : 'background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;'}" ${user.isAdmin ? 'disabled' : `onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')"`}>삭제</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isSpecial ? 'background:var(--gold);color:var(--primary-dark);' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" onclick="toggleSpecialTarget('${user.id}', ${!!user.isSpecial})">⭐특별관리</button>

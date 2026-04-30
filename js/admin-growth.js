@@ -217,8 +217,8 @@ function renderGrowthTable(data) {
     const arrow = isUp ? '⬆️' : (isDown ? '⬇️' : '➖');
     
     tr.innerHTML = `
-      <td style="text-align:center;">${rankBadge}</td>
-      <td>
+      <td data-label="순위" style="text-align:center;">${rankBadge}</td>
+      <td data-label="사용자">
         <div class="u-info">
           <div style="display:flex; flex-direction:column; align-items:flex-start;">
             <div style="display:flex; align-items:center;">
@@ -229,9 +229,9 @@ function renderGrowthTable(data) {
           </div>
         </div>
       </td>
-      <td style="font-weight:900; color:${scoreColor};">${item.growthScore > 0 ? '+' : ''}${item.growthScore} 점 <span style="font-size:0.8rem;margin-left:4px;">${arrow}</span></td>
-      <td>${item.dailyAvg}</td>
-      <td style="text-align:right;">
+      <td data-label="성장 점수" style="font-weight:900; color:${scoreColor};">${item.growthScore > 0 ? '+' : ''}${item.growthScore} 점 <span style="font-size:0.8rem;margin-left:4px;">${arrow}</span></td>
+      <td data-label="평균 운동량">${item.dailyAvg}</td>
+      <td data-label="상세" style="text-align:right;">
         <button class="btn btn-sm" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
       </td>
     `;

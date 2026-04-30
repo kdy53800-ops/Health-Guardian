@@ -1,4 +1,4 @@
-﻿/* ===================================================
+/* ===================================================
    HEALTH GUARDIAN ??Global Design System
    Colors: #004680 (Deep Blue), #DDCA4B (Gold), #FFFFFF
    =================================================== */
@@ -1827,4 +1827,114 @@ textarea.form-control {
 }
 .table-scroll-wrap table {
   min-width: 620px;
+}
+
+/* ===================================================
+   MOBILE TABLE TO CARD TRANSFORMATION
+   =================================================== */
+@media (max-width: 768px) {
+  .table-scroll-wrap {
+    overflow-x: visible !important;
+  }
+  
+  .table-scroll-wrap .rank-table,
+  .table-scroll-wrap .mgmt-table,
+  .table-scroll-wrap .record-list-table {
+    display: block;
+    min-width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  .table-scroll-wrap thead {
+    display: none !important;
+  }
+  
+  .table-scroll-wrap tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px 0;
+  }
+  
+  .table-scroll-wrap tr {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .table-scroll-wrap tr:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .table-scroll-wrap td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0 !important;
+    border-bottom: 1px solid var(--surface-2) !important;
+    font-size: 0.9rem !important;
+    white-space: normal !important;
+    text-align: right !important;
+  }
+  
+  .table-scroll-wrap td:last-child {
+    border-bottom: none !important;
+    margin-top: 8px;
+    padding-top: 14px !important;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .table-scroll-wrap td::before {
+    content: attr(data-label);
+    font-weight: 800;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    margin-right: 16px;
+    text-align: left;
+  }
+
+  /* Specific Adjustments for Rank Table */
+  .rank-table tr [data-label="순위"] {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    background: var(--white);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--primary);
+    z-index: 2;
+    padding: 0 !important;
+  }
+  
+  .rank-table tr [data-label="순위"]::before {
+    display: none;
+  }
+  
+  .table-scroll-wrap td .user-name-cell {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  /* Action Buttons in Cards */
+  .table-scroll-wrap td .btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
