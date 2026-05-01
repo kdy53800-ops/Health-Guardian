@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = 'history.html';
     }
   } else {
-    // 신규 기록: 오늘 날짜 기본 세팅
-    if (dateInput) dateInput.value = todayStr;
+    // 신규 기록: 어제 날짜 기본 세팅 (사용자 요청)
+    if (dateInput) dateInput.value = prevDay(todayStr);
   }
 
   // 날짜 변경 시 기존 기록 여부 확인
