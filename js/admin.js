@@ -88,6 +88,7 @@ async function fetchAdminData() {
       throw error;
     }
     return payload;
+  } catch (err) {
     throw err;
   }
 }
@@ -136,13 +137,14 @@ async function enterAdmin() {
   }
 
   const payload = await fetchAdminData();
-  fetchedUsers = Array.isArray(payload.users) ? payload.users : [];
-  fetchedRecords = Array.isArray(payload.records) ? payload.records : [];
+  fetchedUsers = (payload && Array.isArray(payload.users)) ? payload.users : [];
+  fetchedRecords = (payload && Array.isArray(payload.records)) ? payload.records : [];
+  
   applyFilter();
   syncFilterUI();
-
   hideAdminAccessOverlay();
-  renderAll();
+  
+  // renderAll is already called by applyFilter()
 }
 
 
@@ -198,6 +200,10 @@ let chartShare = null;
 let chartExerciseAvg = null;
 
 function renderCharts() {
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js is not loaded.');
+    return;
+  }
   renderDailyChart();
   renderShareChart();
   renderExerciseAvgChart();
@@ -374,7 +380,7 @@ function renderRanking() {
     const running = recs.reduce((sum, record) => sum + (record.running || 0), 0);
     const strength = recs.reduce((sum, record) => sum + (record.squats || 0) + (record.pushups || 0) + (record.situps || 0), 0);
     const water = recs.reduce((sum, record) => sum + (record.water || 0), 0);
-    const lastDate = recs.length ? recs.map(record => record.date).sort().at(-1) : '-';
+    const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : '-';
     const score = { streak, records: recs.length, walking, running, strength, water }[rankMode] || 0;
 
     return { ...user, streak, records: recs.length, walking, running, strength, water, lastDate, score };
@@ -438,7 +444,7 @@ function renderUserMgmt() {
   body.innerHTML = filtered.map(user => {
     const recs = allRecords.filter(record => record.userId === user.id);
     const streak = calcStreak(recs);
-    const lastDate = recs.length ? recs.map(record => record.date).sort().at(-1) : null;
+    const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : null;
     const isActive = !!(lastDate && lastDate >= weekStr);
     const joinDate = user.createdAt ? String(user.createdAt).split('T')[0] : '-';
     return `
@@ -466,7 +472,7 @@ let udChartCat = null;
 
 function viewUser(userId) {
   const user = allUsers.find(item => item.id === userId);
-  const recs = allRecords.filter(record => record.userId === userId).sort((a, b) => (a.date < b.date ? 1 : -1));
+  const recs = (allRecords || []).filter(record => record.userId === userId).sort((a, b) => (a.date < b.date ? 1 : -1));
   if (!user) return;
 
   const sum = key => recs.reduce((acc, record) => acc + (record[key] || 0), 0);
