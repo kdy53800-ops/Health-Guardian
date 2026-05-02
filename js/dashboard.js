@@ -840,10 +840,11 @@ function renderCustomExSummary(period) {
 
   const totalMins = Object.values(catTotals).reduce((a, b) => a + b, 0);
 
-  // 인기 종목 Top5 (전체 기간)
+  // 인기 종목 Top5 (선택된 기간 내 집계)
   const exFreqMap = {};
-  userRecords.forEach(r => {
-    if (!r.customExercises) return;
+  days.forEach(d => {
+    const r = recordMap[d];
+    if (!r || !r.customExercises) return;
     r.customExercises.forEach(ex => {
       if (!ex.name) return;
       exFreqMap[ex.name] = (exFreqMap[ex.name] || 0) + 1;
