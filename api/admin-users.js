@@ -35,7 +35,7 @@ async function readBody(req) {
 }
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'DELETE') {
+  if (req.method !== 'DELETE' && req.method !== 'PATCH') {
     sendJson(res, 405, { ok: false, message: 'Method Not Allowed' });
     return;
   }
@@ -53,6 +53,23 @@ module.exports = async function handler(req, res) {
       sendJson(res, 400, { ok: false, message: 'userId is required.' });
       return;
     }
+
+    // [PATCH] 특별관리 대상 설정/해제
+    if (req.method === 'PATCH') {
+      const isSpecial = !!(body && body.isSpecial);
+      await fetchSupabase(`/rest/v1/profiles?id=eq.${encodeEq(userId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ is_special: isSpecial }),
+      });
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    // [DELETE] 사용자 삭제 (기존 로직)
     if (userId === auth.profile.id) {
       sendJson(res, 400, { ok: false, message: 'Cannot delete yourself.' });
       return;

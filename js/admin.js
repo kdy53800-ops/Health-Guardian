@@ -799,7 +799,7 @@ function syncFilterUI() {
 
 async function toggleSpecialTarget(userId, currentStatus) {
   try {
-    const res = await fetch(new URL('api/admin-special', window.location.href).toString(), {
+    const res = await fetch(new URL('api/admin-users', window.location.href).toString(), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, isSpecial: !currentStatus }),
