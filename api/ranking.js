@@ -13,12 +13,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch profiles and records
+    // 1. Calculate current month range (KST)
+    const now = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth() + 1;
+    const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+    
+    const nextMonthDate = new Date(Date.UTC(year, month, 1));
+    const endOfMonth = `${nextMonthDate.getUTCFullYear()}-${String(nextMonthDate.getUTCMonth() + 1).padStart(2, '0')}-01`;
+
+    // 2. Fetch profiles and records (filtered by current month)
     const [profiles, records] = await Promise.all([
       fetchSupabase('/rest/v1/profiles?select=id,name,username&order=created_at.asc', {
         headers: { Accept: 'application/json' },
       }),
-      fetchSupabase('/rest/v1/daily_records?select=user_id,record_date,walking,running,custom_exercises', {
+      fetchSupabase(`/rest/v1/daily_records?select=user_id,record_date,walking,running,custom_exercises&record_date=gte.${startOfMonth}&record_date=lt.${endOfMonth}`, {
         headers: { Accept: 'application/json' },
       }),
     ]);
