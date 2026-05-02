@@ -13,6 +13,12 @@ let filterGender = 'all';
 let filterAge = 'all';
 let filterMonth = '';
 
+// 사용자 관리 페이지네이션 및 정렬 상태
+let userMgmtPage = 1;
+let userMgmtPageSize = 25;
+let userMgmtSortKey = 'createdAt';
+let userMgmtSortOrder = 'desc'; // 'asc' or 'desc'
+
 const RANK_CONFIGS = [
   { key: 'streak', label: '🔥 연속 기록', desc: '연속 기록 일수' },
   { key: 'records', label: '📋 총 기록수', desc: '전체 기록 건수' },
@@ -467,13 +473,62 @@ function renderRanking() {
 
 function renderUserMgmt() {
   const q = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
-  const filtered = allUsers.filter(user => (
+  
+  // 1. 기본 필터링 (검색어)
+  let filtered = allUsers.filter(user => (
     !q
     || String(user.name || '').toLowerCase().includes(q)
     || String(user.username || '').toLowerCase().includes(q)
     || String(user.email || '').toLowerCase().includes(q)
     || String(user.phone || '').toLowerCase().includes(q)
   ));
+
+  // 2. 정렬을 위한 데이터 준비 (각 사용자별 지표 계산)
+  const mapped = filtered.map(user => {
+    const recs = allRecords.filter(record => record.userId === user.id);
+    const streak = calcStreak(recs);
+    const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : '';
+    return {
+      ...user,
+      records: recs.length,
+      streak: streak,
+      lastDate: lastDate
+    };
+  });
+
+  // 3. 정렬 적용
+  mapped.sort((a, b) => {
+    let valA = a[userMgmtSortKey];
+    let valB = b[userMgmtSortKey];
+
+    // null/undefined 처리
+    if (valA === undefined || valA === null) valA = '';
+    if (valB === undefined || valB === null) valB = '';
+
+    if (valA < valB) return userMgmtSortOrder === 'asc' ? -1 : 1;
+    if (valA > valB) return userMgmtSortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // 4. 페이지네이션 처리
+  const totalCount = mapped.length;
+  const totalPages = Math.ceil(totalCount / userMgmtPageSize) || 1;
+  if (userMgmtPage > totalPages) userMgmtPage = totalPages;
+  
+  const startIdx = (userMgmtPage - 1) * userMgmtPageSize;
+  const paged = mapped.slice(startIdx, startIdx + userMgmtPageSize);
+
+  // UI 업데이트: 정렬 아이콘
+  updateSortIcons();
+  
+  // UI 업데이트: 페이지 정보
+  const pageInfo = document.getElementById('pageInfo');
+  if (pageInfo) pageInfo.textContent = `${userMgmtPage} / ${totalPages} (총 ${totalCount}명)`;
+  
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+  if (prevBtn) prevBtn.disabled = userMgmtPage <= 1;
+  if (nextBtn) nextBtn.disabled = userMgmtPage >= totalPages;
 
   const now7 = new Date();
   now7.setDate(now7.getDate() - 7);
@@ -482,11 +537,8 @@ function renderUserMgmt() {
   const body = document.getElementById('mgmtBody');
   if (!body) return;
 
-  body.innerHTML = filtered.map(user => {
-    const recs = allRecords.filter(record => record.userId === user.id);
-    const streak = calcStreak(recs);
-    const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : null;
-    const isActive = !!(lastDate && lastDate >= weekStr);
+  body.innerHTML = paged.map(user => {
+    const isActive = !!(user.lastDate && user.lastDate >= weekStr);
     const joinDate = user.createdAt ? String(user.createdAt).split('T')[0] : '-';
     return `
       <tr>
@@ -494,9 +546,9 @@ function renderUserMgmt() {
         <td data-label="이메일" style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
         <td data-label="전화번호" style="font-size:.8rem;color:var(--text-muted);">${formatPhone(user.phone)}</td>
         <td data-label="가입일" style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
-        <td data-label="총 기록"><strong>${recs.length}</strong>건</td>
-        <td data-label="최근 기록" style="font-size:.8rem;color:var(--text-muted);">${lastDate || '없음'}</td>
-        <td data-label="스트릭">${streak > 0 ? `<strong style="color:var(--primary);">${streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
+        <td data-label="총 기록"><strong>${user.records}</strong>건</td>
+        <td data-label="최근 기록" style="font-size:.8rem;color:var(--text-muted);">${user.lastDate || '없음'}</td>
+        <td data-label="스트릭">${user.streak > 0 ? `<strong style="color:var(--primary);">${user.streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
         <td data-label="상태">${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
         <td data-label="관리">
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
@@ -506,6 +558,46 @@ function renderUserMgmt() {
       </tr>
     `;
   }).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">사용자 없음</td></tr>';
+}
+
+function handleSort(key) {
+  if (userMgmtSortKey === key) {
+    userMgmtSortOrder = (userMgmtSortOrder === 'asc' ? 'desc' : 'asc');
+  } else {
+    userMgmtSortKey = key;
+    userMgmtSortOrder = 'desc';
+  }
+  userMgmtPage = 1;
+  renderUserMgmt();
+}
+
+function updateSortIcons() {
+  const keys = ['name', 'email', 'createdAt', 'records', 'lastDate', 'streak'];
+  keys.forEach(k => {
+    const el = document.getElementById(`sort_${k}`);
+    if (!el) return;
+    if (userMgmtSortKey === k) {
+      el.textContent = (userMgmtSortOrder === 'asc' ? '↑' : '↓');
+      el.style.color = 'var(--primary)';
+    } else {
+      el.textContent = '↕';
+      el.style.color = 'var(--text-muted)';
+    }
+  });
+}
+
+function changePage(delta) {
+  userMgmtPage += delta;
+  renderUserMgmt();
+}
+
+function updatePageSize() {
+  const select = document.getElementById('pageSizeSelect');
+  if (select) {
+    userMgmtPageSize = parseInt(select.value) || 25;
+    userMgmtPage = 1;
+    renderUserMgmt();
+  }
 }
 
 let udChartActivity = null;

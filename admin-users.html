@@ -172,6 +172,15 @@
             <option value="special">특별관리 대상</option>
           </select>
         </div>
+        <div class="filter-group" style="margin-left:auto;">
+          <span class="filter-label" style="font-size:0.8rem; font-weight:700; margin-right:8px;">📄 표시 개수</span>
+          <select id="pageSizeSelect" class="filter-select" onchange="updatePageSize()">
+            <option value="10">10명씩</option>
+            <option value="25" selected>25명씩</option>
+            <option value="50">50명씩</option>
+            <option value="100">100명씩</option>
+          </select>
+        </div>
       </div>
 
       <div class="chart-card mb-20">
@@ -184,12 +193,23 @@
         <div class="chart-card-body" style="padding-top:0;">
           <div class="table-scroll-wrap">
             <table class="mgmt-table">
-              <thead><tr>
-                <th>사용자</th><th>이메일</th><th>전화번호</th><th>가입일</th>
-                <th>총 기록</th><th>최근 기록</th><th>스트릭</th><th>상태</th><th>관리</th>
+              <thead><tr id="mgmtHead">
+                <th onclick="handleSort('name')" style="cursor:pointer;">사용자 <span id="sort_name"></span></th>
+                <th onclick="handleSort('email')" style="cursor:pointer;">이메일 <span id="sort_email"></span></th>
+                <th>전화번호</th>
+                <th onclick="handleSort('createdAt')" style="cursor:pointer;">가입일 <span id="sort_createdAt"></span></th>
+                <th onclick="handleSort('records')" style="cursor:pointer;">총 기록 <span id="sort_records"></span></th>
+                <th onclick="handleSort('lastDate')" style="cursor:pointer;">최근 기록 <span id="sort_lastDate"></span></th>
+                <th onclick="handleSort('streak')" style="cursor:pointer;">스트릭 <span id="sort_streak"></span></th>
+                <th>상태</th>
+                <th>관리</th>
               </tr></thead>
               <tbody id="mgmtBody"></tbody>
             </table>
+          <div class="pagination-wrapper" style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:20px; padding-bottom:10px;">
+            <button class="btn btn-outline btn-sm" id="prevPageBtn" onclick="changePage(-1)">이전</button>
+            <span id="pageInfo" style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">1 / 1</span>
+            <button class="btn btn-outline btn-sm" id="nextPageBtn" onclick="changePage(1)">다음</button>
           </div>
         </div>
 
