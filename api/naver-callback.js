@@ -138,6 +138,11 @@ module.exports = async function handler(req, res) {
       avatarUrl: naverProfile.profile_image || '',
     });
 
+    if (syncResult.profile && syncResult.profile.is_blocked) {
+      redirectWithError(res, redirectTo, 'user_blocked', '접근이 제한된 계정입니다. 관리자에게 문의하세요.', cookie);
+      return;
+    }
+
     const session = buildSessionPayload(naverProfile, syncResult.profile);
     const target = new URL(redirectTo);
     target.hash = `naver_session=${encodeBase64Url(JSON.stringify(session))}`;
