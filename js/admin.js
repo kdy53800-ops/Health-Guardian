@@ -548,8 +548,6 @@ function renderUserMgmt() {
         <td data-label="가입일" style="font-size:.8rem;color:var(--text-muted);">${joinDate}</td>
         <td data-label="총 기록"><strong>${user.records}</strong>건</td>
         <td data-label="최근 기록" style="font-size:.8rem;color:var(--text-muted);">${user.lastDate || '없음'}</td>
-        <td data-label="스트릭">${user.streak > 0 ? `<strong style="color:var(--primary);">${user.streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
-        <td data-label="상태">${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
         <td data-label="관리">
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isAdmin ? 'background:var(--border);color:var(--text-muted);cursor:not-allowed;' : 'background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;'}" ${user.isAdmin ? 'disabled' : `onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')"`}>삭제</button>
@@ -572,7 +570,7 @@ function handleSort(key) {
 }
 
 function updateSortIcons() {
-  const keys = ['name', 'email', 'createdAt', 'records', 'lastDate', 'streak'];
+  const keys = ['name', 'email', 'createdAt', 'records', 'lastDate'];
   keys.forEach(k => {
     const el = document.getElementById(`sort_${k}`);
     if (!el) return;
