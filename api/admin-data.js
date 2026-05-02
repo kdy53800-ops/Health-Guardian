@@ -16,7 +16,6 @@ function mapProfile(row) {
     phone: row.phone || '',
     isAdmin: !!row.is_admin,
     isSpecial: !!row.is_special,
-    isBlocked: !!row.is_blocked,
     createdAt: row.created_at || new Date().toISOString(),
     supabaseUserId: row.id,
     authProvider: row.auth_provider || 'naver',

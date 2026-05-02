@@ -54,24 +54,16 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // [PATCH] 특별관리 또는 차단 상태 설정
+    // [PATCH] 특별관리 대상 설정/해제
     if (req.method === 'PATCH') {
-      const updates = {};
-      if (body && typeof body.isSpecial === 'boolean') updates.is_special = body.isSpecial;
-      if (body && typeof body.isBlocked === 'boolean') updates.is_blocked = body.isBlocked;
-
-      if (Object.keys(updates).length === 0) {
-        sendJson(res, 400, { ok: false, message: 'Nothing to update.' });
-        return;
-      }
-
+      const isSpecial = !!(body && body.isSpecial);
       await fetchSupabase(`/rest/v1/profiles?id=eq.${encodeEq(userId)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Prefer: 'return=minimal',
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ is_special: isSpecial }),
       });
       sendJson(res, 200, { ok: true });
       return;

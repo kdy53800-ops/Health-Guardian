@@ -452,7 +452,6 @@ function renderRanking() {
             <span style="font-weight:700; background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display: inline-block;">${user.name || '-'}</span>
             ${user.isAdmin ? '<span style="font-size:0.65rem; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">관리자</span>' : ''}
             ${user.isSpecial ? '<span style="font-size:0.65rem; background:var(--gold); color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">⭐</span>' : ''}
-            ${user.isBlocked ? '<span style="font-size:0.65rem; background:#ef4444; color:white; padding:2px 5px; border-radius:4px; margin-left:5px; font-weight:normal;">차단됨</span>' : ''}
           </div>
         </td>
         <td data-label="이메일" style="font-size:.8rem;color:var(--text-muted);">${user.email || '-'}</td>
@@ -498,12 +497,11 @@ function renderUserMgmt() {
         <td data-label="총 기록"><strong>${recs.length}</strong>건</td>
         <td data-label="최근 기록" style="font-size:.8rem;color:var(--text-muted);">${lastDate || '없음'}</td>
         <td data-label="스트릭">${streak > 0 ? `<strong style="color:var(--primary);">${streak}일</strong> 🔥` : '<span style="color:var(--text-muted);">0일</span>'}</td>
-        <td data-label="상태">${user.isBlocked ? '<span class="badge-inactive" style="background:#ef4444; color:white;">차단됨</span>' : (isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>')}</td>
+        <td data-label="상태">${isActive ? '<span class="badge-active">활성</span>' : '<span class="badge-inactive">비활성</span>'}</td>
         <td data-label="관리">
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" onclick="viewUser('${user.id}')">상세</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isAdmin ? 'background:var(--border);color:var(--text-muted);cursor:not-allowed;' : 'background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;'}" ${user.isAdmin ? 'disabled' : `onclick="confirmDeleteUser('${user.id}','${user.name || '-'}')"`}>삭제</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isSpecial ? 'background:var(--gold);color:var(--primary-dark);' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" onclick="toggleSpecialTarget('${user.id}', ${!!user.isSpecial})">⭐특별관리</button>
-          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isBlocked ? 'background:#ef4444;color:white;' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" onclick="toggleBlockStatus('${user.id}', ${!!user.isBlocked})">🚫${user.isBlocked ? '차단해제' : '차단하기'}</button>
         </td>
       </tr>
     `;
@@ -831,32 +829,5 @@ async function toggleSpecialTarget(userId, currentStatus) {
     } else {
       alert('상태 변경 실패: ' + err.message);
     }
-  }
-}
-
-async function toggleBlockStatus(userId, currentStatus) {
-  if (!confirm(currentStatus ? '이 사용자의 차단을 해제하시겠습니까?' : '이 사용자를 차단하시겠습니까?\n차단된 사용자는 로그인이 불가능하며 서비스 이용이 중단됩니다.')) {
-    return;
-  }
-  
-  try {
-    const res = await fetch(new URL('api/admin-users', window.location.href).toString(), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, isBlocked: !currentStatus }),
-      credentials: 'include'
-    });
-    
-    if (!res.ok) throw new Error('Failed to fetch');
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.message || '업데이트 실패');
-    
-    const userIdx = fetchedUsers.findIndex(u => u.id === userId);
-    if (userIdx > -1) {
-      fetchedUsers[userIdx].isBlocked = !currentStatus;
-      applyFilter();
-    }
-  } catch (err) {
-    alert('차단 상태 변경 실패: ' + err.message);
   }
 }
