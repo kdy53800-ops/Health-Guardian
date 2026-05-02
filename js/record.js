@@ -45,11 +45,9 @@ const EX_CAT_CFG = {
 const GOAL_LABELS = {
   walking:  { label: '걷기 목표', unit: '분', color: 'green' },
   running:  { label: '러닝 목표', unit: '분', color: 'green' },
-  squats:   { label: '스쿼트 목표', unit: '회', color: 'blue' },
-  pushups:  { label: '푸쉬업 목표', unit: '회', color: 'blue' },
-  situps:   { label: '윗몸 목표', unit: '회', color: 'blue' },
   water:    { label: '수분섭취 목표', unit: 'ml', color: 'gold' },
   fasting:  { label: '공복시간 목표', unit: '시간', color: 'gold' },
+  customEx: { label: '개인운동 총 시간 목표', unit: '분', color: 'purple' },
 };
 
 // 날짜 중복 모달에서 참조할 기존 기록
@@ -138,12 +136,8 @@ function populateForm(record) {
   document.getElementById('fRunning').value = record.running || '';
   document.getElementById('fWalkingKm').value = record.walkingKm || '';
   document.getElementById('fRunningKm').value = record.runningKm || '';
-  document.getElementById('fSquats').value = record.squats || '';
-  document.getElementById('fPushups').value = record.pushups || '';
-  document.getElementById('fSitups').value = record.situps || '';
   document.getElementById('fWater').value = record.water || '';
   document.getElementById('fFasting').value = record.fasting || '';
-  document.getElementById('fDiet').value = record.diet || '';
   document.getElementById('fMemo').value = record.memo || '';
 
   const cond = record.condition || 3;
@@ -156,10 +150,19 @@ function populateForm(record) {
   }
 
   // Update all progress bars (목표 있는 항목만)
-  ['fWalking','fRunning','fSquats','fPushups','fSitups','fWater','fFasting'].forEach(id => {
+  ['fWalking','fRunning','fWater','fFasting'].forEach(id => {
     const capKey = id.slice(1).charAt(0).toUpperCase() + id.slice(2);
     updateProgress(id, `progress${capKey}`, `pct${capKey}`, id.slice(1).toLowerCase());
   });
+  
+  // 개인운동 총 시간 진행률 업데이트
+  const customMins = record.customExercises ? record.customExercises.reduce((s, ex) => s + (ex.duration || 0), 0) : 0;
+  const customGoal = userGoals.customEx || 0;
+  const customPct = customGoal > 0 ? Math.min(Math.round((customMins / customGoal) * 100), 100) : 0;
+  const pBar = document.getElementById('progressCustomEx');
+  const pPct = document.getElementById('pctCustomEx');
+  if (pBar) pBar.style.width = customPct + '%';
+  if (pPct) pPct.textContent = customPct + '%';
 
   updateSummary();
 }
@@ -186,11 +189,9 @@ function renderTargets() {
   const targets = {
     Walking: { key: 'walking', unit: '분' },
     Running: { key: 'running', unit: '분' },
-    Squats:  { key: 'squats',  unit: '회' },
-    Pushups: { key: 'pushups', unit: '회' },
-    Situps:  { key: 'situps',  unit: '회' },
     Water:   { key: 'water',   unit: 'ml' },
     Fasting: { key: 'fasting', unit: '시간' },
+    CustomEx: { key: 'customEx', unit: '분' },
   };
   for (const [name, cfg] of Object.entries(targets)) {
     const el = document.getElementById(`target${name}`);
@@ -211,16 +212,12 @@ function updateSummary() {
 
   const walking = parseFloat(document.getElementById('fWalking').value) || 0;
   const running = parseFloat(document.getElementById('fRunning').value) || 0;
-  const squats  = parseFloat(document.getElementById('fSquats').value)  || 0;
-  const pushups = parseFloat(document.getElementById('fPushups').value) || 0;
-  const situps  = parseFloat(document.getElementById('fSitups').value)  || 0;
   const water   = parseFloat(document.getElementById('fWater').value)   || 0;
 
   // 개인 운동 합산 시간
   const customMins = customExercises.reduce((sum, ex) => sum + (ex.duration || 0), 0);
 
   document.getElementById('sumExercise').textContent = walking + running + customMins;
-  document.getElementById('sumStrength').textContent = squats + pushups + situps;
   document.getElementById('sumWater').textContent = water;
 
   // goal achievement
@@ -228,11 +225,20 @@ function updateSummary() {
   const checks = [
     walking >= goals.walking,
     running >= goals.running,
-    squats  >= goals.squats,
-    pushups >= goals.pushups,
-    situps  >= goals.situps,
     water   >= goals.water,
   ];
+
+  // 개인 운동 총 시간 목표 체크 (0이 아닌 경우만)
+  if (goals.customEx > 0) {
+    checks.push(customMins >= goals.customEx);
+    // 진척도 바 업데이트
+    const customPct = Math.min(Math.round((customMins / goals.customEx) * 100), 100);
+    const pBar = document.getElementById('progressCustomEx');
+    const pPct = document.getElementById('pctCustomEx');
+    if (pBar) pBar.style.width = customPct + '%';
+    if (pPct) pPct.textContent = customPct + '%';
+  }
+
   const pct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
   document.getElementById('sumGoalPct').textContent = pct + '%';
 }
@@ -270,13 +276,13 @@ function saveGoals() {
   // Re-run all progress updates
   const map = {
     fWalking: 'walking', fRunning: 'running',
-    fSquats: 'squats', fPushups: 'pushups', fSitups: 'situps',
     fWater: 'water', fFasting: 'fasting'
   };
   for (const [fid, key] of Object.entries(map)) {
     const capKey = key.charAt(0).toUpperCase() + key.slice(1);
     updateProgress(fid, `progress${capKey}`, `pct${capKey}`, key);
   }
+  updateSummary();
   showToast('목표가 저장되었습니다! 🎯', 'success');
 }
 
@@ -324,12 +330,8 @@ async function handleSave(e) {
     running:    parseFloat(document.getElementById('fRunning').value)    || 0,
     walkingKm:  parseFloat(document.getElementById('fWalkingKm').value)  || 0,
     runningKm:  parseFloat(document.getElementById('fRunningKm').value)  || 0,
-    squats:     parseFloat(document.getElementById('fSquats').value)     || 0,
-    pushups:    parseFloat(document.getElementById('fPushups').value)    || 0,
-    situps:     parseFloat(document.getElementById('fSitups').value)     || 0,
     water:      parseFloat(document.getElementById('fWater').value)      || 0,
     fasting:    parseFloat(document.getElementById('fFasting').value)    || 0,
-    diet:       document.getElementById('fDiet').value,
     condition:  parseInt(document.getElementById('fCondition').value)   || 3,
     memo:       document.getElementById('fMemo').value.trim(),
     customExercises: customExercises.filter(ex => ex.name.trim()),

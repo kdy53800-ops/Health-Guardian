@@ -571,10 +571,7 @@
             <span class="summary-stat-val" id="sumExercise">0</span>
             <span class="summary-stat-lbl">총 운동(분)</span>
           </div>
-          <div class="summary-stat">
-            <span class="summary-stat-val" id="sumStrength">0</span>
-            <span class="summary-stat-lbl">근력(회)</span>
-          </div>
+
           <div class="summary-stat">
             <span class="summary-stat-val" id="sumWater">0</span>
             <span class="summary-stat-lbl">수분(ml)</span>
@@ -612,13 +609,13 @@
           </div>
         </div>
 
-        <!-- 2. 유산소 운동 -->
+        <!-- 2. 걷기&러닝 기록 -->
         <div class="section-card">
           <div class="section-card-header">
             <div class="section-card-icon card-icon-green">🏃</div>
             <div>
-              <h3>유산소 운동</h3>
-              <p>걷기 & 러닝 기록</p>
+              <h3>걷기&러닝 기록</h3>
+              <p>오늘의 걷기 및 러닝 시간을 기록하세요</p>
             </div>
           </div>
           <div class="form-row">
@@ -662,57 +659,7 @@
           </div>
         </div>
 
-        <!-- 3. 근력 운동 -->
-        <div class="section-card">
-          <div class="section-card-header">
-            <div class="section-card-icon card-icon-blue">💪</div>
-            <div>
-              <h3>근력 운동</h3>
-              <p>스쿼트, 푸쉬업, 윗몸일으키기</p>
-            </div>
-          </div>
-          <div class="form-row">
-            <!-- 스쿼트 -->
-            <div class="form-group">
-              <label class="form-label" for="fSquats">🏋️ 스쿼트 <span class="unit">(회)</span></label>
-              <input type="number" id="fSquats" class="form-control" placeholder="0" min="0" max="9999"
-                oninput="updateProgress('fSquats','progressSquats','pctSquats','squats'); updateSummary()">
-              <div class="input-goal-info">
-                <span class="goal-pct" id="pctSquats">목표: 0%</span>
-                <span class="goal-target" id="targetSquats">목표: 50회</span>
-              </div>
-              <div class="record-progress">
-                <div class="record-progress-bar" id="progressSquats" style="width:0%"></div>
-              </div>
-            </div>
-            <!-- 푸쉬업 -->
-            <div class="form-group">
-              <label class="form-label" for="fPushups">💪 푸쉬업 <span class="unit">(회)</span></label>
-              <input type="number" id="fPushups" class="form-control" placeholder="0" min="0" max="9999"
-                oninput="updateProgress('fPushups','progressPushups','pctPushups','pushups'); updateSummary()">
-              <div class="input-goal-info">
-                <span class="goal-pct" id="pctPushups">목표: 0%</span>
-                <span class="goal-target" id="targetPushups">목표: 30회</span>
-              </div>
-              <div class="record-progress">
-                <div class="record-progress-bar" id="progressPushups" style="width:0%"></div>
-              </div>
-            </div>
-            <!-- 윗몸일으키기 -->
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label" for="fSitups">🔄 윗몸일으키기 <span class="unit">(회)</span></label>
-              <input type="number" id="fSitups" class="form-control" placeholder="0" min="0" max="9999"
-                oninput="updateProgress('fSitups','progressSitups','pctSitups','situps'); updateSummary()">
-              <div class="input-goal-info">
-                <span class="goal-pct" id="pctSitups">목표: 0%</span>
-                <span class="goal-target" id="targetSitups">목표: 30회</span>
-              </div>
-              <div class="record-progress">
-                <div class="record-progress-bar" id="progressSitups" style="width:0%"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         <!-- 4. 개인 운동 기록 -->
         <div class="section-card">
@@ -750,9 +697,21 @@
           <button type="button" class="add-ex-btn" onclick="addCustomExercise()">
             👆 위에서 종목을 선택해 추가하세요
           </button>
+
+          <!-- 개인 운동 총 시간 목표 진척도 -->
+          <div class="mt-20" style="padding:16px; background:var(--surface-2); border-radius:var(--radius-md); border:1px solid var(--border);">
+            <div class="flex justify-between items-center mb-8">
+              <span style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">🏅 개인 운동 합계 목표</span>
+              <span id="pctCustomEx" style="font-size:0.85rem; font-weight:800; color:var(--primary);">0%</span>
+            </div>
+            <div class="record-progress" style="height:10px; margin-bottom:6px;">
+              <div class="record-progress-bar" id="progressCustomEx" style="width:0%; background:linear-gradient(90deg, #8b5cf6, #a78bfa);"></div>
+            </div>
+            <div id="targetCustomEx" style="font-size:0.75rem; color:var(--text-muted); text-align:right;">목표: 0분</div>
+          </div>
         </div>
 
-        <!-- 5. 건강 습관 -->
+        <!-- 4. 건강 습관 -->
         <div class="section-card">
           <div class="section-card-header">
             <div class="section-card-icon card-icon-gold">💧</div>
@@ -788,21 +747,6 @@
                 <div class="record-progress-bar gold" id="progressFasting" style="width:0%"></div>
               </div>
             </div>
-          </div>
-
-          <!-- 식단 카테고리 -->
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label" for="fDiet">🥗 식단 유형 <span class="unit">(선택)</span></label>
-            <select id="fDiet" class="form-control">
-              <option value="">선택 안 함</option>
-              <option value="균형">🥗 균형 잡힌 식단</option>
-              <option value="저탄">🥩 저탄수화물</option>
-              <option value="고단백">💪 고단백</option>
-              <option value="간헐적단식">⏰ 간헐적 단식</option>
-              <option value="채식">🥦 채식 위주</option>
-              <option value="외식">🍽️ 외식</option>
-              <option value="기타">📝 기타</option>
-            </select>
           </div>
         </div>
 

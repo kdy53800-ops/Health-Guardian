@@ -366,12 +366,10 @@ const Records = {
 const GoalDefaults = {
   walking: 30,
   running: 20,
-  squats: 50,
-  pushups: 30,
-  situps: 30,
   water: 2000,
   fasting: 12,
   weight: 0,
+  customEx: 30,
 };
 
 const Goals = {
@@ -573,7 +571,7 @@ function renderNavUser() {
     <div class="nav-profile-dropdown" id="navProfileDropdown" role="menu">
       <div class="dropdown-user-header">
         <div class="dropdown-user-name">${displayName}</div>
-        <div class="dropdown-user-sub">건강지킴이 멤버</div>
+        <div class="dropdown-user-sub">${user.username || ''}</div>
       </div>
       ${adminItemHTML}
       <button class="dropdown-item logout-item" onclick="Auth.logout()" role="menuitem">
@@ -760,7 +758,7 @@ function renderMobileNav() {
       <div class="drawer-avatar">${initial}</div>
       <div class="drawer-user-info">
         <div class="drawer-user-name">${user.name || user.username || '사용자'}</div>
-        <div class="drawer-user-sub">건강지킴이 멤버</div>
+        <div class="drawer-user-sub">${user.username || ''}</div>
       </div>
       <button class="drawer-close-btn" onclick="closeDrawer()" aria-label="메뉴 닫기">✕</button>
     </div>

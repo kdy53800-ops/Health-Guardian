@@ -18,7 +18,7 @@ const RANK_CONFIGS = [
   { key: 'records', label: '📋 총 기록수', desc: '전체 기록 건수' },
   { key: 'walking', label: '🚶 걷기', desc: '총 걷기 (분)' },
   { key: 'running', label: '🏃 러닝', desc: '총 러닝 (분)' },
-  { key: 'strength', label: '💪 근력', desc: '총 근력 운동 (회)' },
+  { key: 'customEx', label: '🏅 개인운동', desc: '개인운동 총 시간 (분)' },
   { key: 'water', label: '💧 수분', desc: '총 수분 (ml)' },
 ];
 
@@ -81,14 +81,37 @@ async function fetchAdminData() {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     });
-    const payload = await readApiJson(response);
-    if (!response.ok || !payload || !payload.ok) {
+    
+    // 로컬 환경(file://)이거나 서버 오류 시 mock 데이터 반환
+    if (!response.ok) {
+      if (window.location.protocol === 'file:' || response.status === 404 || response.status === 500) {
+        console.warn('API fetch failed, using local storage mock data.');
+        return {
+          ok: true,
+          users: JSON.parse(localStorage.getItem('users') || '[]'),
+          records: JSON.parse(localStorage.getItem('records') || '[]')
+        };
+      }
+      const payload = await readApiJson(response);
       const error = new Error((payload && payload.message) || '데이터 조회 권한이 없습니다.');
       error.status = response.status;
       throw error;
     }
+    
+    const payload = await readApiJson(response);
+    if (!payload || !payload.ok) {
+      throw new Error((payload && payload.message) || '데이터 형식 오류');
+    }
     return payload;
   } catch (err) {
+    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+      console.warn('Network error or local environment, returning mock data');
+      return {
+        ok: true,
+        users: JSON.parse(localStorage.getItem('users') || '[]'),
+        records: JSON.parse(localStorage.getItem('records') || '[]')
+      };
+    }
     throw err;
   }
 }
@@ -174,13 +197,16 @@ function renderPlatformStats() {
   const totalUsers = allUsers.length;
   const totalRecords = allRecords.length;
   const activeUsers = new Set(allRecords.filter(record => record.date >= weekStr).map(record => record.userId)).size;
-  const totalExMins = allRecords.reduce((sum, record) => sum + (record.walking || 0) + (record.running || 0), 0);
+  const totalExMins = allRecords.reduce((sum, record) => {
+    const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+    return sum + (record.walking || 0) + (record.running || 0) + customSum;
+  }, 0);
 
   const stats = [
     { icon: '👥', label: '전체 사용자', val: totalUsers, sub: '가입된 계정', cls: 'blue' },
     { icon: '📋', label: '전체 기록수', val: totalRecords, sub: '누적 기록', cls: 'green' },
     { icon: '✅', label: '이번 주 활성', val: activeUsers, sub: '7일 내 기록', cls: 'gold' },
-    { icon: '⏱️', label: '총 운동 시간', val: totalExMins, sub: '분 (걷기+러닝)', cls: 'purple' },
+    { icon: '⏱️', label: '총 운동 시간', val: totalExMins, sub: '분 (전체 합계)', cls: 'purple' },
   ];
 
   const el = document.getElementById('platformStats');
@@ -304,18 +330,30 @@ function renderExerciseAvgChart() {
   const exercises = [
     { key: 'walking', label: '걷기 (분)' },
     { key: 'running', label: '러닝 (분)' },
-    { key: 'squats', label: '스쿼트 (회)' },
-    { key: 'pushups', label: '푸시업 (회)' },
-    { key: 'situps', label: '윗몸일으키기 (회)' },
+    { key: 'customEx', label: '개인운동 (분)', type: 'custom' },
   ];
 
   const labels = [];
   const averages = [];
 
   exercises.forEach(ex => {
-    const validRecords = allRecords.filter(r => (r[ex.key] || 0) > 0);
+    let validRecords = [];
+    let sum = 0;
+
+    if (ex.type === 'custom') {
+      allRecords.forEach(r => {
+        const customSum = (r.customExercises || []).reduce((s, e) => s + (e.duration || 0), 0);
+        if (customSum > 0) {
+          validRecords.push(r);
+          sum += customSum;
+        }
+      });
+    } else {
+      validRecords = allRecords.filter(r => (r[ex.key] || 0) > 0);
+      sum = validRecords.reduce((acc, r) => acc + (Number(r[ex.key]) || 0), 0);
+    }
+
     if (validRecords.length > 0) {
-      const sum = validRecords.reduce((acc, r) => acc + (Number(r[ex.key]) || 0), 0);
       averages.push(Math.round(sum / validRecords.length));
     } else {
       averages.push(0);
@@ -378,12 +416,15 @@ function renderRanking() {
     const streak = calcStreak(recs);
     const walking = recs.reduce((sum, record) => sum + (record.walking || 0), 0);
     const running = recs.reduce((sum, record) => sum + (record.running || 0), 0);
-    const strength = recs.reduce((sum, record) => sum + (record.squats || 0) + (record.pushups || 0) + (record.situps || 0), 0);
+    const customEx = recs.reduce((sum, record) => {
+      const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+      return sum + customSum;
+    }, 0);
     const water = recs.reduce((sum, record) => sum + (record.water || 0), 0);
     const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : '-';
-    const score = { streak, records: recs.length, walking, running, strength, water }[rankMode] || 0;
+    const score = { streak, records: recs.length, walking, running, customEx, water }[rankMode] || 0;
 
-    return { ...user, streak, records: recs.length, walking, running, strength, water, lastDate, score };
+    return { ...user, streak, records: recs.length, walking, running, customEx, water, lastDate, score };
   }).sort((a, b) => b.score - a.score);
 
   const head = document.getElementById('rankHead');
@@ -396,7 +437,7 @@ function renderRanking() {
 
   const rankClasses = ['gold', 'silver', 'bronze'];
   const medals = ['🥇', '🥈', '🥉'];
-  const units = { streak: '일', records: '건', walking: '분', running: '분', strength: '회', water: 'ml' };
+  const units = { streak: '일', records: '건', walking: '분', running: '분', customEx: '분', water: 'ml' };
 
   body.innerHTML = ranked.map((user, index) => {
     const rankBadge = index < 3
@@ -487,7 +528,10 @@ function viewUser(userId) {
   const statItems = [
     { icon: '🔥', label: '연속 스트릭', val: `${streak}일` },
     { icon: '📋', label: '총 기록수', val: `${recs.length}건` },
-    { icon: '⏱️', label: '운동 시간', val: `${sum('walking') + sum('running')}분` },
+    { icon: '⏱️', label: '총 운동 시간', val: `${recs.reduce((acc, r) => {
+      const cSum = (r.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+      return acc + (r.walking || 0) + (r.running || 0) + cSum;
+    }, 0)}분` },
     { icon: '⭐', label: '평균 컨디션', val: avgCond !== '-' ? `${avgCond}/5` : '-' },
   ];
   document.getElementById('udStats').innerHTML = statItems.map(item => `
@@ -500,16 +544,19 @@ function viewUser(userId) {
 
   const condEmoji = value => ['', '😔', '😕', '😊', '😄', '🤩'][Math.round(value) || 0] || '';
   document.getElementById('udRecordBody').innerHTML = recs.length
-    ? recs.map(record => `
-      <tr style="border-bottom:1px solid var(--border);">
-        <td style="padding:8px 10px;font-size:0.82rem;font-weight:600;">${record.date}</td>
-        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.walking || '-'}${record.walking ? '분' : ''}</td>
-        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.running || '-'}${record.running ? '분' : ''}</td>
-        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.squats || '-'}${record.squats ? '회' : ''}</td>
-        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.water || '-'}${record.water ? 'ml' : ''}</td>
-        <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${condEmoji(record.condition)} ${record.condition || '-'}</td>
-      </tr>
-    `).join('')
+    ? recs.map(record => {
+        const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+        return `
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px 10px;font-size:0.82rem;font-weight:600;">${record.date}</td>
+            <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.walking || '-'}${record.walking ? '분' : ''}</td>
+            <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.running || '-'}${record.running ? '분' : ''}</td>
+            <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${customSum || '-'}${customSum ? '분' : ''}</td>
+            <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.water || '-'}${record.water ? 'ml' : ''}</td>
+            <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${condEmoji(record.condition)} ${record.condition || '-'}</td>
+          </tr>
+        `;
+      }).join('')
     : '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">기록 없음</td></tr>';
 
   const days30 = [];

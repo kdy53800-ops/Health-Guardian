@@ -100,12 +100,14 @@ function renderStats(year, month, monthRecs) {
 
   document.getElementById('statsPanelTitle').textContent = `${year}년 ${month}월 합계`;
 
+  const totalCustomMins = monthRecs.reduce((sum, r) => {
+    return sum + (r.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+  }, 0);
+
   const rows = [
     { icon: '🚶', label: '걷기',   val: sum('walking'),  unit: '분' },
     { icon: '🏃', label: '러닝',   val: sum('running'),  unit: '분' },
-    { icon: '🏋️', label: '스쿼트', val: sum('squats'),   unit: '회' },
-    { icon: '💪', label: '푸쉬업', val: sum('pushups'),  unit: '회' },
-    { icon: '🔄', label: '윗몸',   val: sum('situps'),   unit: '회' },
+    { icon: '🏅', label: '개인운동', val: totalCustomMins, unit: '분' },
     { icon: '💧', label: '수분',   val: sum('water'),    unit: 'ml' },
   ];
   document.getElementById('statsRows').innerHTML = rows.map(r => `

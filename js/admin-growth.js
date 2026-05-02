@@ -21,10 +21,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       headers: { Accept: 'application/json' },
     });
     
-    // 로컬 file:// 환경이거나 fetch 에러 시 예외를 던져 catch로 넘김
-    if (!response.ok) throw new Error('Failed to fetch');
-    
-    const payload = await response.json();
+    let payload;
+    if (!response.ok) {
+      if (window.location.protocol === 'file:' || response.status === 404 || response.status === 500) {
+        payload = {
+          ok: true,
+          users: JSON.parse(localStorage.getItem('users') || '[]'),
+          records: JSON.parse(localStorage.getItem('records') || '[]')
+        };
+      } else {
+        throw new Error('Failed to fetch');
+      }
+    } else {
+      payload = await response.json();
+    }
+
     if (!payload.ok) throw new Error(payload.message || '데이터 로드 실패');
     
     allUsers = payload.users || [];
@@ -38,8 +49,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('navAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
     }
   } catch (err) {
-    console.error(err);
-    alert('데이터를 불러오는데 실패했습니다.');
+    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+      allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      allRecords = JSON.parse(localStorage.getItem('records') || '[]');
+      if (overlay) overlay.style.display = 'none';
+    } else {
+      console.error(err);
+      alert('데이터를 불러오는데 실패했습니다.');
+    }
   }
   
   // 최초 로드 시 데이터 조회 실행
@@ -82,16 +99,19 @@ function loadGrowthData() {
     
     // startDate부터 endDate까지 하루씩 순회
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${day}`;
+
       const record = userRecords.find(r => r.date === dateStr);
       
       let todayExercise = 0;
       if (record) {
+        const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
         todayExercise = (Number(record.walking)||0) + 
                         (Number(record.running)||0) + 
-                        (Number(record.squats)||0) + 
-                        (Number(record.pushups)||0) + 
-                        (Number(record.situps)||0);
+                        customSum;
       }
       
       totalExerciseSum += todayExercise;
@@ -212,17 +232,19 @@ function showUserGraph(userId) {
   const totalExercises = [];
   
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0];
-    labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${day}`;
+    labels.push(`${m}/${day}`);
     
     const record = item.userRecords.find(r => r.date === dateStr);
     let todayExercise = 0;
     if (record) {
+      const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
       todayExercise = (Number(record.walking)||0) + 
                       (Number(record.running)||0) + 
-                      (Number(record.squats)||0) + 
-                      (Number(record.pushups)||0) + 
-                      (Number(record.situps)||0);
+                      customSum;
     }
     totalExercises.push(todayExercise);
   }

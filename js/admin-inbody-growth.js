@@ -22,8 +22,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       headers: { Accept: 'application/json' },
     });
     
-    if (!response.ok) throw new Error('Failed to fetch');
-    const payload = await response.json();
+    let payload;
+    if (!response.ok) {
+      if (window.location.protocol === 'file:' || response.status === 404 || response.status === 500) {
+        payload = {
+          ok: true,
+          users: JSON.parse(localStorage.getItem('users') || '[]'),
+          records: JSON.parse(localStorage.getItem('inbody_records') || '[]')
+        };
+      } else {
+        throw new Error('Failed to fetch');
+      }
+    } else {
+      payload = await response.json();
+    }
+
     if (!payload.ok) throw new Error(payload.message || '데이터 로드 실패');
     
     allUsers = payload.users || [];
@@ -37,8 +50,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('navAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
     }
   } catch (err) {
-    console.error(err);
-    alert('데이터를 불러오는데 실패했습니다.');
+    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+      allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      allInBodyRecords = JSON.parse(localStorage.getItem('inbody_records') || '[]');
+      if (overlay) overlay.style.display = 'none';
+    } else {
+      console.error(err);
+      alert('데이터를 불러오는데 실패했습니다.');
+    }
   }
   
   loadInBodyGrowth();

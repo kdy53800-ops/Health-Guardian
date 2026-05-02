@@ -73,8 +73,14 @@ async function loadSpecialUsers() {
 
     specialUsersData = (payload.users || []).filter(u => u.isSpecial);
     filterUserSelect();
-    console.error('Error loading special users:', err);
-    alert('사용자 목록을 불러오는 중 오류가 발생했습니다.');
+  } catch (err) {
+    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+      specialUsersData = JSON.parse(localStorage.getItem('users') || '[]').filter(u => u.isSpecial);
+      filterUserSelect();
+    } else {
+      console.error('Error loading special users:', err);
+      alert('사용자 목록을 불러오는 중 오류가 발생했습니다.');
+    }
   }
 }
 
@@ -105,8 +111,15 @@ async function loadUserRecords() {
     if (!res.ok || !result.ok) throw new Error(result.message || '로드 실패');
     
     renderRecords(result.records);
-    console.error('Error loading records:', err);
-    listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
+  } catch (err) {
+    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+      const allInBody = JSON.parse(localStorage.getItem('inbody_records') || '[]');
+      const userInBody = allInBody.filter(r => r.userId === selectedUserId);
+      renderRecords(userInBody);
+    } else {
+      console.error('Error loading records:', err);
+      listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
+    }
   }
 }
 

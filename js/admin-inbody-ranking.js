@@ -27,8 +27,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('navAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
     }
   } catch (err) {
-    console.error(err);
-    alert('데이터를 불러오는데 실패했습니다.');
+    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+      allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      allInBodyRecords = JSON.parse(localStorage.getItem('inbody_records') || '[]');
+      if (overlay) overlay.style.display = 'none';
+    } else {
+      console.error(err);
+      alert('데이터를 불러오는데 실패했습니다.');
+    }
   }
   
   processRankingData();

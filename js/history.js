@@ -72,9 +72,6 @@ function buildRecordCard(r) {
     r.running   ? { icon: '🏃', label: '러닝',   val: r.running,   unit: '분',  cls: 'highlight' } : null,
     r.walkingKm ? { icon: '🗺️', label: '걷기거리', val: r.walkingKm, unit: 'km', cls: '' } : null,
     r.runningKm ? { icon: '🗺️', label: '러닝거리', val: r.runningKm, unit: 'km', cls: '' } : null,
-    r.squats    ? { icon: '🏋️', label: '스쿼트', val: r.squats,    unit: '회',  cls: '' } : null,
-    r.pushups   ? { icon: '💪', label: '푸쉬업', val: r.pushups,   unit: '회',  cls: '' } : null,
-    r.situps    ? { icon: '🔄', label: '윗몸',   val: r.situps,    unit: '회',  cls: '' } : null,
     r.water     ? { icon: '💧', label: '수분',   val: r.water,     unit: 'ml',  cls: 'gold-chip' } : null,
     r.fasting   ? { icon: '⏱️', label: '공복',   val: r.fasting,   unit: 'h',   cls: 'gold-chip' } : null,
     r.weight    ? { icon: '⚖️', label: '체중',   val: r.weight,    unit: 'kg',  cls: '' } : null,
@@ -102,7 +99,7 @@ function buildRecordCard(r) {
     `;
   }).join('');
 
-  const dietBadge = r.diet ? `<span class="badge badge-gray" style="font-size:0.72rem">${r.diet}</span>` : '';
+
 
   return `
     <div class="record-card fade-in" id="card_${r.id}">
@@ -114,7 +111,7 @@ function buildRecordCard(r) {
           </div>
           <div class="record-card-date-info">
             <h4>${formatDate(r.date)}</h4>
-            <div class="day-tag">${dayOfWeekKo}요일 ${dietBadge}</div>
+            <div class="day-tag">${dayOfWeekKo}요일</div>
           </div>
         </div>
         <div class="record-card-actions">

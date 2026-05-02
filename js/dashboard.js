@@ -66,14 +66,30 @@ function renderDashboard() {
   const weekRecords = userRecords.filter(r => thisWeekDays.includes(r.date));
   const weekWalking = sum(weekRecords, 'walking');
   const weekRunning = sum(weekRecords, 'running');
-  const weekSquats  = sum(weekRecords, 'squats');
-  const weekPushups = sum(weekRecords, 'pushups');
-  const weekSitups  = sum(weekRecords, 'situps');
   const weekCardio  = weekWalking + weekRunning;
-  const weekStrength = weekSquats + weekPushups + weekSitups;
+  const avgWeekCardio = weekRecords.length ? Math.round(weekCardio / weekRecords.length) : 0;
 
   const avgWater    = weekRecords.length ? Math.round(avg(weekRecords, 'water')) : 0;
   const avgCondition = weekRecords.length ? (avg(weekRecords, 'condition')).toFixed(1) : '-';
+
+  // 오늘 목표 달성률 계산 (Walking, Running, CustomEx, Water, Fasting)
+  let todayPct = 0;
+  if (todayRecord) {
+    const goals = userGoals || GoalDefaults;
+    const checks = [
+      (todayRecord.walking || 0) >= (goals.walking || 1),
+      (todayRecord.running || 0) >= (goals.running || 1),
+    ];
+    // 목표가 설정된 경우만 체크리스트에 추가
+    if (goals.customEx > 0) {
+      const customTotal = (todayRecord.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+      checks.push(customTotal >= goals.customEx);
+    }
+    if (goals.water > 0)   checks.push((todayRecord.water || 0) >= goals.water);
+    if (goals.fasting > 0) checks.push((todayRecord.fasting || 0) >= goals.fasting);
+
+    todayPct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }
 
   main.innerHTML = `
     <!-- Page Header -->
@@ -89,6 +105,26 @@ function renderDashboard() {
         <h2>연속 기록 스트릭</h2>
         <div class="streak-count">${streak}<span style="font-size:1.2rem; font-weight:600; color:rgba(255,255,255,0.7)"> 일</span></div>
         <p>${streak > 0 ? '지금 이 흐름을 유지하세요! 💪' : '오늘 기록을 시작해 스트릭을 시작하세요!'}</p>
+      </div>
+    </div>
+
+    <!-- Ranking Top 5 -->
+    <div class="grid-2 mb-20">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">🏆 명예의 전당: 총 출석일 수</div>
+        </div>
+        <div class="chart-card-body" id="rankingAttendance">
+          <div class="chart-no-data">데이터를 불러오는 중...</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">🔥 명예의 전당: 총 운동 시간</div>
+        </div>
+        <div class="chart-card-body" id="rankingExercise">
+          <div class="chart-no-data">데이터를 불러오는 중...</div>
+        </div>
       </div>
     </div>
 
@@ -115,16 +151,10 @@ function renderDashboard() {
     <!-- Hero Stats -->
     <div class="hero-stats-grid mb-20">
       <div class="stat-card">
-        <div class="stat-card-label">이번 주 유산소 운동</div>
-        <div class="stat-card-value">${weekCardio}<span class="stat-card-unit">분</span></div>
-        <div class="stat-card-sub">걷기 ${weekWalking}분 + 러닝 ${weekRunning}분</div>
+        <div class="stat-card-label">주간 평균 걷기&러닝</div>
+        <div class="stat-card-value">${avgWeekCardio}<span class="stat-card-unit">분</span></div>
+        <div class="stat-card-sub">주간 총 ${weekCardio}분 / ${weekRecords.length}일</div>
         <div class="stat-card-icon">🏃</div>
-      </div>
-      <div class="stat-card green">
-        <div class="stat-card-label">이번 주 근력 운동</div>
-        <div class="stat-card-value">${weekStrength}<span class="stat-card-unit">회</span></div>
-        <div class="stat-card-sub">스쿼트+푸쉬업+윗몸</div>
-        <div class="stat-card-icon">💪</div>
       </div>
       <div class="stat-card gold">
         <div class="stat-card-label">주간 평균 수분</div>
@@ -144,19 +174,32 @@ function renderDashboard() {
     <div class="chart-card mb-20">
       <div class="chart-card-header">
         <div class="chart-card-title">🎯 오늘의 목표 달성률</div>
-        ${todayRecord ? '' : '<a href="record.html" class="btn btn-primary btn-sm">오늘 기록하기</a>'}
       </div>
       <div class="chart-card-body">
         <div class="goal-rings-grid" id="goalRingsGrid"></div>
       </div>
     </div>
 
-    <!-- Charts Row: 유산소 & 근력 (선 그래프) -->
-    <div class="grid-2 mb-20">
+    <!-- Weight Chart (전체 너비) - 위치 이동 -->
+    <div class="chart-card mb-20">
+      <div class="chart-card-header">
+        <div class="chart-card-title">⚖️ 체중 변화</div>
+        <div class="filter-btns">
+          <button class="filter-btn active" id="weightFilter7" onclick="setFilter('weight','7')">7일</button>
+          <button class="filter-btn" id="weightFilter30" onclick="setFilter('weight','30')">30일</button>
+        </div>
+      </div>
+      <div class="chart-card-body">
+        <div id="weightChartWrap" class="chart-wrap"><canvas id="chartWeight"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts Row: 걷기&러닝 (선 그래프) -->
+    <div class="mb-20">
       <!-- Cardio Line Chart -->
       <div class="chart-card">
         <div class="chart-card-header">
-          <div class="chart-card-title">🏃 유산소 운동 추이</div>
+          <div class="chart-card-title">🏃 걷기&러닝 추이</div>
           <div class="filter-btns">
             <button class="filter-btn active" id="cardioFilter7" onclick="setFilter('cardio','7')">7일</button>
             <button class="filter-btn" id="cardioFilter30" onclick="setFilter('cardio','30')">30일</button>
@@ -164,19 +207,6 @@ function renderDashboard() {
         </div>
         <div class="chart-card-body">
           <div class="chart-wrap"><canvas id="chartCardio"></canvas></div>
-        </div>
-      </div>
-      <!-- Strength Line Chart -->
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <div class="chart-card-title">💪 근력 운동 추이</div>
-          <div class="filter-btns">
-            <button class="filter-btn active" id="strengthFilter7" onclick="setFilter('strength','7')">7일</button>
-            <button class="filter-btn" id="strengthFilter30" onclick="setFilter('strength','30')">30일</button>
-          </div>
-        </div>
-        <div class="chart-card-body">
-          <div class="chart-wrap"><canvas id="chartStrength"></canvas></div>
         </div>
       </div>
     </div>
@@ -224,19 +254,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- Weight Chart (전체 너비) -->
-    <div class="chart-card mb-20">
-      <div class="chart-card-header">
-        <div class="chart-card-title">⚖️ 체중 변화</div>
-        <div class="filter-btns">
-          <button class="filter-btn active" id="weightFilter7" onclick="setFilter('weight','7')">7일</button>
-          <button class="filter-btn" id="weightFilter30" onclick="setFilter('weight','30')">30일</button>
-        </div>
-      </div>
-      <div class="chart-card-body">
-        <div id="weightChartWrap" class="chart-wrap"><canvas id="chartWeight"></canvas></div>
-      </div>
-    </div>
+
 
     <!-- 개인 운동 차트 -->
     <div class="chart-card mb-20" id="customExChartCard">
@@ -274,6 +292,7 @@ function renderDashboard() {
   renderBestRecords(weekRecords);
   renderRecentActivity();
   renderCustomExSummary('7');
+  fetchAndRenderRanking();
 }
 
 // ─── Week Grid (월~일 고정) ───────────────────────────
@@ -311,9 +330,7 @@ function renderGoalRings(todayRecord) {
   const ringConfigs = [
     { key: 'walking',  label: '걷기',   unit: '분',   color: CHART_COLORS.green },
     { key: 'running',  label: '러닝',   unit: '분',   color: CHART_COLORS.primary },
-    { key: 'squats',   label: '스쿼트', unit: '회',   color: CHART_COLORS.purple },
-    { key: 'pushups',  label: '푸쉬업', unit: '회',   color: CHART_COLORS.teal },
-    { key: 'situps',   label: '윗몸',   unit: '회',   color: CHART_COLORS.red },
+    { key: 'customEx', label: '개인운동(총)', unit: '분', color: CHART_COLORS.purple },
     { key: 'water',    label: '수분',   unit: 'ml',   color: CHART_COLORS.gold },
     { key: 'fasting',  label: '공복',   unit: 'h',    color: '#f59e0b' },
   ];
@@ -321,9 +338,23 @@ function renderGoalRings(todayRecord) {
   grid.innerHTML = '';
 
   ringConfigs.forEach((cfg, idx) => {
-    const val    = todayRecord ? (todayRecord[cfg.key] || 0) : 0;
-    const goal   = userGoals[cfg.key] || 1;
-    const pct    = Math.min(Math.round((val / goal) * 100), 100);
+    let val = 0;
+    if (cfg.key === 'customEx') {
+      if (todayRecord && todayRecord.customExercises) {
+        val = todayRecord.customExercises.reduce((s, ex) => s + (ex.duration || 0), 0);
+      }
+    } else {
+      val = todayRecord ? (todayRecord[cfg.key] || 0) : 0;
+    }
+
+    const goal = userGoals ? (userGoals[cfg.key] || 0) : 0;
+    
+    // 필수 항목(걷기/러닝/개인운동)은 항상 표시
+    // 수분/공복은 목표가 0이면 표시 안함 (원하면 조건 삭제 가능)
+    if (goal <= 0 && (cfg.key === 'water' || cfg.key === 'fasting')) return;
+
+    const displayGoal = goal || (cfg.key === 'customEx' ? 30 : 1);
+    const pct = Math.min(Math.round((val / displayGoal) * 100), 100);
     const canvasId = `ring_${cfg.key}`;
 
     const item = document.createElement('div');
@@ -402,20 +433,6 @@ function drawCharts(period) {
       ]
     },
     options: lineChartOptions('분')
-  });
-
-  // ② 근력 — 선 그래프
-  charts.strength = new Chart(document.getElementById('chartStrength'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        lineDataset('스쿼트', days.map(d => getVal(d,'squats')),  CHART_COLORS.purple, CHART_COLORS.purpleBg),
-        lineDataset('푸쉬업', days.map(d => getVal(d,'pushups')), CHART_COLORS.teal,   CHART_COLORS.tealBg),
-        lineDataset('윗몸',   days.map(d => getVal(d,'situps')),  CHART_COLORS.red,    CHART_COLORS.redBg),
-      ]
-    },
-    options: lineChartOptions('회')
   });
 
   // ③ 수분섭취 — 막대 그래프
@@ -630,13 +647,6 @@ function setFilter(section, period) {
     charts.cardio.data.datasets[1].data = days.map(d => getVal(d,'running'));
     charts.cardio.update();
   }
-  if (section === 'strength' && charts.strength) {
-    charts.strength.data.labels = labels;
-    charts.strength.data.datasets[0].data = days.map(d => getVal(d,'squats'));
-    charts.strength.data.datasets[1].data = days.map(d => getVal(d,'pushups'));
-    charts.strength.data.datasets[2].data = days.map(d => getVal(d,'situps'));
-    charts.strength.update();
-  }
   if (section === 'water' && charts.water) {
     charts.water.data.labels = labels;
     charts.water.data.datasets[0].data = days.map(d => getVal(d,'water'));
@@ -685,17 +695,41 @@ function renderBestRecords(records = []) {
   if (!el) return;
 
   const bests = [
-    { label: '러닝',   icon: '🏃', key: 'running',  unit: '분' },
-    { label: '걷기',   icon: '🚶', key: 'walking',  unit: '분' },
-    { label: '스쿼트', icon: '🏋️', key: 'squats',   unit: '회' },
-    { label: '푸쉬업', icon: '💪', key: 'pushups',  unit: '회' },
-    { label: '윗몸',   icon: '🔄', key: 'situps',   unit: '회' },
+    { label: '걷기',   icon: '🚶', key: 'walking',  unit: '분', type: 'fixed' },
+    { label: '러닝',   icon: '🏃', key: 'running',  unit: '분', type: 'fixed' },
+    { label: '유산소', icon: '🏊', key: '유산소',   unit: '분', type: 'custom' },
+    { label: '근력',   icon: '🏋️', key: '근력',     unit: '분', type: 'custom' },
+    { label: '밸런스', icon: '🧘', key: '유연성',   unit: '분', type: 'custom' },
+    { label: '스포츠', icon: '⚽', key: '스포츠',   unit: '분', type: 'custom' },
   ];
 
-  const cards = bests.map(({ label, icon, key, unit }, idx) => {
-    const best = [...records].filter(r => r[key] > 0).sort((a, b) => b[key] - a[key])[0];
+  const cards = bests.map(({ label, icon, key, unit, type }, idx) => {
+    let best = null;
+    let bestVal = 0;
+
+    if (type === 'fixed') {
+      const sorted = [...records].filter(r => r[key] > 0).sort((a, b) => b[key] - a[key]);
+      best = sorted[0];
+      bestVal = best ? best[key] : 0;
+    } else {
+      // 커스텀 카테고리 베스트 찾기
+      let maxVal = 0;
+      let maxRec = null;
+      records.forEach(r => {
+        if (!r.customExercises) return;
+        const sum = r.customExercises
+          .filter(ex => ex.category === key)
+          .reduce((s, ex) => s + (ex.duration || 0), 0);
+        if (sum > maxVal) {
+          maxVal = sum;
+          maxRec = r;
+        }
+      });
+      best = maxRec;
+      bestVal = maxVal;
+    }
     
-    if (!best) {
+    if (!best || bestVal <= 0) {
       return `
         <div class="best-record-item" style="opacity:0.5;">
           <div class="best-record-icon-bg">${icon}</div>
@@ -712,7 +746,7 @@ function renderBestRecords(records = []) {
         <div class="best-record-icon-bg">${icon}</div>
         <div class="best-record-info">
           <div class="best-record-label">${label}</div>
-          <div class="best-record-val">${best[key]}<span class="best-record-unit"> ${unit}</span></div>
+          <div class="best-record-val">${bestVal}<span class="best-record-unit"> ${unit}</span></div>
           <div class="best-record-date">${formatDate(best.date, { month: 'numeric', day: 'numeric' })}</div>
         </div>
       </div>
@@ -738,9 +772,6 @@ function renderRecentActivity() {
     const parts = [];
     if (r.walking)  parts.push(`걷기 ${r.walking}분`);
     if (r.running)  parts.push(`러닝 ${r.running}분`);
-    if (r.squats)   parts.push(`스쿼트 ${r.squats}회`);
-    if (r.pushups)  parts.push(`푸쉬업 ${r.pushups}회`);
-    if (r.situps)   parts.push(`윗몸 ${r.situps}회`);
     if (r.water)    parts.push(`수분 ${r.water}ml`);
     if (r.fasting)  parts.push(`공복 ${r.fasting}h`);
     const cond = r.condition || 3;
@@ -869,6 +900,39 @@ function renderCustomExSummary(period) {
     ${catRows}
     ${topRows}
   `;
+}
+
+// ─── Ranking ──────────────────────────────────────────
+async function fetchAndRenderRanking() {
+  const elAtt = document.getElementById('rankingAttendance');
+  const elExe = document.getElementById('rankingExercise');
+  if (!elAtt || !elExe) return;
+
+  try {
+    const res = await fetch(new URL('api/ranking', window.location.href).toString());
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message);
+
+    const renderList = (items, unit) => {
+      if (!items.length) return '<div class="chart-no-data">순위 정보가 없습니다.</div>';
+      return items.map((u, i) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-light);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-weight:800; color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'var(--text-muted)'}; width:20px;">${i+1}</span>
+            <span style="font-weight:700; color:var(--text);">${u.name}</span>
+          </div>
+          <div style="font-weight:800; color:var(--primary);">${u.value.toLocaleString()}<span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;"> ${unit}</span></div>
+        </div>
+      `).join('');
+    };
+
+    elAtt.innerHTML = renderList(data.topAttendance, '일');
+    elExe.innerHTML = renderList(data.topExercise, '분');
+  } catch (err) {
+    console.error('[RankingRender]', err);
+    elAtt.innerHTML = '<div class="chart-no-data">랭킹을 불러오지 못했습니다.</div>';
+    elExe.innerHTML = '<div class="chart-no-data">랭킹을 불러오지 못했습니다.</div>';
+  }
 }
 
 // ─── Weight No-data handler (called from drawCharts) ──
