@@ -822,34 +822,35 @@ function renderCustomExSummary(period) {
   const recordMap = {};
   userRecords.forEach(r => { recordMap[r.date] = r; });
 
-  // 기간별 카테고리 합산
+  // 기간 내 카테고리별 및 운동별 집계
   const catTotals = {};
   const catFreq   = {}; // 운동한 날 수
+  const exFreqMap = {}; // 운동별 횟수
   cats.forEach(c => { catTotals[c.key] = 0; catFreq[c.key] = 0; });
 
-  days.forEach(d => {
-    const r = recordMap[d];
-    if (!r || !r.customExercises) return;
-    const found = new Set();
+  // 선택된 기간(days) 내에 포함되는 기록들만 필터링
+  const filteredRecords = userRecords.filter(r => days.includes(r.date));
+
+  filteredRecords.forEach(r => {
+    if (!r.customExercises) return;
+    const foundInDay = new Set();
     r.customExercises.forEach(ex => {
+      // 카테고리별 시간 합산
       catTotals[ex.category] = (catTotals[ex.category] || 0) + (ex.duration || 0);
-      found.add(ex.category);
+      foundInDay.add(ex.category);
+      
+      // 운동별 횟수 합산 (자주 한 운동용)
+      if (ex.name) {
+        exFreqMap[ex.name] = (exFreqMap[ex.name] || 0) + 1;
+      }
     });
-    found.forEach(cat => { catFreq[cat] = (catFreq[cat] || 0) + 1; });
+    // 카테고리별 빈도(일수) 계산
+    foundInDay.forEach(cat => { catFreq[cat] = (catFreq[cat] || 0) + 1; });
   });
 
   const totalMins = Object.values(catTotals).reduce((a, b) => a + b, 0);
 
-  // 인기 종목 Top5 (선택된 기간 내 집계)
-  const exFreqMap = {};
-  days.forEach(d => {
-    const r = recordMap[d];
-    if (!r || !r.customExercises) return;
-    r.customExercises.forEach(ex => {
-      if (!ex.name) return;
-      exFreqMap[ex.name] = (exFreqMap[ex.name] || 0) + 1;
-    });
-  });
+  // 인기 종목 Top5 정렬
   const topExercises = Object.entries(exFreqMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
