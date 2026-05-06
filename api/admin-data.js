@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
       fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
         headers: { Accept: 'application/json' },
       }),
-      fetchSupabase('/rest/v1/daily_records?select=*&order=record_date.asc', {
+      fetchSupabase('/rest/v1/daily_records?select=*&order=record_date.desc&limit=10000', {
         headers: { Accept: 'application/json' },
       }),
     ]);
