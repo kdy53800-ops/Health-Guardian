@@ -486,18 +486,65 @@ function setRankMode(mode) {
 
 function renderRanking() {
   const cfg = RANK_CONFIGS.find(config => config.key === rankMode);
+  
+  // 스트릭 계산 헬퍼: 필터된 기간 내의 최대 스트릭 또는 현재 스트릭
+  const getRankStreak = (userRecords) => {
+    if (!userRecords.length) return 0;
+    
+    if (filterMonth) {
+      // 월별 필터 시: 해당 월 내에서의 '최대 연속 기록' 계산
+      const dateSet = new Set(userRecords.map(r => r.date));
+      const sortedDates = Array.from(dateSet).sort();
+      let maxS = 0;
+      let currS = 0;
+      let prevD = null;
+      
+      sortedDates.forEach(d => {
+        if (!prevD) {
+          currS = 1;
+        } else {
+          const p = new Date(prevD + 'T00:00:00');
+          p.setDate(p.getDate() + 1);
+          const nextDayStr = p.toISOString().split('T')[0];
+          if (d === nextDayStr) {
+            currS++;
+          } else {
+            currS = 1;
+          }
+        }
+        maxS = Math.max(maxS, currS);
+        prevD = d;
+      });
+      return maxS;
+    } else {
+      // 전체 보기 시: 현재 시점의 스트릭 (js/app.js의 calcStreak 활용)
+      return typeof calcStreak === 'function' ? calcStreak(userRecords) : 0;
+    }
+  };
+
   const ranked = allUsers.map(user => {
     const recs = allRecords.filter(record => record.userId === user.id);
-    const streak = calcStreak(recs);
-    const walking = recs.reduce((sum, record) => sum + (record.walking || 0), 0);
-    const running = recs.reduce((sum, record) => sum + (record.running || 0), 0);
+    const streak = getRankStreak(recs);
+    
+    const walking = recs.reduce((sum, record) => sum + (Number(record.walking) || 0), 0);
+    const running = recs.reduce((sum, record) => sum + (Number(record.running) || 0), 0);
     const customEx = recs.reduce((sum, record) => {
-      const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+      const customSum = (record.customExercises || []).reduce((s, ex) => s + (Number(ex.duration) || 0), 0);
       return sum + customSum;
     }, 0);
-    const water = recs.reduce((sum, record) => sum + (record.water || 0), 0);
-    const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : '-';
-    const score = { streak, records: recs.length, walking, running, customEx, water }[rankMode] || 0;
+    const water = recs.reduce((sum, record) => sum + (Number(record.water) || 0), 0);
+    
+    const sortedRecs = [...recs].sort((a, b) => a.date.localeCompare(b.date));
+    const lastDate = sortedRecs.length ? sortedRecs[sortedRecs.length - 1].date : '-';
+    
+    const score = { 
+      streak, 
+      records: recs.length, 
+      walking, 
+      running, 
+      customEx, 
+      water 
+    }[rankMode] || 0;
 
     return { ...user, streak, records: recs.length, walking, running, customEx, water, lastDate, score };
   }).sort((a, b) => b.score - a.score);
