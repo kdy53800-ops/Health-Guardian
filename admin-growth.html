@@ -171,8 +171,16 @@
         <div class="rank-board">
           <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
             <h3 style="font-size:1.1rem; font-weight:800; margin:0;">🏆 성장 점수 랭킹</h3>
-            <div style="font-size:0.8rem; color:var(--text-secondary); background:var(--surface-2); padding:6px 12px; border-radius:6px; border:1px solid var(--border);">
-              💡 <strong>점수 산정 기준:</strong> 기간 내 <strong>하루하루 어제와 비교</strong>하여 늘어난 운동량은 <strong>가산(+)</strong>, 줄어들면 <strong>감점(-)</strong>하며, <strong>결석 시 하루당 -10점</strong>이 부과됩니다.
+            <div style="font-size:0.82rem; color:var(--text-secondary); background:#f8fafc; padding:12px 18px; border-radius:10px; border:1px solid var(--border); line-height:1.6; max-width: 600px;">
+              <div style="font-weight:800; color:var(--primary); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                <span style="font-size:1.1rem;">💡</span> 성장 및 습관 점수 산정 기준
+              </div>
+              <ul style="margin:0; padding-left:18px; list-style-type: disc;">
+                <li><strong>기본 성실도:</strong> 일일 기록 시 <strong>+20점</strong> (미기록 시 -20점 및 스트릭 초기화)</li>
+                <li><strong>꾸준함 보너스:</strong> 3일 연속 기록 시 <strong>매일 +5점</strong>, 7일 이상 연속 시 <strong>매일 +10점</strong> 가산</li>
+                <li><strong>성장 가산점:</strong> 어제보다 운동량 증가 시 <strong>분당 +1점 (일일 최대 +30점까지만 제한적 인정)</strong></li>
+                <li><strong>데이터 정합성:</strong> 단순 몰아치기 운동보다 <strong>매일 꾸준히 관리하는 습관</strong>에 높은 가중치를 둡니다.</li>
+              </ul>
             </div>
           </div>
           <div class="table-scroll-wrap">
