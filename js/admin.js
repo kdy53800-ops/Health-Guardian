@@ -243,7 +243,7 @@ function renderPlatformStats() {
 }
 
 let chartDaily = null;
-let chartShare = null;
+let chartUserGrowth = null;
 let chartExerciseAvg = null;
 
 function renderCharts() {
@@ -252,7 +252,7 @@ function renderCharts() {
     return;
   }
   renderDailyChart();
-  renderShareChart();
+  renderUserGrowthChart();
   renderExerciseAvgChart();
 }
 
@@ -327,42 +327,75 @@ function renderDailyChart() {
   });
 }
 
-function renderShareChart() {
-  const data = allUsers.map(user => ({
-    name: user.name,
-    count: allRecords.filter(record => record.userId === user.id).length,
-  }))
-    .filter(item => item.count > 0)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
+function renderUserGrowthChart() {
+  const labels = [];
+  const cumulativeCounts = [];
+  
+  const processGrowth = (dateList) => {
+    dateList.forEach(dateStr => {
+      // 해당 날짜 자정(23:59:59) 기준으로 가입된 사용자 수 계산
+      const endOfDay = new Date(dateStr + 'T23:59:59').getTime();
+      const count = allUsers.filter(u => {
+        const joinTime = new Date(u.createdAt).getTime();
+        return joinTime <= endOfDay;
+      }).length;
+      
+      labels.push(dateStr.slice(5).replace('-', '/'));
+      cumulativeCounts.push(count);
+    });
+  };
 
-  const ctx = document.getElementById('chartUserShare');
-  if (!ctx) return;
-  if (chartShare) chartShare.destroy();
-
-  if (!data.length) {
-    ctx.parentElement.innerHTML = '<div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem;">기록 데이터 없음</div>';
-    return;
+  if (filterMonth) {
+    const [year, month] = filterMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const dates = [];
+    for (let d = 1; d <= lastDay; d++) {
+      dates.push(`${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+    processGrowth(dates);
+  } else {
+    const dates = [];
+    for (let i = 29; i >= 0; i -= 1) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+    processGrowth(dates);
   }
 
-  const colors = ['#004680', '#DDCA4B', '#22c55e', '#8b5cf6', '#ef4444', '#f97316', '#06b6d4', '#ec4899'];
-  chartShare = new Chart(ctx, {
-    type: 'doughnut',
+  const ctx = document.getElementById('chartUserGrowth');
+  if (!ctx) return;
+  if (chartUserGrowth) chartUserGrowth.destroy();
+
+  chartUserGrowth = new Chart(ctx, {
+    type: 'line',
     data: {
-      labels: data.map(item => item.name),
+      labels,
       datasets: [{
-        data: data.map(item => item.count),
-        backgroundColor: colors.slice(0, data.length),
-        borderWidth: 2,
-        borderColor: '#fff',
+        label: '누적 가입자',
+        data: cumulativeCounts,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.08)',
+        fill: true,
+        tension: 0.1,
+        pointRadius: labels.length > 31 ? 0 : 3,
+        pointBackgroundColor: '#22c55e',
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 14, padding: 12 } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}건` } },
+      plugins: { 
+        legend: { display: false },
+        title: {
+          display: true,
+          text: filterMonth ? `${filterMonth} 누적 가입자 현황` : '최근 30일 누적 가입자 현황',
+          font: { size: 12 }
+        }
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } },
+        y: { beginAtZero: false, ticks: { precision: 0, font: { size: 10 } } },
       },
     },
   });
