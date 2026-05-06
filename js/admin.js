@@ -487,36 +487,43 @@ function renderRanking() {
   
   // 스트릭 계산 헬퍼: 해당 기간 내에서의 '최대 연속 기록(Max Streak)' 계산
   const getRankStreak = (userRecords) => {
-    if (!userRecords.length) return 0;
+    if (!userRecords || !userRecords.length) return 0;
     
-    const dateSet = new Set(userRecords.map(r => r.date));
-    const sortedDates = Array.from(dateSet).sort();
+    // 1. 날짜 정규화 및 중복 제거 (YYYY-MM-DD)
+    const dateMap = new Set();
+    userRecords.forEach(r => {
+      if (!r.date) return;
+      const d = new Date(String(r.date).split('T')[0] + 'T12:00:00');
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dateMap.add(`${y}-${m}-${day}`);
+      }
+    });
+    
+    const sortedDates = Array.from(dateMap).sort();
+    if (!sortedDates.length) return 0;
+
     let maxS = 0;
-    let currS = 0;
-    let prevD = null;
+    let currS = 1;
     
-    sortedDates.forEach(d => {
-      if (!prevD) {
-        currS = 1;
-      } else {
-        const p = new Date(prevD + 'T00:00:00');
-        p.setDate(p.getDate() + 1);
+    for (let i = 0; i < sortedDates.length; i++) {
+      if (i > 0) {
+        const prev = new Date(sortedDates[i-1] + 'T12:00:00').getTime();
+        const curr = new Date(sortedDates[i] + 'T12:00:00').getTime();
         
-        // toISOString()은 UTC 기준이라 날짜가 어긋날 수 있으므로 로컬 날짜 문자열 생성
-        const y = p.getFullYear();
-        const m = String(p.getMonth() + 1).padStart(2, '0');
-        const dNum = String(p.getDate()).padStart(2, '0');
-        const nextDayStr = `${y}-${m}-${dNum}`;
+        // 두 날짜 사이의 차이가 정확히 1일(86400000ms)인지 확인
+        const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
         
-        if (d === nextDayStr) {
+        if (diffDays === 1) {
           currS++;
         } else {
           currS = 1;
         }
       }
-      maxS = Math.max(maxS, currS);
-      prevD = d;
-    });
+      if (currS > maxS) maxS = currS;
+    }
     return maxS;
   };
 
