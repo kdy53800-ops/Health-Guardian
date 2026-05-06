@@ -63,18 +63,56 @@ async function loadInbodyRecords() {
 
 function renderCharts() {
   const dates = inbodyRecords.map(r => r.record_date);
-  const weights = inbodyRecords.map(r => r.weight);
-  const skeletalMuscles = inbodyRecords.map(r => r.skeletal_muscle);
-  const bodyFatMasses = inbodyRecords.map(r => r.body_fat_mass);
-  const bodyFatPercents = inbodyRecords.map(r => r.body_fat_percent);
-  const ecwRatios = inbodyRecords.map(r => r.ecw_ratio);
-  const scores = inbodyRecords.map(r => r.inbody_score);
-  const phaseAngles = inbodyRecords.map(r => r.phase_angle || 0);
-
+  
   Chart.defaults.color = '#64748b';
   Chart.defaults.font.family = "'Inter', 'Pretendard', sans-serif";
 
-  // 1. 체성분 구성 (막대 그래프) - 최근 1건 기준
+  // --- Helper for creating simple line charts ---
+  const createLineChart = (id, label, data, color, fill = true) => {
+    const ctx = document.getElementById(id).getContext('2d');
+    if (charts[id]) charts[id].destroy();
+    
+    charts[id] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: label,
+          data: data,
+          borderColor: color,
+          backgroundColor: fill ? `${color}20` : color, // 20 is ~12% opacity in hex
+          tension: 0.3,
+          fill: fill,
+          pointRadius: 4,
+          pointBackgroundColor: color,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            titleColor: '#1e293b',
+            bodyColor: '#1e293b',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            padding: 10,
+            displayColors: false
+          }
+        },
+        scales: {
+          y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  };
+
+  // 0. 체성분 구성 요약 (막대 그래프) - 최근 1건 기준
   const latestRecord = inbodyRecords[inbodyRecords.length - 1];
   const ctxComp = document.getElementById('chartComposition').getContext('2d');
   if (charts.comp) charts.comp.destroy();
@@ -86,123 +124,37 @@ function renderCharts() {
         label: '측정값',
         data: [latestRecord.weight, latestRecord.skeletal_muscle, latestRecord.body_fat_mass],
         backgroundColor: [
-          'rgba(59, 130, 246, 0.7)', // Blue for weight
-          'rgba(16, 185, 129, 0.7)', // Green for muscle
-          'rgba(245, 158, 11, 0.7)'  // Orange for fat
+          'rgba(59, 130, 246, 0.7)', 
+          'rgba(16, 185, 129, 0.7)', 
+          'rgba(245, 158, 11, 0.7)'
         ],
         borderRadius: 6,
-        barThickness: 40
+        barThickness: 30
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      indexAxis: 'y', // Horizontal bar chart to show C, I, D shape better
+      indexAxis: 'y',
       plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true } }
-    }
-  });
-
-  // 2. 주요 지표 변화 추이 (꺾은선)
-  const ctxTrends = document.getElementById('chartTrends').getContext('2d');
-  if (charts.trends) charts.trends.destroy();
-  charts.trends = new Chart(ctxTrends, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [
-        { label: '체중(kg)', data: weights, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3 },
-        { label: '골격근량(kg)', data: skeletalMuscles, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3 },
-        { label: '체지방량(kg)', data: bodyFatMasses, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.3 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
-      },
-      scales: { y: { beginAtZero: false } }
-    }
-  });
-
-  // 3. 체지방률 및 세포외수분비 추이
-  const ctxRatio = document.getElementById('chartRatio').getContext('2d');
-  if (charts.ratio) charts.ratio.destroy();
-  charts.ratio = new Chart(ctxRatio, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [
-        { label: '체지방률(%)', data: bodyFatPercents, borderColor: '#ef4444', backgroundColor: '#ef4444', tension: 0.3, yAxisID: 'y' },
-        { label: '세포외수분비', data: ecwRatios, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', tension: 0.3, yAxisID: 'y1' }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
-      },
-      scales: {
-        y: { type: 'linear', display: true, position: 'left' },
-        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+      scales: { 
+        x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+        y: { grid: { display: false } }
       }
     }
   });
 
-  // 4. 인바디 점수 추이
-  const ctxScore = document.getElementById('chartScore').getContext('2d');
-  if (charts.score) charts.score.destroy();
-  charts.score = new Chart(ctxScore, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [{
-        label: '인바디 점수',
-        data: scores,
-        borderColor: '#ddca4b',
-        backgroundColor: 'rgba(221, 202, 75, 0.2)',
-        tension: 0.3,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: '#ddca4b'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { min: Math.max(0, Math.min(...scores) - 10), max: Math.min(100, Math.max(...scores) + 10) } }
-    }
-  });
-
-  // 5. 위상각 추이
-  const ctxPhase = document.getElementById('chartPhaseAngle').getContext('2d');
-  if (charts.phase) charts.phase.destroy();
-  charts.phase = new Chart(ctxPhase, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [{
-        label: '위상각',
-        data: phaseAngles,
-        borderColor: '#8b5cf6',
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
-        tension: 0.3,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: '#8b5cf6'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: false } }
-    }
-  });
+  // 1 ~ 8. 개별 추이 그래프 생성
+  createLineChart('chartWeight',     '체중(kg)',      inbodyRecords.map(r => r.weight),            '#3b82f6');
+  createLineChart('chartMuscle',     '골격근량(kg)',    inbodyRecords.map(r => r.skeletal_muscle),   '#10b981');
+  createLineChart('chartFatMass',    '체지방량(kg)',    inbodyRecords.map(r => r.body_fat_mass),     '#f59e0b');
+  createLineChart('chartBMI',        'BMI',           inbodyRecords.map(r => r.bmi),               '#6366f1');
+  createLineChart('chartFatPercent', '체지방률(%)',     inbodyRecords.map(r => r.body_fat_percent),  '#ef4444');
+  createLineChart('chartECW',        '세포외수분비',     inbodyRecords.map(r => r.ecw_ratio),         '#06b6d4');
+  createLineChart('chartPhaseAngle', '위상각',         inbodyRecords.map(r => r.phase_angle || 0),  '#8b5cf6');
+  
+  // 인바디 점수는 특별히 노란색 계열로
+  createLineChart('chartScore',      '인바디 점수',     inbodyRecords.map(r => r.inbody_score),      '#ddca4b');
 }
 
 function renderRecordList() {

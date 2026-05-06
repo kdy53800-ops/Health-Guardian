@@ -226,34 +226,58 @@
 
       <div id="inbodyContent">
         <div class="inbody-grid">
-          <!-- 체성분 구성 차트 -->
+          <!-- 0. 체성분 구성 (요약 막대) -->
+          <div class="chart-card" style="grid-column: 1 / -1;">
+            <h3>📊 체성분 구성 요약 (최근 측정 기준)</h3>
+            <div style="height: 180px;"><canvas id="chartComposition"></canvas></div>
+          </div>
+
+          <!-- 1. 체중 -->
           <div class="chart-card">
-            <h3>📊 체성분 구성 (최근 측정 기준)</h3>
-            <div style="height: 250px;"><canvas id="chartComposition"></canvas></div>
+            <h3>⚖️ 체중 추이 (kg)</h3>
+            <div style="height: 200px;"><canvas id="chartWeight"></canvas></div>
           </div>
           
-          <!-- 주요 지표 추이 차트 -->
+          <!-- 2. 골격근량 -->
           <div class="chart-card">
-            <h3>📈 주요 지표 변화 추이</h3>
-            <div style="height: 250px;"><canvas id="chartTrends"></canvas></div>
+            <h3>💪 골격근량 추이 (kg)</h3>
+            <div style="height: 200px;"><canvas id="chartMuscle"></canvas></div>
           </div>
           
-          <!-- 체지방률 & 세포외수분비 추이 차트 -->
+          <!-- 3. 체지방량 -->
           <div class="chart-card">
-            <h3>💧 체지방률 및 세포외수분비 추이</h3>
-            <div style="height: 250px;"><canvas id="chartRatio"></canvas></div>
+            <h3>🔥 체지방량 추이 (kg)</h3>
+            <div style="height: 200px;"><canvas id="chartFatMass"></canvas></div>
+          </div>
+
+          <!-- 4. BMI -->
+          <div class="chart-card">
+            <h3>📏 BMI 추이</h3>
+            <div style="height: 200px;"><canvas id="chartBMI"></canvas></div>
           </div>
           
-          <!-- 인바디 점수 추이 -->
+          <!-- 5. 체지방률 -->
           <div class="chart-card">
-            <h3>⭐ 인바디 점수 추이</h3>
-            <div style="height: 250px;"><canvas id="chartScore"></canvas></div>
+            <h3>📉 체지방률 추이 (%)</h3>
+            <div style="height: 200px;"><canvas id="chartFatPercent"></canvas></div>
+          </div>
+
+          <!-- 6. 세포외수분비 -->
+          <div class="chart-card">
+            <h3>💧 세포외수분비 추이</h3>
+            <div style="height: 200px;"><canvas id="chartECW"></canvas></div>
           </div>
           
-          <!-- 위상각 추이 -->
+          <!-- 7. 위상각 -->
           <div class="chart-card">
             <h3>📊 위상각 변화 추이</h3>
-            <div style="height: 250px;"><canvas id="chartPhaseAngle"></canvas></div>
+            <div style="height: 200px;"><canvas id="chartPhaseAngle"></canvas></div>
+          </div>
+
+          <!-- 8. 인바디 점수 -->
+          <div class="chart-card">
+            <h3>⭐ 인바디 점수 추이</h3>
+            <div style="height: 200px;"><canvas id="chartScore"></canvas></div>
           </div>
         </div>
 
