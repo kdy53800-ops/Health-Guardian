@@ -501,7 +501,12 @@ function renderRanking() {
       } else {
         const p = new Date(prevD + 'T00:00:00');
         p.setDate(p.getDate() + 1);
-        const nextDayStr = p.toISOString().split('T')[0];
+        
+        // toISOString()은 UTC 기준이라 날짜가 어긋날 수 있으므로 로컬 날짜 문자열 생성
+        const y = p.getFullYear();
+        const m = String(p.getMonth() + 1).padStart(2, '0');
+        const dNum = String(p.getDate()).padStart(2, '0');
+        const nextDayStr = `${y}-${m}-${dNum}`;
         
         if (d === nextDayStr) {
           currS++;
