@@ -19,25 +19,25 @@ const EX_CAT_CFG = {
     icon: '🏊',
     cls: 'cat-cardio',
     badge: 'cat-badge-cardio',
-    presets: ['자전거', '수영', '줄넘기', '에어로빅', '등산'],
+    presets: ['자전거', '수영', '줄넘기', '에어로빅', '등산', '기타'],
   },
   '근력': {
     icon: '🏋️',
     cls: 'cat-strength',
     badge: 'cat-badge-strength',
-    presets: ['덤벨 운동', '바벨 운동', '케틀벨', '맨몸 운동', '코어 운동'],
+    presets: ['덤벨 운동', '바벨 운동', '케틀벨', '맨몸 운동', '코어 운동', '기타'],
   },
   '유연성': {
     icon: '🧘',
     cls: 'cat-flex',
     badge: 'cat-badge-flex',
-    presets: ['요가', '필라테스', '스트레칭', '밸런스 트레이닝'],
+    presets: ['요가', '필라테스', '스트레칭', '밸런스 트레이닝', '기타'],
   },
   '스포츠': {
     icon: '⚽',
     cls: 'cat-sports',
     badge: 'cat-badge-sports',
-    presets: ['축구', '농구', '테니스', '배드민턴', '탁구', '볼링', '수영', '골프', '클라이밍', '베이스볼'],
+    presets: ['축구', '농구', '테니스', '배드민턴', '탁구', '볼링', '수영', '골프', '클라이밍', '베이스볼', '기타'],
   },
 };
 
