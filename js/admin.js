@@ -331,14 +331,18 @@ function renderUserGrowthChart() {
   const labels = [];
   const cumulativeCounts = [];
   
+  // 가입 날짜(createdAt)가 아닌 첫 기록 날짜를 기준으로 사용자별 '활동 시작일' 산출
+  const userFirstRecordDates = allUsers.map(u => {
+    const userRecords = fetchedRecords.filter(r => r.userId === u.id);
+    if (!userRecords.length) return null;
+    const sortedDates = userRecords.map(r => r.date).sort();
+    return { userId: u.id, firstDate: sortedDates[0] };
+  }).filter(item => item !== null);
+
   const processGrowth = (dateList) => {
     dateList.forEach(dateStr => {
-      // 해당 날짜 자정(23:59:59) 기준으로 가입된 사용자 수 계산
-      const endOfDay = new Date(dateStr + 'T23:59:59').getTime();
-      const count = allUsers.filter(u => {
-        const joinTime = new Date(u.createdAt).getTime();
-        return joinTime <= endOfDay;
-      }).length;
+      // 해당 날짜(dateStr)까지 첫 기록을 남긴 누적 사용자 수 계산
+      const count = userFirstRecordDates.filter(item => item.firstDate <= dateStr).length;
       
       labels.push(dateStr.slice(5).replace('-', '/'));
       cumulativeCounts.push(count);
@@ -936,7 +940,7 @@ function applyFilter() {
     if (filterAge !== 'all') {
       const birthYear = Number(u.birthyear);
       if (!birthYear) return false;
-      const age = currentYear - birthYear + 1; // 한국식 나이 또는 단순 차이
+      const age = currentYear - birthYear + 1; 
       
       if (filterAge === '20') {
         if (age < 20 || age >= 30) return false;
@@ -949,18 +953,15 @@ function applyFilter() {
       }
     }
     
-    // 4. 가입일 필터 (월별 필터 사용 시 해당 월의 말일 기점으로 가입한 사용자만 포함)
-    if (filterMonth && u.createdAt) {
-      const joinDate = new Date(u.createdAt);
-      const parts = filterMonth.split('-');
-      if (parts.length === 2) {
-        const yyyy = Number(parts[0]);
-        const mm = Number(parts[1]);
-        const cutoffDate = new Date(yyyy, mm, 1); // 다음 달 1일 자정
-        if (joinDate >= cutoffDate) {
-          return false;
-        }
-      }
+    // 4. 기록 기반 필터 (가입일 대신 기록 유무 기준)
+    // 월별 필터가 있을 경우, 해당 월에 기록이 있는 사용자만 포함
+    if (filterMonth) {
+      const hasRecordInMonth = fetchedRecords.some(r => r.userId === u.id && String(r.date).startsWith(filterMonth));
+      if (!hasRecordInMonth) return false;
+    } else {
+      // 월별 필터가 없을 경우, 전체 기간 중 한 번이라도 기록이 있는 사용자만 포함 (사용자 요청 사항)
+      const hasAnyRecord = fetchedRecords.some(r => r.userId === u.id);
+      if (!hasAnyRecord) return false;
     }
     
     return true;
