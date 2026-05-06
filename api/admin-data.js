@@ -60,19 +60,33 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const [profiles, records] = await Promise.all([
-      fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
-        headers: { Accept: 'application/json' },
-      }),
-      fetchSupabase('/rest/v1/daily_records?select=*&order=record_date.desc&limit=10000', {
-        headers: { Accept: 'application/json' },
-      }),
-    ]);
+    // 1. 프로필은 그대로 가져옴 (사용자 수가 1000명을 넘는 경우는 드물지만, 안전을 위해 기본 유지)
+    const profiles = await fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
+      headers: { Accept: 'application/json' },
+    });
+
+    // 2. 일별 기록은 1000건 제한을 피하기 위해 페이지네이션 수행 (최대 5000건까지)
+    let allRecords = [];
+    for (let i = 0; i < 5; i++) {
+      const from = i * 1000;
+      const to = from + 999;
+      const records = await fetchSupabase(`/rest/v1/daily_records?select=*&order=record_date.desc&limit=1000&offset=${from}`, {
+        headers: { 
+          Accept: 'application/json',
+          'Range-Unit': 'items',
+          'Range': `${from}-${to}` // Range 헤더도 명시적으로 사용
+        },
+      });
+
+      if (!Array.isArray(records) || records.length === 0) break;
+      allRecords = allRecords.concat(records);
+      if (records.length < 1000) break;
+    }
 
     sendJson(res, 200, {
       ok: true,
       users: Array.isArray(profiles) ? profiles.map(mapProfile) : [],
-      records: Array.isArray(records) ? records.map(mapRecord) : [],
+      records: Array.isArray(allRecords) ? allRecords.map(mapRecord) : [],
     });
   } catch (error) {
     sendJson(res, 500, {
