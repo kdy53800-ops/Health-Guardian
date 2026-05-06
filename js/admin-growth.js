@@ -92,9 +92,11 @@ function loadGrowthData() {
     const userRecords = allRecords.filter(r => r.userId === user.id && r.date >= startStr && r.date <= endStr);
     if (userRecords.length === 0) return;
     
-    // 2. 하루하루 성장 점수 계산 (Day-by-Day)
+    // 2. 새로운 성장 & 습관 점수 시스템 (Consistency + Capped Growth)
     let growthScore = 0;
     let previousExercise = null;
+    let streak = 0;
+    
     let totalExerciseSum = 0;
     
     // startDate부터 endDate까지 하루씩 순회
@@ -108,7 +110,7 @@ function loadGrowthData() {
       
       let todayExercise = 0;
       if (record) {
-        const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+        const customSum = (record.customExercises || []).reduce((s, ex) => s + (Number(ex.duration)||0), 0);
         todayExercise = (Number(record.walking)||0) + 
                         (Number(record.running)||0) + 
                         customSum;
@@ -116,21 +118,30 @@ function loadGrowthData() {
       
       totalExerciseSum += todayExercise;
       
-      if (previousExercise !== null) {
-        if (todayExercise === 0) {
-          // 결석한 날 (하루당 -10점 패널티)
-          growthScore -= 10;
-        } else {
-          // 어제와 비교하여 변화량(성장률) 계산
+      if (todayExercise > 0) {
+        // [1] 출석 점수: 기록만 해도 +20점
+        growthScore += 20;
+        streak++;
+        
+        // [2] 연속 기록 보너스
+        if (streak >= 7) growthScore += 10; // 7일 이상 연속 시 매일 추가 +10점
+        else if (streak >= 3) growthScore += 5; // 3일 이상 연속 시 매일 추가 +5점
+
+        // [3] 성장 점수 (Capped)
+        if (previousExercise !== null && previousExercise > 0) {
           const diff = todayExercise - previousExercise;
           if (diff > 0) {
-            // 성장한 경우 늘어난 수치만큼 가산점
-            growthScore += diff;
+            // 성장 시 가산점 (1분당 1점, 최대 30점 제한으로 폭주 방지)
+            growthScore += Math.min(30, diff);
           } else if (diff < 0) {
-            // 하락한 경우 줄어든 수치만큼 감점 (단, 출석은 했으므로 감점폭을 약간 줄임)
-            growthScore += diff; // diff 자체가 음수
+            // 하락 시 감점 (하락분 반영하되 출석 점수가 있으므로 완화됨)
+            growthScore += Math.max(-20, diff); 
           }
         }
+      } else {
+        // [4] 미출석 패널티
+        growthScore -= 20;
+        streak = 0; // 스트릭 초기화
       }
       
       previousExercise = todayExercise;
