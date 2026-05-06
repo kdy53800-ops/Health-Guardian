@@ -65,16 +65,16 @@ module.exports = async function handler(req, res) {
       headers: { Accept: 'application/json' },
     });
 
-    // 2. 일별 기록은 1000건 제한을 피하기 위해 페이지네이션 수행 (최대 5000건까지)
+    // 2. 일별 기록은 1000건 제한을 피하기 위해 페이지네이션 수행 (최대 30,000건까지)
     let allRecords = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 30; i++) {
       const from = i * 1000;
       const to = from + 999;
       const records = await fetchSupabase(`/rest/v1/daily_records?select=*&order=record_date.desc&limit=1000&offset=${from}`, {
         headers: { 
           Accept: 'application/json',
           'Range-Unit': 'items',
-          'Range': `${from}-${to}` // Range 헤더도 명시적으로 사용
+          'Range': `${from}-${to}` 
         },
       });
 
