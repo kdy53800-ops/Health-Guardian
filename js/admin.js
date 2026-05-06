@@ -485,39 +485,34 @@ function setRankMode(mode) {
 function renderRanking() {
   const cfg = RANK_CONFIGS.find(config => config.key === rankMode);
   
-  // 스트릭 계산 헬퍼: 필터된 기간 내의 최대 스트릭 또는 현재 스트릭
+  // 스트릭 계산 헬퍼: 해당 기간 내에서의 '최대 연속 기록(Max Streak)' 계산
   const getRankStreak = (userRecords) => {
     if (!userRecords.length) return 0;
     
-    if (filterMonth) {
-      // 월별 필터 시: 해당 월 내에서의 '최대 연속 기록' 계산
-      const dateSet = new Set(userRecords.map(r => r.date));
-      const sortedDates = Array.from(dateSet).sort();
-      let maxS = 0;
-      let currS = 0;
-      let prevD = null;
-      
-      sortedDates.forEach(d => {
-        if (!prevD) {
-          currS = 1;
+    const dateSet = new Set(userRecords.map(r => r.date));
+    const sortedDates = Array.from(dateSet).sort();
+    let maxS = 0;
+    let currS = 0;
+    let prevD = null;
+    
+    sortedDates.forEach(d => {
+      if (!prevD) {
+        currS = 1;
+      } else {
+        const p = new Date(prevD + 'T00:00:00');
+        p.setDate(p.getDate() + 1);
+        const nextDayStr = p.toISOString().split('T')[0];
+        
+        if (d === nextDayStr) {
+          currS++;
         } else {
-          const p = new Date(prevD + 'T00:00:00');
-          p.setDate(p.getDate() + 1);
-          const nextDayStr = p.toISOString().split('T')[0];
-          if (d === nextDayStr) {
-            currS++;
-          } else {
-            currS = 1;
-          }
+          currS = 1;
         }
-        maxS = Math.max(maxS, currS);
-        prevD = d;
-      });
-      return maxS;
-    } else {
-      // 전체 보기 시: 현재 시점의 스트릭 (js/app.js의 calcStreak 활용)
-      return typeof calcStreak === 'function' ? calcStreak(userRecords) : 0;
-    }
+      }
+      maxS = Math.max(maxS, currS);
+      prevD = d;
+    });
+    return maxS;
   };
 
   const ranked = allUsers.map(user => {
