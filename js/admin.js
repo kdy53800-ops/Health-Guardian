@@ -331,18 +331,15 @@ function renderUserGrowthChart() {
   const labels = [];
   const cumulativeCounts = [];
   
-  // 가입 날짜(createdAt)가 아닌 첫 기록 날짜를 기준으로 사용자별 '활동 시작일' 산출
-  const userFirstRecordDates = allUsers.map(u => {
-    const userRecords = fetchedRecords.filter(r => r.userId === u.id);
-    if (!userRecords.length) return null;
-    const sortedDates = userRecords.map(r => r.date).sort();
-    return { userId: u.id, firstDate: sortedDates[0] };
-  }).filter(item => item !== null);
-
+  // 사용자 가입 날짜(createdAt)를 기준으로 전체 가입자 추이 계산
   const processGrowth = (dateList) => {
     dateList.forEach(dateStr => {
-      // 해당 날짜(dateStr)까지 첫 기록을 남긴 누적 사용자 수 계산
-      const count = userFirstRecordDates.filter(item => item.firstDate <= dateStr).length;
+      // 해당 날짜(dateStr) 23:59:59까지 가입한 모든 사용자(기록 유무 상관없음)
+      const endOfDay = new Date(dateStr + 'T23:59:59').getTime();
+      const count = fetchedUsers.filter(u => {
+        if (!u.createdAt) return false;
+        return new Date(u.createdAt).getTime() <= endOfDay;
+      }).length;
       
       labels.push(dateStr.slice(5).replace('-', '/'));
       cumulativeCounts.push(count);
