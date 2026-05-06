@@ -200,19 +200,34 @@ function renderPlatformStats() {
   weekAgo.setDate(now.getDate() - 7);
   const weekStr = weekAgo.toISOString().split('T')[0];
 
+  // 필터 상태에 따른 라벨 변경
+  const isFiltered = (filterGender !== 'all' || filterAge !== 'all' || filterSpecialOnly || filterMonth);
+  
   const totalUsers = allUsers.length;
   const totalRecords = allRecords.length;
-  const activeUsers = new Set(allRecords.filter(record => record.date >= weekStr).map(record => record.userId)).size;
+
+  // 활성 사용자 정의: 
+  // 1. 월별 필터가 있으면 해당 월에 기록이 있는 사용자 수
+  // 2. 월별 필터가 없으면 최근 7일 내 기록이 있는 사용자 수
+  let activeUsers = 0;
+  let activeLabel = '최근 7일 활성';
+  if (filterMonth) {
+    activeUsers = new Set(allRecords.map(r => r.userId)).size;
+    activeLabel = '이 달의 참여자';
+  } else {
+    activeUsers = new Set(allRecords.filter(r => r.date >= weekStr).map(r => r.userId)).size;
+  }
+
   const totalExMins = allRecords.reduce((sum, record) => {
     const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
     return sum + (record.walking || 0) + (record.running || 0) + customSum;
   }, 0);
 
   const stats = [
-    { icon: '👥', label: '전체 사용자', val: totalUsers, sub: '가입된 계정', cls: 'blue' },
-    { icon: '📋', label: '전체 기록수', val: totalRecords, sub: '누적 기록', cls: 'green' },
-    { icon: '✅', label: '이번 주 활성', val: activeUsers, sub: '7일 내 기록', cls: 'gold' },
-    { icon: '⏱️', label: '총 운동 시간', val: totalExMins, sub: '분 (전체 합계)', cls: 'purple' },
+    { icon: '👥', label: isFiltered ? '대상 사용자' : '전체 사용자', val: totalUsers, sub: isFiltered ? '필터링 결과' : '가입된 계정', cls: 'blue' },
+    { icon: '📋', label: isFiltered ? '대상 기록수' : '전체 기록수', val: totalRecords, sub: isFiltered ? '해당 기간/조건' : '누적 기록', cls: 'green' },
+    { icon: '✅', label: activeLabel, val: activeUsers, sub: '기록 발생 인원', cls: 'gold' },
+    { icon: '⏱️', label: '대상 운동 시간', val: totalExMins, sub: '분 (조건 내 합계)', cls: 'purple' },
   ];
 
   const el = document.getElementById('platformStats');
@@ -252,12 +267,26 @@ function formatPhone(phone) {
 function renderDailyChart() {
   const labels = [];
   const counts = [];
-  for (let i = 29; i >= 0; i -= 1) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    labels.push(dateStr.slice(5));
-    counts.push(allRecords.filter(record => record.date === dateStr).length);
+  
+  if (filterMonth) {
+    // 특정 월 필터 시: 해당 월의 1일부터 마지막 날까지 표시
+    const [year, month] = filterMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    
+    for (let d = 1; d <= lastDay; d++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      labels.push(`${month}/${d}`);
+      counts.push(allRecords.filter(record => record.date === dateStr).length);
+    }
+  } else {
+    // 기본: 최근 30일
+    for (let i = 29; i >= 0; i -= 1) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      labels.push(dateStr.slice(5));
+      counts.push(allRecords.filter(record => record.date === dateStr).length);
+    }
   }
 
   const ctx = document.getElementById('chartDailyRecords');
@@ -275,16 +304,23 @@ function renderDailyChart() {
         backgroundColor: 'rgba(0,70,128,0.08)',
         fill: true,
         tension: 0.4,
-        pointRadius: 3,
+        pointRadius: labels.length > 31 ? 0 : 3, // 데이터 많으면 포인트 생략
         pointBackgroundColor: '#004680',
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { 
+        legend: { display: false },
+        title: {
+          display: true,
+          text: filterMonth ? `${filterMonth} 일별 기록 추이` : '최근 30일 기록 추이',
+          font: { size: 12 }
+        }
+      },
       scales: {
-        x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } },
+        x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } },
         y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } },
       },
     },
