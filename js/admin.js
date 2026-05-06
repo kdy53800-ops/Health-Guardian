@@ -196,37 +196,34 @@ function renderAll() {
 
 function renderPlatformStats() {
   const now = new Date();
-  const weekAgo = new Date(now);
-  weekAgo.setDate(now.getDate() - 7);
-  const weekStr = weekAgo.toISOString().split('T')[0];
+  const currentMonthStr = now.toISOString().slice(0, 7); // YYYY-MM
+  const targetMonth = filterMonth || currentMonthStr;
 
   // 필터 상태에 따른 라벨 변경
   const isFiltered = (filterGender !== 'all' || filterAge !== 'all' || filterSpecialOnly || filterMonth);
   
-  const totalUsers = allUsers.length;
+  // '전체 사용자'는 가입된 모든 인원
+  const totalUsers = fetchedUsers.length;
   const totalRecords = allRecords.length;
 
-  // 활성 사용자 정의: 
-  // 1. 월별 필터가 있으면 해당 월에 기록이 있는 사용자 수
-  // 2. 월별 필터가 없으면 최근 7일 내 기록이 있는 사용자 수
-  let activeUsers = 0;
-  let activeLabel = '최근 7일 활성';
-  if (filterMonth) {
-    activeUsers = new Set(allRecords.map(r => r.userId)).size;
-    activeLabel = '이 달의 참여자';
-  } else {
-    activeUsers = new Set(allRecords.filter(r => r.date >= weekStr).map(r => r.userId)).size;
-  }
+  // 활성 사용자 정의: 이 달의 기록 발생 인원 총계
+  // filterMonth가 있으면 해당 월, 없으면 현재 실제 월 기준
+  const monthlyActiveUsers = new Set(
+    fetchedRecords
+      .filter(r => String(r.date).startsWith(targetMonth))
+      .map(r => r.userId)
+  ).size;
+  const activeLabel = filterMonth ? `${targetMonth.slice(5)}월 참여 인원` : '이번 달 참여 인원';
 
   const totalExMins = allRecords.reduce((sum, record) => {
-    const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
-    return sum + (record.walking || 0) + (record.running || 0) + customSum;
+    const customSum = (record.customExercises || []).reduce((s, ex) => s + (Number(ex.duration) || 0), 0);
+    return sum + (Number(record.walking) || 0) + (Number(record.running) || 0) + customSum;
   }, 0);
 
   const stats = [
-    { icon: '👥', label: isFiltered ? '대상 사용자' : '전체 사용자', val: totalUsers, sub: isFiltered ? '필터링 결과' : '가입된 계정', cls: 'blue' },
+    { icon: '👥', label: '전체 사용자', val: totalUsers, sub: '가입된 총 계정', cls: 'blue' },
     { icon: '📋', label: isFiltered ? '대상 기록수' : '전체 기록수', val: totalRecords, sub: isFiltered ? '해당 기간/조건' : '누적 기록', cls: 'green' },
-    { icon: '✅', label: activeLabel, val: activeUsers, sub: '기록 발생 인원', cls: 'gold' },
+    { icon: '✅', label: activeLabel, val: monthlyActiveUsers, sub: '기록 발생 인원', cls: 'gold' },
     { icon: '⏱️', label: '대상 운동 시간', val: totalExMins, sub: '분 (조건 내 합계)', cls: 'purple' },
   ];
 
