@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const { userId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, imageBase64, fileName } = body;
+      const { userId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, phaseAngle, imageBase64, fileName } = body;
 
       if (!userId || !date) {
         sendJson(res, 400, { ok: false, message: 'Missing required fields' });
@@ -88,6 +88,7 @@ module.exports = async function handler(req, res) {
         body_fat_percent: parseFloat(bodyFatPercent),
         ecw_ratio: parseFloat(ecwRatio),
         inbody_score: parseInt(inbodyScore),
+        phase_angle: parseFloat(phaseAngle || 0),
       };
       if (imageUrl) payload.image_url = imageUrl;
 

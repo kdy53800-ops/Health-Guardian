@@ -142,6 +142,7 @@ function renderRecords(records) {
       <td data-label="BMI">${r.bmi !== undefined ? r.bmi : '-'}</td>
       <td data-label="체지방률">${r.body_fat_percent} %</td>
       <td data-label="세포외수분비">${r.ecw_ratio !== undefined ? r.ecw_ratio : '-'}</td>
+      <td data-label="위상각">${r.phase_angle !== undefined ? r.phase_angle : '-'}</td>
       <td data-label="점수">${r.inbody_score} 점</td>
       <td data-label="이미지">
         ${r.image_url ? `<a href="${r.image_url}" target="_blank" style="color: var(--primary); text-decoration: underline; font-size: 0.8rem;">보기</a>` : '<span style="color:var(--text-muted);font-size:0.8rem;">없음</span>'}
@@ -218,8 +219,9 @@ async function saveRecord() {
   const bodyFatPercent = document.getElementById('bodyFatPercent').value;
   const ecwRatio = document.getElementById('ecwRatio').value;
   const inbodyScore = document.getElementById('inbodyScore').value;
+  const phaseAngle = document.getElementById('phaseAngle').value;
   
-  if (!date || !weight || !skeletalMuscle || !bodyFatMass || !bmi || !bodyFatPercent || !ecwRatio || !inbodyScore) {
+  if (!date || !weight || !skeletalMuscle || !bodyFatMass || !bmi || !bodyFatPercent || !ecwRatio || !inbodyScore || !phaseAngle) {
     alert('모든 필드를 입력해주세요.');
     return;
   }
@@ -258,6 +260,7 @@ async function saveRecord() {
         bodyFatPercent,
         ecwRatio,
         inbodyScore,
+        phaseAngle,
         imageBase64,
         fileName
       }),
@@ -277,6 +280,7 @@ async function saveRecord() {
     document.getElementById('bodyFatPercent').value = '';
     document.getElementById('ecwRatio').value = '';
     document.getElementById('inbodyScore').value = '';
+    document.getElementById('phaseAngle').value = '';
     document.getElementById('fileInput').value = '';
     document.getElementById('imagePreview').style.display = 'none';
     selectedFile = null;
@@ -293,6 +297,7 @@ async function saveRecord() {
       document.getElementById('bodyFatPercent').value = '';
       document.getElementById('ecwRatio').value = '';
       document.getElementById('inbodyScore').value = '';
+      document.getElementById('phaseAngle').value = '';
       document.getElementById('fileInput').value = '';
       document.getElementById('imagePreview').style.display = 'none';
       selectedFile = null;

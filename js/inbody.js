@@ -45,9 +45,9 @@ async function loadInbodyRecords() {
   } catch (err) {
     if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
       inbodyRecords = [
-        { id: 'mock_1', record_date: '2023-09-01', weight: 76.5, skeletal_muscle: 34.2, body_fat_mass: 15.1, bmi: 24.1, body_fat_percent: 19.7, ecw_ratio: 0.385, inbody_score: 78, image_url: null },
-        { id: 'mock_2', record_date: '2023-10-01', weight: 75.8, skeletal_muscle: 34.6, body_fat_mass: 14.2, bmi: 23.8, body_fat_percent: 18.7, ecw_ratio: 0.382, inbody_score: 80, image_url: null },
-        { id: 'mock_3', record_date: new Date().toISOString().split('T')[0], weight: 75.2, skeletal_muscle: 35.1, body_fat_mass: 13.5, bmi: 23.4, body_fat_percent: 18.0, ecw_ratio: 0.380, inbody_score: 82, image_url: null }
+        { id: 'mock_1', record_date: '2023-09-01', weight: 76.5, skeletal_muscle: 34.2, body_fat_mass: 15.1, bmi: 24.1, body_fat_percent: 19.7, ecw_ratio: 0.385, phase_angle: 4.2, inbody_score: 78, image_url: null },
+        { id: 'mock_2', record_date: '2023-10-01', weight: 75.8, skeletal_muscle: 34.6, body_fat_mass: 14.2, bmi: 23.8, body_fat_percent: 18.7, ecw_ratio: 0.382, phase_angle: 4.5, inbody_score: 80, image_url: null },
+        { id: 'mock_3', record_date: new Date().toISOString().split('T')[0], weight: 75.2, skeletal_muscle: 35.1, body_fat_mass: 13.5, bmi: 23.4, body_fat_percent: 18.0, ecw_ratio: 0.380, phase_angle: 4.8, inbody_score: 82, image_url: null }
       ];
       
       document.getElementById('noDataMessage').style.display = 'none';
@@ -69,6 +69,7 @@ function renderCharts() {
   const bodyFatPercents = inbodyRecords.map(r => r.body_fat_percent);
   const ecwRatios = inbodyRecords.map(r => r.ecw_ratio);
   const scores = inbodyRecords.map(r => r.inbody_score);
+  const phaseAngles = inbodyRecords.map(r => r.phase_angle || 0);
 
   Chart.defaults.color = '#64748b';
   Chart.defaults.font.family = "'Inter', 'Pretendard', sans-serif";
@@ -176,6 +177,32 @@ function renderCharts() {
       scales: { y: { min: Math.max(0, Math.min(...scores) - 10), max: Math.min(100, Math.max(...scores) + 10) } }
     }
   });
+
+  // 5. 위상각 추이
+  const ctxPhase = document.getElementById('chartPhaseAngle').getContext('2d');
+  if (charts.phase) charts.phase.destroy();
+  charts.phase = new Chart(ctxPhase, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: '위상각',
+        data: phaseAngles,
+        borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+        pointBackgroundColor: '#8b5cf6'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: false } }
+    }
+  });
 }
 
 function renderRecordList() {
@@ -215,6 +242,10 @@ function renderRecordList() {
         <div class="detail-stat">
           <span class="detail-label">세포외수분비</span>
           <span class="detail-val">${r.ecw_ratio}</span>
+        </div>
+        <div class="detail-stat">
+          <span class="detail-label">위상각</span>
+          <span class="detail-val">${r.phase_angle || '-'}</span>
         </div>
         <div class="detail-stat">
           <span class="detail-label">인바디 점수</span>

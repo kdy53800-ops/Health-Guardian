@@ -249,6 +249,12 @@
             <h3>⭐ 인바디 점수 추이</h3>
             <div style="height: 250px;"><canvas id="chartScore"></canvas></div>
           </div>
+          
+          <!-- 위상각 추이 -->
+          <div class="chart-card">
+            <h3>📊 위상각 변화 추이</h3>
+            <div style="height: 250px;"><canvas id="chartPhaseAngle"></canvas></div>
+          </div>
         </div>
 
         <div class="record-list-card">
@@ -261,6 +267,7 @@
                   <th>체중</th>
                   <th>골격근량</th>
                   <th>체지방률</th>
+                  <th>위상각</th>
                   <th>인바디점수</th>
                   <th>결과지</th>
                 </tr>
@@ -300,6 +307,7 @@
           <td>${r.weight} kg</td>
           <td>${r.skeletal_muscle} kg</td>
           <td>${r.body_fat_percent} %</td>
+          <td>${r.phase_angle !== undefined ? r.phase_angle : '-'}</td>
           <td>${r.inbody_score} 점</td>
           <td>
             ${r.image_url ? `<button class="btn" style="padding:4px 8px; font-size:0.8rem;" onclick="viewImage('${r.image_url}')">보기</button>` : '-'}
