@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
         const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
         const uploadPath = `inbody_images/${userId}/${date}_${Math.random().toString(36).substring(2, 7)}_${safeFileName}`;
         
-        await fetchSupabase(`/storage/v1/object/${encodeURIComponent(uploadPath)}`, {
+        await fetchSupabase(`/storage/v1/object/${uploadPath}`, {
           method: 'POST',
           headers: { 'Content-Type': 'image/png' },
           body: buffer
