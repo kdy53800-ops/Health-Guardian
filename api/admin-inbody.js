@@ -66,8 +66,11 @@ module.exports = async function handler(req, res) {
       let imageUrl = null;
       if (imageBase64 && fileName) {
         const buffer = Buffer.from(imageBase64.split(',')[1], 'base64');
-        const uploadPath = `inbody_images/${userId}/${date}_${Math.random().toString(36).substring(2, 7)}_${fileName}`;
-        await fetchSupabase(`/storage/v1/object/${uploadPath}`, {
+        // Sanitize fileName: remove special characters that cause 'Invalid key' in Supabase Storage
+        const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const uploadPath = `inbody_images/${userId}/${date}_${Math.random().toString(36).substring(2, 7)}_${safeFileName}`;
+        
+        await fetchSupabase(`/storage/v1/object/${encodeURIComponent(uploadPath)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'image/png' },
           body: buffer
