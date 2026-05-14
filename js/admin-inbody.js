@@ -65,7 +65,14 @@ async function loadSpecialUsers() {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     });
-    const payload = await response.json();
+    let payload;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      payload = await response.json();
+    } else {
+      const text = await response.text();
+      throw new Error(text.includes("Request Entity Too Large") ? "파일 용량이 너무 큽니다." : "서버 응답 오류가 발생했습니다.");
+    }
     
     if (!response.ok || !payload.ok) {
       throw new Error(payload.message || '사용자 목록 로드 실패');
@@ -107,7 +114,15 @@ async function loadUserRecords() {
       headers: { 'Accept': 'application/json' },
       credentials: 'include'
     });
-    const result = await res.json();
+    let result;
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      result = await res.json();
+    } else {
+      const text = await res.text();
+      throw new Error(text.includes("Request Entity Too Large") ? "파일 용량이 너무 큽니다." : "데이터 로드 중 오류가 발생했습니다.");
+    }
+
     if (!res.ok || !result.ok) throw new Error(result.message || '로드 실패');
     
     renderRecords(result.records);
@@ -235,14 +250,46 @@ async function saveRecord() {
     let imageBase64 = null;
     let fileName = null;
 
-    // Convert image to Base64 if selected
+    // Convert and compress image if selected
     if (selectedFile) {
       fileName = selectedFile.name;
+      // Compress image before sending (Vercel has 4.5MB limit)
       imageBase64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
         reader.readAsDataURL(selectedFile);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_SIZE = 1200;
+
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height *= MAX_SIZE / width;
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width *= MAX_SIZE / height;
+                height = MAX_SIZE;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Output as jpeg with 0.7 quality to significantly reduce size
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(dataUrl);
+          };
+          img.onerror = (e) => reject(new Error('이미지 로드 실패'));
+        };
+        reader.onerror = (e) => reject(new Error('파일 읽기 실패'));
       });
     }
 
@@ -267,7 +314,18 @@ async function saveRecord() {
       credentials: 'include'
     });
 
-    const result = await res.json();
+    let result;
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      result = await res.json();
+    } else {
+      const text = await res.text();
+      if (res.status === 413 || text.includes("Request Entity Too Large")) {
+        throw new Error("이미지 파일 용량이 너무 커서 저장할 수 없습니다. 이미지를 줄여서 다시 시도해주세요.");
+      }
+      throw new Error("서버에서 올바르지 않은 응답이 왔습니다.");
+    }
+
     if (!res.ok || !result.ok) throw new Error(result.message || '저장 실패');
     
     alert('저장되었습니다.');
@@ -321,7 +379,13 @@ async function deleteRecord(id) {
       headers: { 'Accept': 'application/json' },
       credentials: 'include'
     });
-    const result = await res.json();
+    let result;
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      result = await res.json();
+    } else {
+      throw new Error("서버 응답 오류가 발생했습니다.");
+    }
     if (!res.ok || !result.ok) throw new Error(result.message || '삭제 실패');
     
     alert('삭제되었습니다.');
