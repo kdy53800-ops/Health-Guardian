@@ -7,19 +7,60 @@ let specialUsersData = [];
 function filterUserSelect() {
   const query = document.getElementById('userSearch') ? document.getElementById('userSearch').value.toLowerCase() : '';
   const select = document.getElementById('userSelect');
-  if (!select) return;
+  const resultsList = document.getElementById('searchResults');
+  if (!select || !resultsList) return;
   
+  // Update hidden select for compatibility
   select.innerHTML = '<option value="">사용자를 선택하세요...</option>';
+  resultsList.innerHTML = '';
   
-  specialUsersData.forEach(u => {
+  const matches = specialUsersData.filter(u => {
     const text = `${u.name || '이름없음'} (${u.username})`;
-    if (text.toLowerCase().includes(query)) {
+    return text.toLowerCase().includes(query);
+  });
+
+  if (query.length > 0 && matches.length > 0) {
+    resultsList.classList.add('show');
+    matches.forEach(u => {
+      // Hidden select update
       const option = document.createElement('option');
       option.value = u.id;
-      option.textContent = text;
+      option.textContent = `${u.name || '이름없음'} (${u.username})`;
       select.appendChild(option);
-    }
+
+      // List item creation
+      const item = document.createElement('div');
+      item.className = `search-result-item ${selectedUserId === u.id ? 'active' : ''}`;
+      item.innerHTML = `
+        <div class="user-info-brief">
+          <span class="user-name-id">${u.name || '이름없음'} <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted); ml-4">@${u.username}</span></span>
+          <span class="user-meta-brief">${u.gender || '-'} / ${u.age || '-'}세</span>
+        </div>
+        <div class="select-indicator">선택됨</div>
+      `;
+      item.onclick = () => selectUserFromResult(u.id, `${u.name || '이름없음'} (@${u.username})`);
+      resultsList.appendChild(item);
+    });
+  } else if (query.length > 0 && matches.length === 0) {
+    resultsList.classList.add('show');
+    resultsList.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">검색 결과가 없습니다.</div>';
+  } else {
+    resultsList.classList.remove('show');
+  }
+}
+
+function selectUserFromResult(userId, label) {
+  selectedUserId = userId;
+  document.getElementById('userSelect').value = userId;
+  document.getElementById('userSearch').value = label;
+  document.getElementById('searchResults').classList.remove('show');
+  
+  // Highlight active items
+  document.querySelectorAll('.search-result-item').forEach(item => {
+    item.classList.remove('active');
   });
+  
+  loadUserRecords();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -51,6 +92,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize
   initDragAndDrop();
   await loadSpecialUsers();
+
+  // Close search results when clicking outside
+  window.addEventListener('click', (e) => {
+    const searchResults = document.getElementById('searchResults');
+    const userSearch = document.getElementById('userSearch');
+    if (searchResults && !searchResults.contains(e.target) && e.target !== userSearch) {
+      searchResults.classList.remove('show');
+    }
+  });
 });
 
 async function adminLogout() {
