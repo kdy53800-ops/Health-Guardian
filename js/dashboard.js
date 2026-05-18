@@ -57,13 +57,13 @@ function renderDashboard() {
     return;
   }
 
-  const thisWeekDays = getCurrentWeekDays(); // 월~일
+  const last7Days = getLast7Days();
   const todayStr = today();
   const streak = calcStreak(userRecords);
   const todayRecord = userRecords.find(r => r.date === todayStr);
 
-  // 이번 주 합계 (Weekly Totals)
-  const weekRecords = userRecords.filter(r => thisWeekDays.includes(r.date));
+  // 최근 7일 합계 및 평균 (Recent 7 days Totals & Averages)
+  const weekRecords = userRecords.filter(r => last7Days.includes(r.date));
   const weekWalking = sum(weekRecords, 'walking');
   const weekRunning = sum(weekRecords, 'running');
   const weekCardio  = weekWalking + weekRunning;
@@ -144,34 +144,24 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- Best Records (가로 배치) -->
-    <div class="chart-card mb-20">
-      <div class="chart-card-header">
-        <div class="chart-card-title">🏆 이번 주 베스트 기록</div>
-      </div>
-      <div class="chart-card-body">
-        <div id="bestRecordsList" class="best-records-list"></div>
-      </div>
-    </div>
-
     <!-- Hero Stats -->
     <div class="hero-stats-grid mb-20">
       <div class="stat-card">
-        <div class="stat-card-label">주간 평균 걷기&러닝</div>
+        <div class="stat-card-label">최근 7일 평균 걷기&러닝</div>
         <div class="stat-card-value">${avgWeekCardio}<span class="stat-card-unit">분</span></div>
-        <div class="stat-card-sub">주간 총 ${weekCardio}분 / ${weekRecords.length}일</div>
+        <div class="stat-card-sub">최근 7일 총 ${weekCardio}분 / ${weekRecords.length}일</div>
         <div class="stat-card-icon">🏃</div>
       </div>
       <div class="stat-card gold">
-        <div class="stat-card-label">주간 평균 수분</div>
+        <div class="stat-card-label">최근 7일 평균 수분</div>
         <div class="stat-card-value">${avgWater}<span class="stat-card-unit">ml</span></div>
-        <div class="stat-card-sub">주간 ${weekRecords.length}일 평균</div>
+        <div class="stat-card-sub">최근 7일 ${weekRecords.length}일 평균</div>
         <div class="stat-card-icon">💧</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card-label">평균 컨디션</div>
+        <div class="stat-card-label">최근 7일 평균 컨디션</div>
         <div class="stat-card-value">${avgCondition}<span class="stat-card-unit">/5</span></div>
-        <div class="stat-card-sub">${getConditionEmoji(parseFloat(avgCondition))} 주간 평균</div>
+        <div class="stat-card-sub">${getConditionEmoji(parseFloat(avgCondition))} 최근 7일 평균</div>
         <div class="stat-card-icon">⭐</div>
       </div>
     </div>
@@ -295,7 +285,6 @@ function renderDashboard() {
   renderWeekGrid(getLast7Days(), todayStr);
   renderGoalRings(todayRecord);
   drawCharts('7');
-  renderBestRecords(weekRecords);
   renderRecentActivity();
   renderCustomExSummary('7');
   fetchAndRenderRanking();
@@ -696,72 +685,7 @@ function setFilter(section, period) {
   }
 }
 
-// ─── Best Records ─────────────────────────────────────
-function renderBestRecords(records = []) {
-  const el = document.getElementById('bestRecordsList');
-  if (!el) return;
-
-  const bests = [
-    { label: '걷기',   icon: '🚶', key: 'walking',  unit: '분', type: 'fixed' },
-    { label: '러닝',   icon: '🏃', key: 'running',  unit: '분', type: 'fixed' },
-    { label: '유산소', icon: '🏊', key: '유산소',   unit: '분', type: 'custom' },
-    { label: '근력',   icon: '🏋️', key: '근력',     unit: '분', type: 'custom' },
-    { label: '밸런스', icon: '🧘', key: '유연성',   unit: '분', type: 'custom' },
-    { label: '스포츠', icon: '⚽', key: '스포츠',   unit: '분', type: 'custom' },
-  ];
-
-  const cards = bests.map(({ label, icon, key, unit, type }, idx) => {
-    let best = null;
-    let bestVal = 0;
-
-    if (type === 'fixed') {
-      const sorted = [...records].filter(r => r[key] > 0).sort((a, b) => b[key] - a[key]);
-      best = sorted[0];
-      bestVal = best ? best[key] : 0;
-    } else {
-      // 커스텀 카테고리 베스트 찾기
-      let maxVal = 0;
-      let maxRec = null;
-      records.forEach(r => {
-        if (!r.customExercises) return;
-        const sum = r.customExercises
-          .filter(ex => ex.category === key)
-          .reduce((s, ex) => s + (ex.duration || 0), 0);
-        if (sum > maxVal) {
-          maxVal = sum;
-          maxRec = r;
-        }
-      });
-      best = maxRec;
-      bestVal = maxVal;
-    }
-    
-    if (!best || bestVal <= 0) {
-      return `
-        <div class="best-record-item" style="opacity:0.5;">
-          <div class="best-record-icon-bg">${icon}</div>
-          <div class="best-record-info">
-            <div class="best-record-label">${label}</div>
-            <div class="best-record-val" style="font-size:1rem; color:var(--text-muted); margin-top:4px;">기록 없음</div>
-          </div>
-        </div>
-      `;
-    }
-
-    return `
-      <div class="best-record-item">
-        <div class="best-record-icon-bg">${icon}</div>
-        <div class="best-record-info">
-          <div class="best-record-label">${label}</div>
-          <div class="best-record-val">${bestVal}<span class="best-record-unit"> ${unit}</span></div>
-          <div class="best-record-date">${formatDate(best.date, { month: 'numeric', day: 'numeric' })}</div>
-        </div>
-      </div>
-    `;
-  });
-
-  el.innerHTML = cards.join('');
-}
+// (Best Records removed)
 
 // ─── Recent Activity ──────────────────────────────────
 function renderRecentActivity() {
