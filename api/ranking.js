@@ -1,4 +1,5 @@
 const { fetchSupabase } = require('./_lib/supabase');
+const { readSessionFromRequest } = require('./_lib/session');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -36,7 +37,7 @@ module.exports = async function handler(req, res) {
       throw new Error('Failed to fetch data from database.');
     }
 
-    // 2. Process data for ranking
+    // 3. Process data for ranking
     const userMap = {};
     profiles.forEach(p => {
       userMap[p.id] = {
@@ -51,7 +52,7 @@ module.exports = async function handler(req, res) {
       const u = userMap[r.user_id];
       if (!u) return;
 
-      // Attendance (unique date per user) - records are already daily unique usually
+      // Attendance (unique date per user)
       u.attendanceCount += 1;
 
       // Exercise Time
@@ -66,22 +67,57 @@ module.exports = async function handler(req, res) {
 
     const userList = Object.values(userMap);
 
-    // Top 5 by Attendance
-    const topAttendance = [...userList]
-      .sort((a, b) => b.attendanceCount - a.attendanceCount || a.name.localeCompare(b.name))
+    // Sort for Attendance
+    const sortedAttendance = [...userList]
+      .sort((a, b) => b.attendanceCount - a.attendanceCount || a.name.localeCompare(b.name));
+
+    // Sort for Exercise
+    const sortedExercise = [...userList]
+      .sort((a, b) => b.totalExerciseMins - a.totalExerciseMins || a.name.localeCompare(b.name));
+
+    // Top 5 lists
+    const topAttendance = sortedAttendance
       .slice(0, 5)
       .map(u => ({ name: u.name, value: u.attendanceCount, id: u.id }));
 
-    // Top 5 by Exercise Time
-    const topExercise = [...userList]
-      .sort((a, b) => b.totalExerciseMins - a.totalExerciseMins || a.name.localeCompare(b.name))
+    const topExercise = sortedExercise
       .slice(0, 5)
       .map(u => ({ name: u.name, value: u.totalExerciseMins, id: u.id }));
+
+    // Get logged-in user ranking
+    const session = readSessionFromRequest(req);
+    const userId = session ? session.uid : null;
+    let myAttendance = null;
+    let myExercise = null;
+
+    if (userId) {
+      const attIdx = sortedAttendance.findIndex(u => u.id === userId);
+      if (attIdx >= 0) {
+        myAttendance = {
+          rank: attIdx + 1,
+          value: sortedAttendance[attIdx].attendanceCount
+        };
+      } else {
+        myAttendance = { rank: '-', value: 0 };
+      }
+
+      const exeIdx = sortedExercise.findIndex(u => u.id === userId);
+      if (exeIdx >= 0) {
+        myExercise = {
+          rank: exeIdx + 1,
+          value: sortedExercise[exeIdx].totalExerciseMins
+        };
+      } else {
+        myExercise = { rank: '-', value: 0 };
+      }
+    }
 
     sendJson(res, 200, {
       ok: true,
       topAttendance,
-      topExercise
+      topExercise,
+      myAttendance,
+      myExercise
     });
   } catch (error) {
     console.error('[RankingAPI]', error);
@@ -91,3 +127,4 @@ module.exports = async function handler(req, res) {
     });
   }
 };
+

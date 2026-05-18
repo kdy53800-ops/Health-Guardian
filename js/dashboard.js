@@ -916,14 +916,36 @@ async function fetchAndRenderRanking() {
   const elExe = document.getElementById('rankingExercise');
   if (!elAtt || !elExe) return;
 
+  // 당월 본인 로컬 기록 계산 (서버 랭킹에 본인이 없거나 로컬 테스트 계정인 경우를 대비한 폴백)
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextMonthYear = month === 12 ? year + 1 : year;
+  const endOfMonth = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+  const thisMonthRecords = userRecords.filter(r => r.date >= startOfMonth && r.date < endOfMonth);
+  const localAttendanceVal = thisMonthRecords.length;
+  let localExerciseVal = 0;
+  thisMonthRecords.forEach(r => {
+    localExerciseVal += (Number(r.walking) || 0) + (Number(r.running) || 0);
+    if (Array.isArray(r.customExercises)) {
+      r.customExercises.forEach(ex => {
+        localExerciseVal += (Number(ex.duration) || 0);
+      });
+    }
+  });
+
   try {
     const res = await fetch(new URL('api/ranking', window.location.href).toString());
     const data = await res.json();
     if (!data.ok) throw new Error(data.message);
 
-    const renderList = (items, unit) => {
+    const renderList = (items, unit, myRankData, localFallbackVal) => {
       if (!items.length) return '<div class="chart-no-data">순위 정보가 없습니다.</div>';
-      return items.map((u, i) => `
+      
+      const listHtml = items.map((u, i) => `
         <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-light);">
           <div style="display:flex; align-items:center; gap:12px;">
             <span style="font-weight:800; color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'var(--text-muted)'}; width:20px;">${i+1}</span>
@@ -932,10 +954,35 @@ async function fetchAndRenderRanking() {
           <div style="font-weight:800; color:var(--primary);">${u.value.toLocaleString()}<span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;"> ${unit}</span></div>
         </div>
       `).join('');
+
+      let myRankStr = '-';
+      let myVal = localFallbackVal;
+      if (myRankData && myRankData.rank !== '-') {
+        myRankStr = `${myRankData.rank}위`;
+        myVal = myRankData.value;
+      }
+
+      // 5위 리스트 하단에 구분선 점선(dashed)을 긋고 본인의 랭킹 및 기록을 강조 표시
+      const myRankHtml = `
+        <div style="margin: 12px 0 0; border-top: 1px dashed var(--border); padding-top: 12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background: rgba(0,70,128,0.03); border-radius: 8px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-weight:800; color:var(--primary); font-size: 0.85rem;">내 순위</span>
+              <span style="font-weight:700; color:var(--text); font-size: 0.9rem;">${currentUser ? currentUser.name : '본인'} (본인)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">${myRankStr}</span>
+              <span style="font-weight:800; color:var(--primary); font-size: 0.95rem;">${myVal.toLocaleString()}<span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;"> ${unit}</span></span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      return listHtml + myRankHtml;
     };
 
-    elAtt.innerHTML = renderList(data.topAttendance, '일');
-    elExe.innerHTML = renderList(data.topExercise, '분');
+    elAtt.innerHTML = renderList(data.topAttendance, '일', data.myAttendance, localAttendanceVal);
+    elExe.innerHTML = renderList(data.topExercise, '분', data.myExercise, localExerciseVal);
   } catch (err) {
     console.error('[RankingRender]', err);
     elAtt.innerHTML = '<div class="chart-no-data">랭킹을 불러오지 못했습니다.</div>';
