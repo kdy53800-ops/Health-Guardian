@@ -59,8 +59,10 @@ function renderDashboard() {
 
   const last7Days = getLast7Days();
   const todayStr = today();
+  const yesterdayStr = prevDay(todayStr);
   const streak = calcStreak(userRecords);
   const todayRecord = userRecords.find(r => r.date === todayStr);
+  const yesterdayRecord = userRecords.find(r => r.date === yesterdayStr);
 
   // 최근 7일 합계 및 평균 (Recent 7 days Totals & Averages)
   const weekRecords = userRecords.filter(r => last7Days.includes(r.date));
@@ -72,23 +74,23 @@ function renderDashboard() {
   const avgWater    = weekRecords.length ? Math.round(avg(weekRecords, 'water')) : 0;
   const avgCondition = weekRecords.length ? (avg(weekRecords, 'condition')).toFixed(1) : '-';
 
-  // 오늘 목표 달성률 계산 (Walking, Running, CustomEx, Water, Fasting)
-  let todayPct = 0;
-  if (todayRecord) {
+  // 어제 목표 달성률 계산 (Walking, Running, CustomEx, Water, Fasting)
+  let yesterdayPct = 0;
+  if (yesterdayRecord) {
     const goals = userGoals || GoalDefaults;
     const checks = [
-      (todayRecord.walking || 0) >= (goals.walking || 1),
-      (todayRecord.running || 0) >= (goals.running || 1),
+      (yesterdayRecord.walking || 0) >= (goals.walking || 1),
+      (yesterdayRecord.running || 0) >= (goals.running || 1),
     ];
     // 목표가 설정된 경우만 체크리스트에 추가
     if (goals.customEx > 0) {
-      const customTotal = (todayRecord.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+      const customTotal = (yesterdayRecord.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
       checks.push(customTotal >= goals.customEx);
     }
-    if (goals.water > 0)   checks.push((todayRecord.water || 0) >= goals.water);
-    if (goals.fasting > 0) checks.push((todayRecord.fasting || 0) >= goals.fasting);
+    if (goals.water > 0)   checks.push((yesterdayRecord.water || 0) >= goals.water);
+    if (goals.fasting > 0) checks.push((yesterdayRecord.fasting || 0) >= goals.fasting);
 
-    todayPct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+    yesterdayPct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }
 
   main.innerHTML = `
@@ -166,10 +168,10 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- Today's Goals Rings -->
+    <!-- Yesterday's Goals Rings -->
     <div class="chart-card mb-20">
       <div class="chart-card-header">
-        <div class="chart-card-title">🎯 오늘의 목표 달성률</div>
+        <div class="chart-card-title">🎯 어제의 목표 달성률</div>
       </div>
       <div class="chart-card-body">
         <div class="goal-rings-grid" id="goalRingsGrid"></div>
@@ -283,7 +285,7 @@ function renderDashboard() {
   `;
 
   renderWeekGrid(getLast7Days(), todayStr);
-  renderGoalRings(todayRecord);
+  renderYesterdayGoalRings(yesterdayRecord);
   drawCharts('7');
   renderRecentActivity();
   renderCustomExSummary('7');
@@ -318,8 +320,8 @@ function renderWeekGrid(weekDays, todayStr) {
   }).join('');
 }
 
-// ─── Goal Rings ───────────────────────────────────────
-function renderGoalRings(todayRecord) {
+// ─── Goal Rings (어제 기준) ───────────────────────────────
+function renderYesterdayGoalRings(yesterdayRecord) {
   const grid = document.getElementById('goalRingsGrid');
   if (!grid) return;
 
@@ -336,11 +338,11 @@ function renderGoalRings(todayRecord) {
   ringConfigs.forEach((cfg, idx) => {
     let val = 0;
     if (cfg.key === 'customEx') {
-      if (todayRecord && todayRecord.customExercises) {
-        val = todayRecord.customExercises.reduce((s, ex) => s + (ex.duration || 0), 0);
+      if (yesterdayRecord && yesterdayRecord.customExercises) {
+        val = yesterdayRecord.customExercises.reduce((s, ex) => s + (ex.duration || 0), 0);
       }
     } else {
-      val = todayRecord ? (todayRecord[cfg.key] || 0) : 0;
+      val = yesterdayRecord ? (yesterdayRecord[cfg.key] || 0) : 0;
     }
 
     const goal = userGoals ? (userGoals[cfg.key] || 0) : 0;
