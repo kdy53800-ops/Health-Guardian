@@ -178,6 +178,20 @@ function renderDashboard() {
       </div>
     </div>
 
+    <!-- Total Exercise Chart (전체 너비) -->
+    <div class="chart-card mb-20">
+      <div class="chart-card-header">
+        <div class="chart-card-title">🔥 총 운동 시간 추이</div>
+        <div class="filter-btns">
+          <button class="filter-btn active" id="totalExFilter7" onclick="setFilter('totalEx','7')">7일</button>
+          <button class="filter-btn" id="totalExFilter30" onclick="setFilter('totalEx','30')">30일</button>
+        </div>
+      </div>
+      <div class="chart-card-body">
+        <div class="chart-wrap"><canvas id="chartTotalEx"></canvas></div>
+      </div>
+    </div>
+
     <!-- Weight Chart (전체 너비) - 위치 이동 -->
     <div class="chart-card mb-20">
       <div class="chart-card-header">
@@ -420,6 +434,30 @@ function drawCharts(period) {
     borderWidth: 2.5,
   });
 
+  // ⓪ 총 운동 시간 추이 — 선 그래프
+  const totalExData = days.map(d => {
+    const r = recordMap[d];
+    if (!r) return 0;
+    const walking = r.walking || 0;
+    const running = r.running || 0;
+    const customEx = (r.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+    return walking + running + customEx;
+  });
+
+  const totalExCanvas = document.getElementById('chartTotalEx');
+  if (totalExCanvas) {
+    charts.totalEx = new Chart(totalExCanvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          lineDataset('총 운동 시간(분)', totalExData, CHART_COLORS.purple, CHART_COLORS.purpleBg)
+        ]
+      },
+      options: lineChartOptions('분')
+    });
+  }
+
   // ① 유산소 — 선 그래프
   charts.cardio = new Chart(document.getElementById('chartCardio'), {
     type: 'line',
@@ -659,6 +697,18 @@ function setFilter(section, period) {
     charts.condition.data.labels = labels;
     charts.condition.data.datasets[0].data = days.map(d => getVal(d,'condition'));
     charts.condition.update();
+  }
+  if (section === 'totalEx' && charts.totalEx) {
+    charts.totalEx.data.labels = labels;
+    charts.totalEx.data.datasets[0].data = days.map(d => {
+      const r = recordMap[d];
+      if (!r) return 0;
+      const walking = r.walking || 0;
+      const running = r.running || 0;
+      const customEx = (r.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
+      return walking + running + customEx;
+    });
+    charts.totalEx.update();
   }
   if (section === 'weight' && charts.weight) {
     charts.weight.data.labels = labels;
