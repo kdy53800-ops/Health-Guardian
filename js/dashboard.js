@@ -967,13 +967,10 @@ async function fetchAndRenderRanking() {
         <div style="margin: 12px 0 0; border-top: 1px dashed var(--border); padding-top: 12px;">
           <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background: rgba(0,70,128,0.03); border-radius: 8px;">
             <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-weight:800; color:var(--primary); font-size: 0.85rem;">내 순위</span>
+              <span style="font-weight:800; color:var(--primary); width:20px; font-size:0.95rem; text-align:left;">${myRankStr.replace('위', '')}</span>
               <span style="font-weight:700; color:var(--text); font-size: 0.9rem;">${currentUser ? currentUser.name : '본인'} (본인)</span>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">${myRankStr}</span>
-              <span style="font-weight:800; color:var(--primary); font-size: 0.95rem;">${myVal.toLocaleString()}<span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;"> ${unit}</span></span>
-            </div>
+            <div style="font-weight:800; color:var(--primary); font-size: 0.95rem;">${myVal.toLocaleString()}<span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;"> ${unit}</span></div>
           </div>
         </div>
       `;
