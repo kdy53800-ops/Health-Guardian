@@ -137,7 +137,7 @@ function renderDashboard() {
     <!-- Weekly Check -->
     <div class="chart-card mb-20">
       <div class="chart-card-header">
-        <div class="chart-card-title">📅 이번 주 기록 현황</div>
+        <div class="chart-card-title">📅 최근 7일 기록 현황</div>
       </div>
       <div class="chart-card-body">
         <div class="week-grid" id="weekGrid"></div>
@@ -292,7 +292,7 @@ function renderDashboard() {
     </div>
   `;
 
-  renderWeekGrid(thisWeekDays, todayStr);
+  renderWeekGrid(getLast7Days(), todayStr);
   renderGoalRings(todayRecord);
   drawCharts('7');
   renderBestRecords(weekRecords);
@@ -301,12 +301,10 @@ function renderDashboard() {
   fetchAndRenderRanking();
 }
 
-// ─── Week Grid (월~일 고정) ───────────────────────────
+// ─── Week Grid (최근 7일 동적 요일) ───────────────────────
 function renderWeekGrid(weekDays, todayStr) {
   const grid = document.getElementById('weekGrid');
   if (!grid) return;
-  // weekDays는 항상 [월,화,수,목,금,토,일] 순서
-  const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
   grid.innerHTML = weekDays.map((dateStr, idx) => {
     const hasRecord = userRecords.some(r => r.date === dateStr);
@@ -314,11 +312,14 @@ function renderWeekGrid(weekDays, todayStr) {
     const isFuture = dateStr > todayStr;
     const d = new Date(dateStr + 'T00:00:00');
     const dateNum = d.getDate();
-    const dayLabel = DAY_LABELS[idx];
+    const dayLabel = dayOfWeek(dateStr);
+
+    // 일요일은 빨간색, 토요일은 파란색
+    const labelStyle = dayLabel === '일' ? 'color:#ef4444' : dayLabel === '토' ? 'color:#3b82f6' : '';
 
     return `
       <div class="week-day">
-        <div class="week-day-label" style="${idx === 6 ? 'color:#ef4444' : idx === 5 ? 'color:#3b82f6' : ''}">${dayLabel}</div>
+        <div class="week-day-label" style="${labelStyle}">${dayLabel}</div>
         <div class="week-day-dot ${hasRecord ? 'done' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}">
           ${hasRecord ? '✓' : dateNum}
         </div>
