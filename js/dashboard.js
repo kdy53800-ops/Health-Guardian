@@ -223,6 +223,23 @@ function renderDashboard() {
       </div>
     </div>
 
+    <!-- 개인 운동 차트 -->
+    <div class="chart-card mb-20" id="customExChartCard">
+      <div class="chart-card-header">
+        <div class="chart-card-title">🏅 개인 운동 현황</div>
+        <div class="filter-btns">
+          <button class="filter-btn active" id="customFilter7" onclick="setFilter('custom','7')">7일</button>
+          <button class="filter-btn" id="customFilter30" onclick="setFilter('custom','30')">30일</button>
+        </div>
+      </div>
+      <div class="chart-card-body">
+        <div class="custom-ex-chart-grid">
+          <div class="chart-wrap custom-ex-chart-wrap"><canvas id="chartCustomEx"></canvas></div>
+          <div id="customExSummary" class="custom-ex-summary"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 수분(막대) + 공복(막대) + 컨디션(선) -->
     <div class="grid-3 mb-20">
       <!-- Water Bar Chart -->
@@ -264,26 +281,6 @@ function renderDashboard() {
           <div class="chart-wrap"><canvas id="chartCondition"></canvas></div>
         </div>
       </div>
-    </div>
-
-
-
-    <!-- 개인 운동 차트 -->
-    <div class="chart-card mb-20" id="customExChartCard">
-      <div class="chart-card-header">
-        <div class="chart-card-title">🏅 개인 운동 현황</div>
-        <div class="filter-btns">
-          <button class="filter-btn active" id="customFilter7" onclick="setFilter('custom','7')">7일</button>
-          <button class="filter-btn" id="customFilter30" onclick="setFilter('custom','30')">30일</button>
-        </div>
-      </div>
-      <div class="chart-card-body">
-        <div class="custom-ex-chart-grid">
-          <div class="chart-wrap custom-ex-chart-wrap"><canvas id="chartCustomEx"></canvas></div>
-          <div id="customExSummary" class="custom-ex-summary"></div>
-        </div>
-      </div>
-
     </div>
 
     <!-- Recent Activity -->
