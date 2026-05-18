@@ -83,7 +83,7 @@ function renderCalendar(year, month, recMap, totalDays) {
     const cond = rec ? COND_EMOJIS[rec.condition || 3] : '';
     cells += `
       <div class="cal-cell${rec ? ' cal-has' : ''}${isToday ? ' cal-today' : ''}${isFuture ? ' cal-future' : ''}"
-           ${rec ? `onclick="window.location.href='record.html?edit=${rec.id}'" title="${dateStr} 기록 수정"` : ''}>
+           ${rec ? `onclick="showRecordSummary('${rec.id}')" title="${dateStr} 기록 요약 보기"` : ''}>
         <span class="cal-num" style="color:${numColor};${rec&&!isToday?'font-weight:800;':''}">${d}</span>
         ${cond ? `<span class="cal-cond-emoji">${cond}</span>` : ''}
         ${rec  ? `<span class="cal-dot"></span>` : ''}
@@ -153,3 +153,120 @@ function renderCatCards(monthRecs) {
       </div>`;
   }).join('');
 }
+
+// ─── 기록 요약 모달 제어 ─────────────────────────────────
+function isWithinRecent3Days(dateStr) {
+  const todayStr = today();
+  const d = new Date(dateStr + 'T00:00:00');
+  const t = new Date(todayStr + 'T00:00:00');
+  const diffTime = t - d;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays < 3;
+}
+
+function showRecordSummary(recId) {
+  const rec = userRecords.find(r => r.id === recId);
+  if (!rec) return;
+
+  const dateLabel = formatDate(rec.date, { month: 'long', day: 'numeric' }) + ` (${dayOfWeek(rec.date)})`;
+  document.getElementById('summaryModalTitle').textContent = `📅 ${dateLabel} 기록 요약`;
+
+  // 컨디션 이모지 및 별점
+  const COND_EMOJIS = ['', '😔', '😕', '😊', '😄', '🤩'];
+  const condEmoji = COND_EMOJIS[rec.condition || 3];
+  const starsHtml = renderStars(rec.condition || 3);
+
+  // 개인 운동 기록 목록 구성
+  let customExHtml = `<div class="modal-custom-title">🏅 개인 운동 기록</div>`;
+  if (rec.customExercises && rec.customExercises.length > 0) {
+    const catIcons = { '유산소': '🏃', '근력': '🏋️', '유연성': '🤸', '스포츠': '⚽' };
+    customExHtml += rec.customExercises.map(ex => `
+      <div class="modal-custom-item">
+        <span>${catIcons[ex.category] || '🏅'} [${ex.category}] <strong>${ex.name}</strong></span>
+        <span style="font-weight:700;color:var(--primary);">${ex.duration}분</span>
+      </div>
+    `).join('');
+  } else {
+    customExHtml += `<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:8px 0;">기록된 개인 운동이 없습니다.</div>`;
+  }
+
+  // 메모 HTML 구성
+  const memoText = rec.memo ? rec.memo.trim() : '';
+  const memoHtml = memoText 
+    ? `<div style="background:rgba(0,70,128,0.03);border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;font-size:0.8rem;color:var(--text-secondary);line-height:1.4;">📝 <strong>메모:</strong> ${memoText}</div>`
+    : `<div style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">📝 메모가 작성되지 않았습니다.</div>`;
+
+  const bodyHtml = `
+    <div class="modal-info-grid">
+      <div class="modal-info-item">
+        <span class="modal-info-label">🚶 걷기</span>
+        <span class="modal-info-val">${rec.walking || 0} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">분</span></span>
+      </div>
+      <div class="modal-info-item">
+        <span class="modal-info-label">🏃 러닝</span>
+        <span class="modal-info-val">${rec.running || 0} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">분</span></span>
+      </div>
+      <div class="modal-info-item">
+        <span class="modal-info-label">💧 수분섭취</span>
+        <span class="modal-info-val">${rec.water || 0} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">ml</span></span>
+      </div>
+      <div class="modal-info-item">
+        <span class="modal-info-label">⏱️ 공복시간</span>
+        <span class="modal-info-val">${rec.fasting || 0} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">시간</span></span>
+      </div>
+    </div>
+    
+    <div class="modal-info-item" style="flex-direction:row;justify-content:space-between;align-items:center;">
+      <span class="modal-info-label" style="margin-bottom:0;">⭐ 컨디션</span>
+      <span class="modal-info-val" style="font-size:0.9rem;color:var(--gold-dark);">${condEmoji} ${starsHtml}</span>
+    </div>
+
+    <div class="modal-custom-list">
+      ${customExHtml}
+    </div>
+
+    ${memoHtml}
+  `;
+
+  document.getElementById('summaryModalBody').innerHTML = bodyHtml;
+
+  // 수정 가능 여부 판단 (오늘 포함 최근 3일 이내)
+  const editable = isWithinRecent3Days(rec.date);
+
+  let footerHtml = `
+    <button class="modal-btn modal-btn-secondary" onclick="hideSummaryModal()">닫기</button>
+  `;
+
+  if (editable) {
+    footerHtml += `
+      <button class="modal-btn modal-btn-primary" onclick="window.location.href='record.html?edit=${rec.id}'">기록 수정하기</button>
+    `;
+  } else {
+    footerHtml += `
+      <button class="modal-btn modal-btn-primary" disabled title="작성 후 3일 이내에만 수정할 수 있습니다." style="cursor:not-allowed;">수정 불가 (3일 경과)</button>
+    `;
+  }
+
+  document.getElementById('summaryModalFooter').innerHTML = footerHtml;
+
+  const overlay = document.getElementById('summaryModalOverlay');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function hideSummaryModal() {
+  const overlay = document.getElementById('summaryModalOverlay');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeSummaryModal(event) {
+  if (event.target === document.getElementById('summaryModalOverlay')) {
+    hideSummaryModal();
+  }
+}
+
+// ESC 키로 모달 닫기 지원
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') hideSummaryModal();
+});
