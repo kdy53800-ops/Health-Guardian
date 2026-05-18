@@ -160,12 +160,6 @@ function renderDashboard() {
         <div class="stat-card-sub">최근 7일 ${weekRecords.length}일 평균</div>
         <div class="stat-card-icon">💧</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-card-label">최근 7일 평균 컨디션</div>
-        <div class="stat-card-value">${avgCondition}<span class="stat-card-unit">/5</span></div>
-        <div class="stat-card-sub">${getConditionEmoji(parseFloat(avgCondition))} 최근 7일 평균</div>
-        <div class="stat-card-icon">⭐</div>
-      </div>
     </div>
 
     <!-- Yesterday's Goals Rings -->
