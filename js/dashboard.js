@@ -64,6 +64,12 @@ function renderDashboard() {
   const todayRecord = userRecords.find(r => r.date === todayStr);
   const yesterdayRecord = userRecords.find(r => r.date === yesterdayStr);
 
+  const isFirstDay = (new Date().getDate() === 1);
+  const rankingTitle = isFirstDay ? '지난달의 명예의 전당' : '이달의 명예의 전당';
+  const rankingSubtitle = isFirstDay
+    ? '지난달 활동이 가장 활발했던 분들을 소개합니다!'
+    : '이번 달 활동이 가장 활발한 분들을 소개합니다! (하루 전날 기록 기준)';
+
   // 최근 7일 합계 및 평균 (Recent 7 days Totals & Averages)
   const weekRecords = userRecords.filter(r => last7Days.includes(r.date));
   const weekWalking = sum(weekRecords, 'walking');
@@ -113,14 +119,14 @@ function renderDashboard() {
     <!-- Ranking Top 5 -->
     <div class="section-header mb-12">
       <h2 style="font-size:1.1rem; font-weight:800; display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.4rem;">🏆</span> 이달의 명예의 전당
-        <span style="font-size:0.8rem; font-weight:500; color:var(--text-muted); margin-left:4px;">이번 달 활동이 가장 활발한 분들을 소개합니다!</span>
+        <span style="font-size:1.4rem;">🏆</span> ${rankingTitle}
+        <span style="font-size:0.8rem; font-weight:500; color:var(--text-muted); margin-left:4px;">${rankingSubtitle}</span>
       </h2>
     </div>
     <div class="grid-2 mb-20">
       <div class="chart-card">
         <div class="chart-card-header">
-          <div class="chart-card-title">🏆 이달의 명예의 전당: 총 출석일 수</div>
+          <div class="chart-card-title">🏆 ${rankingTitle}: 총 출석일 수</div>
         </div>
         <div class="chart-card-body" id="rankingAttendance">
           <div class="chart-no-data">데이터를 불러오는 중...</div>
@@ -128,7 +134,7 @@ function renderDashboard() {
       </div>
       <div class="chart-card">
         <div class="chart-card-header">
-          <div class="chart-card-title">🔥 이달의 명예의 전당: 총 운동 시간</div>
+          <div class="chart-card-title">🔥 ${rankingTitle}: 총 운동 시간</div>
         </div>
         <div class="chart-card-body" id="rankingExercise">
           <div class="chart-no-data">데이터를 불러오는 중...</div>
