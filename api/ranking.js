@@ -14,21 +14,32 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Calculate current month range (KST)
+    // 1. Calculate current month range (KST) or previous month if today is the 1st
     const now = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)); // UTC+9
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth() + 1;
-    const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-    
-    const nextMonthDate = new Date(Date.UTC(year, month, 1));
-    const endOfMonth = `${nextMonthDate.getUTCFullYear()}-${String(nextMonthDate.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    const day = now.getUTCDate();
 
-    // 2. Fetch profiles and records (filtered by current month)
+    let targetYear = year;
+    let targetMonth = month;
+    if (day === 1) {
+      if (month === 1) {
+        targetYear = year - 1;
+        targetMonth = 12;
+      } else {
+        targetMonth = month - 1;
+      }
+    }
+
+    const startOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+    const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    // 2. Fetch profiles and records (filtered by current month up to yesterday)
     const [profiles, records] = await Promise.all([
       fetchSupabase('/rest/v1/profiles?select=id,name,username&order=created_at.asc', {
         headers: { Accept: 'application/json' },
       }),
-      fetchSupabase(`/rest/v1/daily_records?select=user_id,record_date,walking,running,custom_exercises&record_date=gte.${startOfMonth}&record_date=lt.${endOfMonth}`, {
+      fetchSupabase(`/rest/v1/daily_records?select=user_id,record_date,walking,running,custom_exercises&record_date=gte.${startOfMonth}&record_date=lt.${todayStr}`, {
         headers: { Accept: 'application/json' },
       }),
     ]);

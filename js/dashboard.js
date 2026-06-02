@@ -888,12 +888,23 @@ async function fetchAndRenderRanking() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextMonthYear = month === 12 ? year + 1 : year;
-  const endOfMonth = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+  const day = now.getDate();
 
-  const thisMonthRecords = userRecords.filter(r => r.date >= startOfMonth && r.date < endOfMonth);
+  let targetYear = year;
+  let targetMonth = month;
+  if (day === 1) {
+    if (month === 1) {
+      targetYear = year - 1;
+      targetMonth = 12;
+    } else {
+      targetMonth = month - 1;
+    }
+  }
+
+  const startOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+  const todayStr = today(); // from app.js
+
+  const thisMonthRecords = userRecords.filter(r => r.date >= startOfMonth && r.date < todayStr);
   const localAttendanceVal = thisMonthRecords.length;
   let localExerciseVal = 0;
   thisMonthRecords.forEach(r => {
