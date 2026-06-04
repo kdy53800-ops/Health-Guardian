@@ -57,9 +57,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   currentUser = Auth.require();
   if (!currentUser) return;
 
-  // 날짜 제한 설정 (미래 불가, 오늘 포함 3일)
+  // 날짜 제한 설정 (미래 불가, 오늘 포함 5일)
   const todayStr = today();
-  const minDate = prevDay(prevDay(todayStr));
+  const minDate = prevDay(prevDay(prevDay(prevDay(todayStr))));
   const dateInput = document.getElementById('fDate');
   if (dateInput) {
     dateInput.setAttribute('max', todayStr);
@@ -296,15 +296,15 @@ async function handleSave(e) {
     return;
   }
 
-  // 날짜 제한 검증 (미래 불가, 3일 이내만 가능)
+  // 날짜 제한 검증 (미래 불가, 5일 이내만 가능)
   const todayStr = today();
-  const minDate  = prevDay(prevDay(todayStr));
+  const minDate  = prevDay(prevDay(prevDay(prevDay(todayStr))));
   if (dateVal > todayStr) {
     showToast('미래 날짜는 기록할 수 없습니다. 🚫', 'error');
     return;
   }
   if (dateVal < minDate) {
-    showToast('최근 3일 이내의 기록만 작성 가능합니다. ⏳', 'error');
+    showToast('최근 5일 이내의 기록만 작성 가능합니다. ⏳', 'error');
     return;
   }
 
