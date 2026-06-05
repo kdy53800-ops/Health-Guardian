@@ -18,7 +18,17 @@ const KEYS = {
 const Auth = {
   getUser() {
     const raw = localStorage.getItem(KEYS.CURRENT_USER);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try {
+      const user = JSON.parse(raw);
+      if (user.exp && Date.now() > user.exp) {
+        localStorage.removeItem(KEYS.CURRENT_USER);
+        return null;
+      }
+      return user;
+    } catch (e) {
+      return null;
+    }
   },
 
   setUser(user) {
@@ -295,6 +305,11 @@ const Records = {
       return records;
     } catch (error) {
       console.warn('[Records] Falling back to local records:', error);
+      if (error.message && error.message.includes('로그인 세션이 만료되었습니다')) {
+        alert(error.message);
+        Auth.logout();
+        return [];
+      }
       return this.getUserRecords(userId);
     }
   },

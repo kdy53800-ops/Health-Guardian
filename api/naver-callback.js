@@ -143,7 +143,11 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const session = buildSessionPayload(naverProfile, syncResult.profile);
+    const exp = Date.now() + (14 * 24 * 60 * 60 * 1000);
+    const session = {
+      ...buildSessionPayload(naverProfile, syncResult.profile),
+      exp
+    };
     const target = new URL(redirectTo);
     target.hash = `naver_session=${encodeBase64Url(JSON.stringify(session))}`;
     const setCookies = [cookie];
