@@ -155,14 +155,6 @@ function renderCatCards(monthRecs) {
 }
 
 // ─── 기록 요약 모달 제어 ─────────────────────────────────
-function isWithinRecent5Days(dateStr) {
-  const todayStr = today();
-  const d = new Date(dateStr + 'T00:00:00');
-  const t = new Date(todayStr + 'T00:00:00');
-  const diffTime = t - d;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays < 5;
-}
 
 function showRecordSummary(recId) {
   const rec = userRecords.find(r => r.id === recId);
@@ -230,22 +222,11 @@ function showRecordSummary(recId) {
 
   document.getElementById('summaryModalBody').innerHTML = bodyHtml;
 
-  // 수정 가능 여부 판단 (오늘 포함 최근 5일 이내)
-  const editable = isWithinRecent5Days(rec.date);
-
+  // 수정 가능 여부 판단 (기한 제한 없음)
   let footerHtml = `
     <button class="modal-btn modal-btn-secondary" onclick="hideSummaryModal()">닫기</button>
+    <button class="modal-btn modal-btn-primary" onclick="window.location.href='record.html?edit=${rec.id}'">기록 수정하기</button>
   `;
-
-  if (editable) {
-    footerHtml += `
-      <button class="modal-btn modal-btn-primary" onclick="window.location.href='record.html?edit=${rec.id}'">기록 수정하기</button>
-    `;
-  } else {
-    footerHtml += `
-      <button class="modal-btn modal-btn-primary" disabled title="작성 후 5일 이내에만 수정할 수 있습니다." style="cursor:not-allowed;">수정 불가 (5일 경과)</button>
-    `;
-  }
 
   document.getElementById('summaryModalFooter').innerHTML = footerHtml;
 
