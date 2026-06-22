@@ -143,7 +143,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const exp = Date.now() + (14 * 24 * 60 * 60 * 1000);
+    const exp = Date.now() + (10 * 365 * 24 * 60 * 60 * 1000); // 10 years
     const session = {
       ...buildSessionPayload(naverProfile, syncResult.profile),
       exp
@@ -156,7 +156,7 @@ module.exports = async function handler(req, res) {
         uid: syncResult.profile.id,
         provider: 'naver',
         oauthProviderId: naverProfile.oauthProviderId || '',
-        exp: Date.now() + (14 * 24 * 60 * 60 * 1000),
+        exp: Date.now() + (10 * 365 * 24 * 60 * 60 * 1000), // 10 years
       }, origin));
     }
 

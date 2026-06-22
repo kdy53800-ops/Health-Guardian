@@ -34,7 +34,36 @@ module.exports = async function handler(req, res) {
 
     const userId = session.uid;
 
-    // Supabase Admin API를 통해 유저 삭제
+    // 1. 스토리지에 저장된 해당 사용자의 인바디 이미지 파일들 먼저 삭제
+    try {
+      const records = await fetchSupabase(`/rest/v1/inbody_records?user_id=eq.${encodeURIComponent(userId)}&select=image_url`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (Array.isArray(records) && records.length > 0) {
+        for (const record of records) {
+          if (record.image_url) {
+            try {
+              // Extract storage path: /public/inbody_images/userId/fileName
+              const urlParts = record.image_url.split('/storage/v1/object/public/inbody_images/');
+              if (urlParts.length === 2) {
+                const storagePath = `inbody_images/${urlParts[1]}`;
+                await fetchSupabase(`/storage/v1/object/${storagePath}`, {
+                  method: 'DELETE'
+                });
+              }
+            } catch (storageErr) {
+              console.warn('[DeleteAccount] Failed to delete storage object:', storageErr.message);
+            }
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[DeleteAccount] Failed to fetch or delete user inbody records:', dbErr.message);
+    }
+
+    // 2. Supabase Admin API를 통해 유저 삭제
     // (ON DELETE CASCADE에 의해 profiles 및 daily_records도 삭제됨)
     await fetchSupabase(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
       method: 'DELETE',

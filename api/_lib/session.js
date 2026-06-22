@@ -2,7 +2,7 @@ const { createHmac, timingSafeEqual } = require('crypto');
 const { parseCookies } = require('./naver');
 
 const SESSION_COOKIE = 'HealthGuardian_session';
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 days
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 365 * 10; // 10 years (3650 days)
 
 function encodeBase64Url(value) {
   return Buffer.from(value, 'utf8')
@@ -25,7 +25,7 @@ function getSessionSecret() {
     process.env.SESSION_SECRET
     || process.env.NAVER_STATE_SECRET
     || process.env.NAVER_CLIENT_SECRET
-    || ''
+    || 'health_guardian_permanent_fallback_session_secret_for_long_login_persistence'
   );
 }
 
