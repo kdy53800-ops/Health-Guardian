@@ -148,6 +148,33 @@ const Auth = {
     const user = this.getUser();
     return !!(user && user.isAdmin);
   },
+
+  async checkAndRestoreSession() {
+    const user = this.getUser();
+    if (user) return user;
+
+    if (!window.location.protocol.startsWith('http')) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(new URL('api/check-session', window.location.href).toString(), {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) return null;
+
+      const payload = await response.json();
+      if (payload && payload.ok && payload.user) {
+        this.setUser(payload.user);
+        return payload.user;
+      }
+    } catch (e) {
+      console.warn('[Auth] Failed to restore session:', e);
+    }
+    return null;
+  },
 };
 
 // ─── Records ──────────────────────────────────────────

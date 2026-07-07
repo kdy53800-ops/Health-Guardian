@@ -127,6 +127,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await SupabaseAuth.handleIndexSession();
   }
 
+  // Restore session if lost before checking permission
+  if (typeof Auth.checkAndRestoreSession === 'function') {
+    await Auth.checkAndRestoreSession();
+  }
+
   if (!canTryAdminApi()) {
     alert('관리자 인증이 필요합니다. 먼저 네이버로 로그인해 주세요.');
     window.location.href = 'index.html';

@@ -54,6 +54,9 @@ const GOAL_LABELS = {
 let pendingDuplicateRecord = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Auth.checkAndRestoreSession === 'function') {
+    await Auth.checkAndRestoreSession();
+  }
   currentUser = Auth.require();
   if (!currentUser) return;
 

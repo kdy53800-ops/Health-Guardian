@@ -160,6 +160,7 @@
       authProvider: 'naver',
       supabaseUserId: mergedUser.supabaseUserId,
       oauthProviderId: mergedUser.oauthProviderId,
+      exp: profile.exp, // Save expiration timestamp
     });
 
     return mergedUser;

@@ -11,6 +11,9 @@ const CONDITION_MAP = ['', '😔 매우 나쁨', '😕 나쁨', '😊 보통', '
 const CONDITION_EMOJI = ['', '😔', '😕', '😊', '😄', '🤩'];
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Auth.checkAndRestoreSession === 'function') {
+    await Auth.checkAndRestoreSession();
+  }
   currentUser = Auth.require();
   if (!currentUser) return;
 

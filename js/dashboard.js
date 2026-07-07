@@ -28,6 +28,9 @@ Chart.defaults.font.family = "'Pretendard', 'Outfit', sans-serif";
 Chart.defaults.color = '#5a7a9a';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Auth.checkAndRestoreSession === 'function') {
+    await Auth.checkAndRestoreSession();
+  }
   currentUser = Auth.require();
   if (!currentUser) return;
 

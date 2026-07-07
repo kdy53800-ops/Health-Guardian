@@ -3,6 +3,9 @@ let inbodyRecords = [];
 let charts = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Auth.checkAndRestoreSession === 'function') {
+    await Auth.checkAndRestoreSession();
+  }
   const user = Auth.require();
   if (!user) return;
 

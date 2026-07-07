@@ -340,7 +340,10 @@
   <script>
     (async function () {
       await SupabaseAuth.handleIndexSession();
-      const user = Auth.getUser();
+      let user = Auth.getUser();
+      if (!user && typeof Auth.checkAndRestoreSession === 'function') {
+        user = await Auth.checkAndRestoreSession();
+      }
       if (user) {
         window.location.href = 'dashboard.html';
       }

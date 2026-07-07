@@ -8,6 +8,9 @@ let userRecords = [];
 let monthOffset = 0; // 0 = 이번 달
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Auth.checkAndRestoreSession === 'function') {
+    await Auth.checkAndRestoreSession();
+  }
   currentUser = Auth.require();
   if (!currentUser) return;
 
