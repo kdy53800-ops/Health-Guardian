@@ -78,6 +78,7 @@ function buildRecordCard(r) {
     r.water     ? { icon: '💧', label: '수분',   val: r.water,     unit: 'ml',  cls: 'gold-chip' } : null,
     r.fasting   ? { icon: '⏱️', label: '공복',   val: r.fasting,   unit: 'h',   cls: 'gold-chip' } : null,
     r.weight    ? { icon: '⚖️', label: '체중',   val: r.weight,    unit: 'kg',  cls: '' } : null,
+    r.heartRate ? { icon: '❤️', label: '심박수', val: r.heartRate, unit: 'bpm', cls: '' } : null,
   ].filter(Boolean);
 
   const metricChips = metrics.map(m => `

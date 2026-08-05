@@ -107,11 +107,15 @@ function renderStats(year, month, monthRecs) {
     return sum + (r.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
   }, 0);
 
+  const hrRecs = monthRecs.filter(r => r.heartRate > 0);
+  const avgHeartRate = hrRecs.length ? Math.round(hrRecs.reduce((s, r) => s + Number(r.heartRate), 0) / hrRecs.length) : 0;
+
   const rows = [
     { icon: '🚶', label: '걷기',   val: sum('walking'),  unit: '분' },
     { icon: '🏃', label: '러닝',   val: sum('running'),  unit: '분' },
     { icon: '🏅', label: '개인운동', val: totalCustomMins, unit: '분' },
     { icon: '💧', label: '수분',   val: sum('water'),    unit: 'ml' },
+    { icon: '❤️', label: '평균 심박수', val: avgHeartRate, unit: 'bpm' },
   ];
   document.getElementById('statsRows').innerHTML = rows.map(r => `
     <div class="stat-row">
@@ -208,6 +212,10 @@ function showRecordSummary(recId) {
       <div class="modal-info-item">
         <span class="modal-info-label">⏱️ 공복시간</span>
         <span class="modal-info-val">${rec.fasting || 0} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">시간</span></span>
+      </div>
+      <div class="modal-info-item">
+        <span class="modal-info-label">❤️ 심박수</span>
+        <span class="modal-info-val">${rec.heartRate || 0} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">bpm</span></span>
       </div>
     </div>
     

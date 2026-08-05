@@ -82,6 +82,7 @@ create table if not exists public.daily_records (
   situps numeric not null default 0,
   water numeric not null default 0,
   fasting numeric not null default 0,
+  heart_rate numeric not null default 0,
   diet text not null default '',
   condition integer not null default 3,
   memo text not null default '',

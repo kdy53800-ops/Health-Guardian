@@ -133,6 +133,7 @@ function closeDuplicateModal() {
 function populateForm(record) {
   document.getElementById('fDate').value = record.date || '';
   document.getElementById('fWeight').value = record.weight || '';
+  document.getElementById('fHeartRate').value = record.heartRate || '';
   document.getElementById('fWalking').value = record.walking || '';
   document.getElementById('fRunning').value = record.running || '';
   document.getElementById('fWalkingKm').value = record.walkingKm || '';
@@ -322,6 +323,7 @@ async function handleSave(e) {
     userId: currentUser.id,
     date: dateVal,
     weight:     parseFloat(document.getElementById('fWeight').value)     || 0,
+    heartRate:  parseInt(document.getElementById('fHeartRate').value)    || 0,
     walking:    parseFloat(document.getElementById('fWalking').value)    || 0,
     running:    parseFloat(document.getElementById('fRunning').value)    || 0,
     walkingKm:  parseFloat(document.getElementById('fWalkingKm').value)  || 0,

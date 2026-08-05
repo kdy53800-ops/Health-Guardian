@@ -769,6 +769,7 @@ function viewUser(userId) {
             <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.running || '-'}${record.running ? '분' : ''}</td>
             <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${customSum || '-'}${customSum ? '분' : ''}</td>
             <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.water || '-'}${record.water ? 'ml' : ''}</td>
+            <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${record.heartRate || '-'}${record.heartRate ? 'bpm' : ''}</td>
             <td style="padding:8px 10px;font-size:0.82rem;text-align:center;">${condEmoji(record.condition)} ${record.condition || '-'}</td>
           </tr>
         `;

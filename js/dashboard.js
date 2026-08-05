@@ -209,6 +209,20 @@ function renderDashboard() {
       </div>
     </div>
 
+    <!-- Heart Rate Chart (전체 너비) -->
+    <div class="chart-card mb-20">
+      <div class="chart-card-header">
+        <div class="chart-card-title">❤️ 심박수 변화</div>
+        <div class="filter-btns">
+          <button class="filter-btn active" id="heartRateFilter7" onclick="setFilter('heartRate','7')">7일</button>
+          <button class="filter-btn" id="heartRateFilter30" onclick="setFilter('heartRate','30')">30일</button>
+        </div>
+      </div>
+      <div class="chart-card-body">
+        <div id="heartRateChartWrap" class="chart-wrap"><canvas id="chartHeartRate"></canvas></div>
+      </div>
+    </div>
+
     <!-- Charts Row: 걷기&러닝 (선 그래프) -->
     <div class="mb-20">
       <!-- Cardio Line Chart -->
@@ -574,6 +588,45 @@ function drawCharts(period) {
     `;
   }
 
+  // ⑥.5 심박수 변화
+  const heartRateData = days.map(d => {
+    const r = recordMap[d];
+    return (r && r.heartRate > 0) ? r.heartRate : null;
+  });
+
+  if (heartRateData.some(v => v !== null)) {
+    charts.heartRate = new Chart(document.getElementById('chartHeartRate'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: '심박수(bpm)',
+          data: heartRateData,
+          borderColor: CHART_COLORS.red,
+          backgroundColor: CHART_COLORS.redBg,
+          fill: true,
+          tension: 0.4,
+          spanGaps: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: CHART_COLORS.red,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderWidth: 2.5,
+        }]
+      },
+      options: lineChartOptions('bpm')
+    });
+  } else {
+    const wrap = document.getElementById('heartRateChartWrap');
+    if (wrap) wrap.innerHTML = `
+      <div class="chart-no-data">
+        <div class="no-data-icon">❤️</div>
+        <span>심박수 데이터가 없습니다</span>
+      </div>
+    `;
+  }
+
   // ⑦ 개인 운동 누적 막대
   const customCanvas = document.getElementById('chartCustomEx');
   if (customCanvas) {
@@ -718,6 +771,14 @@ function setFilter(section, period) {
     });
     charts.weight.update();
   }
+  if (section === 'heartRate' && charts.heartRate) {
+    charts.heartRate.data.labels = labels;
+    charts.heartRate.data.datasets[0].data = days.map(d => {
+      const v = getVal(d, 'heartRate');
+      return v > 0 ? v : null;
+    });
+    charts.heartRate.update();
+  }
   if (section === 'custom') {
     const catCfgs = ['유산소', '근력', '유연성', '스포츠'];
     if (charts.customEx) {
@@ -757,6 +818,7 @@ function renderRecentActivity() {
     if (r.running)  parts.push(`러닝 ${r.running}분`);
     if (r.water)    parts.push(`수분 ${r.water}ml`);
     if (r.fasting)  parts.push(`공복 ${r.fasting}h`);
+    if (r.heartRate) parts.push(`심박수 ${r.heartRate}bpm`);
     const cond = r.condition || 3;
     const emojis = ['','😔','😕','😊','😄','🤩'];
 
