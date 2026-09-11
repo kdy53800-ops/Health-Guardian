@@ -1940,3 +1940,23 @@ textarea.form-control {
     justify-content: center;
   }
 }
+
+/* Official Ongil Medical Foundation artwork: preserve original proportions. */
+.hospital-wordmark {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.login-hospital-wordmark {
+  width: 360px;
+  margin: 0 auto 24px;
+}
+.footer-hospital-wordmark {
+  width: 340px;
+  margin: 0 auto 24px;
+}
+@media (max-width: 480px) {
+  .login-hospital-wordmark { margin-bottom: 20px; }
+  .footer-hospital-wordmark { width: 280px; }
+}

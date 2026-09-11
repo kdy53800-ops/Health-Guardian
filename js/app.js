@@ -658,6 +658,7 @@ function renderFooter() {
   footer.className = 'app-footer';
   footer.innerHTML = `
     <div class="footer-content">
+      <img class="hospital-wordmark footer-hospital-wordmark" src="images/ongil-hospital.png" alt="의료법인 온길의료재단 해운대 나눔과행복병원" width="1942" height="274" loading="lazy">
       <div class="footer-links">
         <a href="terms.html" class="footer-link">이용약관</a>
         <a href="privacy.html" class="footer-link privacy">개인정보처리방침</a>
@@ -669,7 +670,7 @@ function renderFooter() {
         </div>
         <div class="footer-info-item">
           <span class="footer-info-label">법인명</span>
-          <span class="footer-info-val">의료법인 나눔과행복의료재단</span>
+          <span class="footer-info-val">의료법인 온길의료재단</span>
         </div>
         <div class="footer-info-item">
           <span class="footer-info-label">대표자</span>
@@ -685,7 +686,7 @@ function renderFooter() {
         </div>
       </div>
       <div class="footer-copyright">
-        &copy; 2026 의료법인 나눔과행복의료재단. All rights reserved.
+        &copy; 2026 의료법인 온길의료재단. All rights reserved.
       </div>
     </div>
   `;
