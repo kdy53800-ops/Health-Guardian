@@ -98,20 +98,53 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .ongil-home .login-agreement-text { line-height: 1.8; }
 .ongil-home .login-footer { font-size: .8rem; margin-top: 18px; }
 .ongil-home .admin-link { align-self: center; margin-top: 24px; font-size: .8rem; }
+.mobile-login-next, .mobile-login-back { display: none; }
 @media (max-width: 900px) {
-  .ongil-home .login-container { grid-template-columns: 1fr; max-width: 620px; padding: 24px 20px; }
-  .ongil-intro { border-radius: 24px 24px 0 0; }
+  .ongil-login-root { overflow: hidden; }
+  .ongil-home { overflow: hidden; min-height: 100dvh; }
+  .ongil-home .login-container {
+    display: flex; width: 200vw; max-width: none; height: 100dvh; min-height: 0;
+    margin: 0; padding: 0; transform: translateX(0);
+    transition: transform .55s cubic-bezier(.22, 1, .36, 1);
+    will-change: transform;
+  }
+  .ongil-home .login-container.login-visible { transform: translateX(-100vw); }
+  .ongil-intro, .ongil-home .login-card {
+    flex: 0 0 100vw; width: 100vw; height: 100dvh; min-height: 0;
+  }
+  .ongil-intro {
+    position: relative; border-radius: 0; cursor: pointer; outline-offset: -4px;
+    -webkit-tap-highlight-color: transparent;
+  }
   .ongil-signature { padding: 24px 28px; }
-  .ongil-intro-copy { padding: 32px 28px; }
+  .ongil-intro-copy { display: flex; flex-direction: column; justify-content: center; padding: 32px 28px; }
   .ongil-intro h2 { font-size: 2rem; }
   .ongil-description { margin-top: 16px; font-size: .9rem; }
   .ongil-steps { display: none; }
-  .ongil-intro-note { padding: 18px 28px; font-size: .72rem; }
-  .ongil-home .login-card { border-radius: 0 0 24px 24px; padding: 32px 28px; }
+  .ongil-intro-note { padding: 22px 28px; padding-bottom: max(22px, env(safe-area-inset-bottom)); font-size: .72rem; }
+  .mobile-login-next {
+    position: absolute; right: 0; top: 50%; z-index: 2; transform: translateY(-50%);
+    display: flex; align-items: center; gap: 8px; padding: 13px 10px 13px 16px;
+    border: 1px solid #D3DCE6; border-right: 0; border-radius: 22px 0 0 22px;
+    background: rgba(255,255,255,.94); color: var(--primary); box-shadow: 0 6px 20px rgba(20,40,60,.08);
+    font-family: inherit; font-size: .78rem; font-weight: 700; line-height: 1; cursor: pointer;
+  }
+  .mobile-login-arrow { font-size: 1.15rem; transition: transform .2s ease; }
+  .mobile-login-next:active .mobile-login-arrow { transform: translateX(3px); }
+  .ongil-home .login-card {
+    position: relative; border: 0; border-radius: 0; padding: 64px 28px 32px;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .mobile-login-back {
+    position: absolute; top: max(18px, env(safe-area-inset-top)); left: 20px;
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px;
+    border: 0; background: transparent; color: var(--text-secondary);
+    font-family: inherit; font-size: .8rem; font-weight: 600; line-height: 1; cursor: pointer;
+  }
+  .ongil-home .app-footer { display: none; }
 }
 @media (max-width: 480px) {
   .page-content { padding: 24px 16px; }
-  .ongil-home .login-container { padding: 16px 12px; }
   .ongil-signature { padding: 24px; }
   .ongil-intro-copy { padding: 28px 24px; }
   .ongil-intro h2 { font-size: 1.85rem; }
