@@ -60,6 +60,31 @@
       margin-bottom: 20px;
     }
 
+    .personal-report {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+    .report-heading { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:16px; }
+    .report-heading h2 { font-size:1.08rem; font-weight:850; color:var(--text); }
+    .report-heading p { margin-top:4px; font-size:.78rem; color:var(--text-muted); }
+    .report-period { background:var(--surface-2); color:var(--primary); border:1px solid var(--border); border-radius:100px; padding:6px 10px; font-size:.72rem; font-weight:800; white-space:nowrap; }
+    .report-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .report-metric { padding:14px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface-2); }
+    .report-metric-label { font-size:.7rem; color:var(--text-muted); font-weight:700; }
+    .report-metric-value { margin-top:5px; color:var(--text); font-size:1.15rem; font-weight:900; }
+    .report-metric-note { margin-top:3px; color:var(--text-secondary); font-size:.68rem; }
+    .report-insights { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+    .report-insight { padding:12px 14px; border-left:3px solid var(--primary); border-radius:0 var(--radius-sm) var(--radius-sm) 0; background:#f7f9fc; color:var(--text-secondary); font-size:.8rem; line-height:1.55; }
+    .report-disclaimer { margin-top:12px; color:var(--text-muted); font-size:.68rem; }
+    .achievement-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+    .achievement-badge { display:inline-flex; align-items:center; gap:6px; padding:8px 11px; border:1px solid var(--border); border-radius:100px; background:#fff; color:var(--text-secondary); font-size:.74rem; font-weight:750; }
+    .achievement-badge.earned { border-color:rgba(0,77,191,.24); background:#eff5fc; color:var(--primary); }
+    .inbody-report { margin-top:12px; padding:13px 14px; border-radius:var(--radius-md); background:#f5f6f8; color:var(--text-secondary); font-size:.78rem; line-height:1.55; }
+
     @media (max-width: 600px) {
       .hero-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .streak-section { flex-direction: column; text-align: center; gap: 12px; padding: 16px; }
@@ -480,6 +505,10 @@
       .week-date-label { font-size: 0.6rem; }
       .activity-date { min-width: 70px; font-size: 0.78rem; }
       .activity-summary { font-size: 0.78rem; }
+      .personal-report { padding:16px; }
+      .report-heading { flex-direction:column; }
+      .report-metrics { grid-template-columns:repeat(2,1fr); }
+      .report-insights { grid-template-columns:1fr; }
     }
 
   </style>

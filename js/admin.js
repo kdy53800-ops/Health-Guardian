@@ -8,6 +8,7 @@ let allUsers = [];
 let allRecords = [];
 let fetchedUsers = [];
 let fetchedRecords = [];
+let adminInbodyLatest = {};
 let filterSpecialOnly = false;
 let filterGender = 'all';
 let filterAge = 'all';
@@ -173,6 +174,7 @@ async function enterAdmin() {
   const payload = await fetchAdminData();
   fetchedUsers = (payload && Array.isArray(payload.users)) ? payload.users : [];
   fetchedRecords = (payload && Array.isArray(payload.records)) ? payload.records : [];
+  adminInbodyLatest = (payload && payload.inbodyLatest && typeof payload.inbodyLatest === 'object') ? payload.inbodyLatest : {};
   
   applyFilter();
   syncFilterUI();
@@ -196,7 +198,97 @@ function renderAll() {
   }
 
   renderPlatformStats();
+  renderAttentionBoard();
   renderCharts();
+}
+
+function adminRecordMinutes(record) {
+  return (Number(record.walking) || 0) + (Number(record.running) || 0)
+    + (record.customExercises || []).reduce((total, exercise) => total + (Number(exercise.duration) || 0), 0);
+}
+
+function dateDaysAgo(days) {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return Infinity;
+  const todayDate = new Date(`${dateDaysAgo(0)}T00:00:00`);
+  const targetDate = new Date(`${dateStr}T00:00:00`);
+  return Math.floor((todayDate - targetDate) / 86400000);
+}
+
+function renderAttentionBoard() {
+  const list = document.getElementById('attentionList');
+  const summary = document.getElementById('attentionSummary');
+  const total = document.getElementById('attentionTotal');
+  if (!list || !summary || !total) return;
+
+  const userMap = new Map(allUsers.map(user => [String(user.id), user]));
+  const recordsByUser = new Map();
+  allRecords.forEach(record => {
+    const key = String(record.userId);
+    if (!recordsByUser.has(key)) recordsByUser.set(key, []);
+    recordsByUser.get(key).push(record);
+  });
+  recordsByUser.forEach(records => records.sort((a,b) => String(a.date).localeCompare(String(b.date))));
+
+  const signals = [];
+  const counts = { inactive:0, decrease:0, weight:0, special:0, inbody:0 };
+  const add = (user, type, icon, reason, priority) => {
+    counts[type] += 1;
+    signals.push({ user, type, icon, reason, priority });
+  };
+  const recentStart = dateDaysAgo(6), previousStart = dateDaysAgo(13), previousEnd = dateDaysAgo(7), monthStart = dateDaysAgo(29);
+
+  userMap.forEach((user, userId) => {
+    const records = recordsByUser.get(userId) || [];
+    const latest = records[records.length - 1];
+    const inactiveDays = latest ? daysSince(latest.date) : Infinity;
+    if (inactiveDays >= 7) add(user, 'inactive', '🕒', latest ? `${inactiveDays}일 동안 새 기록이 없습니다.` : '아직 작성된 건강 기록이 없습니다.', 3);
+
+    const recentMinutes = records.filter(r => r.date >= recentStart).reduce((sum,r) => sum + adminRecordMinutes(r), 0);
+    const previousMinutes = records.filter(r => r.date >= previousStart && r.date <= previousEnd).reduce((sum,r) => sum + adminRecordMinutes(r), 0);
+    if (previousMinutes >= 60 && recentMinutes < previousMinutes * .6) {
+      const decrease = Math.round((1 - recentMinutes / previousMinutes) * 100);
+      add(user, 'decrease', '📉', `운동 시간이 직전 7일보다 ${decrease}% 감소했습니다.`, 2);
+    }
+
+    const weights = records.filter(r => r.date >= monthStart && Number(r.weight) > 0);
+    if (weights.length >= 2) {
+      const first = Number(weights[0].weight), last = Number(weights[weights.length - 1].weight);
+      const change = first ? (last - first) / first * 100 : 0;
+      if (Math.abs(change) >= 3) add(user, 'weight', '⚖️', `최근 30일 체중 기록이 ${change > 0 ? '+' : ''}${change.toFixed(1)}% 변했습니다.`, 1);
+    }
+
+    if (user.isSpecial && inactiveDays >= 3) add(user, 'special', '⭐', latest ? `특별관리 대상자의 마지막 기록은 ${latest.date}입니다.` : '특별관리 대상자의 첫 기록 확인이 필요합니다.', 4);
+    if (user.isSpecial) {
+      const inbodyDate = adminInbodyLatest[userId];
+      const elapsed = daysSince(inbodyDate);
+      if (!inbodyDate || elapsed >= 90) add(user, 'inbody', '💪', inbodyDate ? `마지막 인바디 측정 후 ${elapsed}일이 지났습니다.` : '등록된 인바디 측정 기록이 없습니다.', 2);
+    }
+  });
+
+  const uniqueUsers = new Set(signals.map(signal => String(signal.user.id))).size;
+  total.textContent = `${uniqueUsers}명`;
+  const summaryItems = [
+    ['inactive','7일 이상 미기록'], ['decrease','운동량 감소'], ['weight','체중 변화'], ['special','특별관리 확인'], ['inbody','인바디 재측정']
+  ];
+  summary.innerHTML = summaryItems.map(([key,label]) => `<div class="attention-summary-item"><strong>${counts[key]}</strong><span>${label}</span></div>`).join('');
+
+  if (!signals.length) {
+    list.innerHTML = '<div class="attention-empty" style="grid-column:1/-1;">현재 기준으로 확인이 필요한 사용자가 없습니다.</div>';
+    return;
+  }
+  signals.sort((a,b) => b.priority - a.priority || String(a.user.name).localeCompare(String(b.user.name), 'ko'));
+  list.innerHTML = signals.slice(0, 12).map(signal => `
+    <div class="attention-row">
+      <span class="attention-icon" aria-hidden="true">${signal.icon}</span>
+      <div class="attention-copy"><div class="attention-name">${escapeHtml(signal.user.name || signal.user.username || '사용자')}</div><div class="attention-reason">${escapeHtml(signal.reason)}</div></div>
+    </div>`).join('');
 }
 
 function renderPlatformStats() {

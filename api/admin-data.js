@@ -4,6 +4,7 @@ const { requireAdminSession } = require('./_lib/admin-auth');
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(payload));
 }
 
@@ -60,10 +61,15 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // 1. 프로필은 그대로 가져옴 (사용자 수가 1000명을 넘는 경우는 드물지만, 안전을 위해 기본 유지)
-    const profiles = await fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
-      headers: { Accept: 'application/json' },
-    });
+    // 1. 프로필과 인바디 최근 측정일을 함께 조회
+    const [profiles, inbodyDates] = await Promise.all([
+      fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
+        headers: { Accept: 'application/json' },
+      }),
+      fetchSupabase('/rest/v1/inbody_records?select=user_id,record_date&order=record_date.desc&limit=1000', {
+        headers: { Accept: 'application/json' },
+      }),
+    ]);
 
     // 2. 일별 기록은 1000건 제한을 피하기 위해 페이지네이션 수행 (최대 30,000건까지)
     let allRecords = [];
@@ -83,10 +89,18 @@ module.exports = async function handler(req, res) {
       if (records.length < 1000) break;
     }
 
+    const inbodyLatest = {};
+    if (Array.isArray(inbodyDates)) {
+      inbodyDates.forEach(record => {
+        if (record.user_id && !inbodyLatest[record.user_id]) inbodyLatest[record.user_id] = record.record_date;
+      });
+    }
+
     sendJson(res, 200, {
       ok: true,
       users: Array.isArray(profiles) ? profiles.map(mapProfile) : [],
       records: Array.isArray(allRecords) ? allRecords.map(mapRecord) : [],
+      inbodyLatest,
     });
   } catch (error) {
     sendJson(res, 500, {

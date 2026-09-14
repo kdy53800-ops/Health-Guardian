@@ -48,7 +48,7 @@ function renderDashboard() {
     main.innerHTML = `
       <div class="page-header">
         <h1><div class="page-icon">📊</div> 대시보드</h1>
-        <p class="subtitle" id="navUsername2">${currentUser.name}님의 건강 통계</p>
+        <p class="subtitle" id="navUsername2">${escapeHtml(currentUser.name)}님의 건강 통계</p>
       </div>
       <div class="empty-state">
         <div class="empty-icon">📊</div>
@@ -82,6 +82,7 @@ function renderDashboard() {
 
   const avgWater    = weekRecords.length ? Math.round(avg(weekRecords, 'water')) : 0;
   const avgCondition = weekRecords.length ? (avg(weekRecords, 'condition')).toFixed(1) : '-';
+  const personalReport = buildPersonalReport(streak);
 
   // 어제 목표 달성률 계산 (Walking, Running, CustomEx, Water, Fasting)
   let yesterdayPct = 0;
@@ -106,7 +107,7 @@ function renderDashboard() {
     <!-- Page Header -->
     <div class="page-header">
       <h1><div class="page-icon">📊</div> 대시보드</h1>
-      <p class="subtitle">${currentUser.name}님의 건강 통계 &nbsp;·&nbsp; 총 <strong>${userRecords.length}일</strong> 기록</p>
+      <p class="subtitle">${escapeHtml(currentUser.name)}님의 건강 통계 &nbsp;·&nbsp; 총 <strong>${userRecords.length}일</strong> 기록</p>
     </div>
 
     <!-- Streak -->
@@ -118,6 +119,8 @@ function renderDashboard() {
         <p>${streak > 0 ? '지금 이 흐름을 유지하세요! 💪' : '오늘 기록을 시작해 스트릭을 시작하세요!'}</p>
       </div>
     </div>
+
+    ${renderPersonalReport(personalReport)}
 
     <!-- Ranking Top 5 -->
     <div class="section-header mb-12">
@@ -318,6 +321,128 @@ function renderDashboard() {
   renderRecentActivity();
   renderCustomExSummary('7');
   fetchAndRenderRanking();
+  loadInbodyReport();
+}
+
+function recordExerciseMinutes(record) {
+  const custom = (record.customExercises || []).reduce((total, exercise) => total + (Number(exercise.duration) || 0), 0);
+  return (Number(record.walking) || 0) + (Number(record.running) || 0) + custom;
+}
+
+function recordsBetween(start, end) {
+  return userRecords.filter(record => record.date >= start && record.date <= end);
+}
+
+function shiftDate(dateStr, days) {
+  const date = new Date(`${dateStr}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return localDateStr(date);
+}
+
+function goalAchievement(record) {
+  const goals = userGoals || GoalDefaults;
+  const checks = [];
+  if (goals.walking > 0) checks.push((Number(record.walking) || 0) >= goals.walking);
+  if (goals.running > 0) checks.push((Number(record.running) || 0) >= goals.running);
+  if (goals.water > 0) checks.push((Number(record.water) || 0) >= goals.water);
+  if (goals.fasting > 0) checks.push((Number(record.fasting) || 0) >= goals.fasting);
+  if (goals.customEx > 0) {
+    const custom = (record.customExercises || []).reduce((total, exercise) => total + (Number(exercise.duration) || 0), 0);
+    checks.push(custom >= goals.customEx);
+  }
+  return checks.length ? Math.round(checks.filter(Boolean).length / checks.length * 100) : 0;
+}
+
+function buildPersonalReport(streak) {
+  const end = today();
+  const recent7 = recordsBetween(shiftDate(end, -6), end);
+  const previous7 = recordsBetween(shiftDate(end, -13), shiftDate(end, -7));
+  const recent30 = recordsBetween(shiftDate(end, -29), end);
+  const recentMinutes = recent7.reduce((total, record) => total + recordExerciseMinutes(record), 0);
+  const previousMinutes = previous7.reduce((total, record) => total + recordExerciseMinutes(record), 0);
+  const exerciseChange = previousMinutes > 0 ? Math.round((recentMinutes - previousMinutes) / previousMinutes * 100) : null;
+  const goalRate = recent7.length ? Math.round(recent7.reduce((total, record) => total + goalAchievement(record), 0) / recent7.length) : 0;
+  const weights = recent30.filter(record => Number(record.weight) > 0);
+  const weightChange = weights.length > 1 ? Number((weights[weights.length - 1].weight - weights[0].weight).toFixed(1)) : null;
+  const strengthMinutes = recent7.reduce((total, record) => total + (record.customExercises || [])
+    .filter(exercise => exercise.category === '근력')
+    .reduce((sum, exercise) => sum + (Number(exercise.duration) || 0), 0), 0);
+
+  const insights = [];
+  if (!recent7.length) insights.push('최근 7일 기록이 없습니다. 오늘 가능한 활동부터 가볍게 기록해 보세요.');
+  else if (exerciseChange != null && exerciseChange >= 10) insights.push(`최근 7일 운동 시간이 직전 7일보다 ${exerciseChange}% 늘었습니다. 현재 흐름을 이어가 보세요.`);
+  else if (exerciseChange != null && exerciseChange <= -20) insights.push(`최근 7일 운동 시간이 직전 7일보다 ${Math.abs(exerciseChange)}% 줄었습니다. 부담 없는 활동부터 다시 시작해 보세요.`);
+  else insights.push(`최근 7일 동안 ${recent7.length}일, 총 ${recentMinutes}분의 활동을 기록했습니다.`);
+  if (recent7.length >= 3 && strengthMinutes === 0) insights.push('걷기·러닝 기록에 비해 근력 운동 기록이 없습니다. 생활 패턴에 맞는 근력 활동도 함께 기록해 보세요.');
+  else if (goalRate >= 80) insights.push(`최근 7일 평균 목표 달성률이 ${goalRate}%입니다. 꾸준한 기록 습관이 잘 이어지고 있습니다.`);
+  else insights.push('목표 달성률은 개인 목표 설정값을 기준으로 계산됩니다. 부담되면 기록 화면에서 목표를 조정할 수 있습니다.');
+
+  const thisMonth = end.slice(0, 7);
+  const currentMonthRecords = userRecords.filter(record => record.date.startsWith(thisMonth));
+  const currentMonthMinutes = currentMonthRecords.reduce((total, record) => total + recordExerciseMinutes(record), 0);
+  const endDate = new Date(`${end}T00:00:00`);
+  const date = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 1);
+  const previousMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const previousMonthLastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const comparisonDay = Math.min(new Date(`${end}T00:00:00`).getDate(), previousMonthLastDay);
+  const previousMonthCutoff = `${previousMonth}-${String(comparisonDay).padStart(2, '0')}`;
+  const previousMonthMinutes = userRecords.filter(record => record.date.startsWith(previousMonth) && record.date <= previousMonthCutoff).reduce((total, record) => total + recordExerciseMinutes(record), 0);
+  const monthChange = previousMonthMinutes ? Math.round((currentMonthMinutes - previousMonthMinutes) / previousMonthMinutes * 100) : null;
+  const monthlyGoalRate = currentMonthRecords.length ? Math.round(currentMonthRecords.reduce((total, record) => total + goalAchievement(record), 0) / currentMonthRecords.length) : 0;
+  const recentBest = recent7.reduce((best, record) => Math.max(best, recordExerciseMinutes(record)), 0);
+  const olderBest = userRecords.filter(record => record.date < shiftDate(end, -6)).reduce((best, record) => Math.max(best, recordExerciseMinutes(record)), 0);
+  const weeklyPersonalBest = recentBest > 0 && recentBest >= olderBest;
+
+  return { recent7, recent30, recentMinutes, goalRate, monthlyGoalRate, weightChange, exerciseChange, monthChange, insights, streak, weeklyPersonalBest };
+}
+
+function renderPersonalReport(report) {
+  const changeText = report.exerciseChange == null ? '비교 기록 필요' : `${report.exerciseChange >= 0 ? '+' : ''}${report.exerciseChange}%`;
+  const weightText = report.weightChange == null ? '측정 2회 필요' : `${report.weightChange > 0 ? '+' : ''}${report.weightChange}kg`;
+  const monthText = report.monthChange == null ? '지난달 기록 필요' : `${report.monthChange >= 0 ? '+' : ''}${report.monthChange}%`;
+  const badges = [
+    { icon:'🌱', label:'첫 기록', earned:userRecords.length >= 1 },
+    { icon:'🔥', label:'7일 연속', earned:report.streak >= 7 },
+    { icon:'🎯', label:'이달 목표 80%', earned:report.monthlyGoalRate >= 80 },
+    { icon:'🏃', label:'주 150분', earned:report.recentMinutes >= 150 },
+    { icon:'🏅', label:'이번 주 개인 최고', earned:report.weeklyPersonalBest },
+  ];
+  return `
+    <section class="personal-report" aria-labelledby="personalReportTitle">
+      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강 리포트</h2><p>최근 기록을 생활 습관 관점에서 정리했어요.</p></div><span class="report-period">최근 7일 · 30일</span></div>
+      <div class="report-metrics">
+        <div class="report-metric"><div class="report-metric-label">7일 운동 시간</div><div class="report-metric-value">${report.recentMinutes.toLocaleString()}분</div><div class="report-metric-note">직전 7일 대비 ${changeText}</div></div>
+        <div class="report-metric"><div class="report-metric-label">목표 달성률</div><div class="report-metric-value">${report.goalRate}%</div><div class="report-metric-note">기록한 날의 평균</div></div>
+        <div class="report-metric"><div class="report-metric-label">30일 체중 변화</div><div class="report-metric-value">${weightText}</div><div class="report-metric-note">첫 기록과 최근 기록 비교</div></div>
+        <div class="report-metric"><div class="report-metric-label">월 운동 변화</div><div class="report-metric-value">${monthText}</div><div class="report-metric-note">지난달 같은 기간 대비</div></div>
+      </div>
+      <div class="report-insights">${report.insights.map(text => `<div class="report-insight">${escapeHtml(text)}</div>`).join('')}</div>
+      <div class="achievement-badges" aria-label="나의 성취 배지">${badges.map(badge => `<span class="achievement-badge ${badge.earned ? 'earned' : ''}" aria-label="${badge.label} ${badge.earned ? '달성' : '미달성'}"><span aria-hidden="true">${badge.earned ? badge.icon : '○'}</span>${badge.label}</span>`).join('')}</div>
+      <div class="inbody-report" id="inbodyReport" role="status">체성분 변화 기록을 확인하는 중입니다.</div>
+      <p class="report-disclaimer">이 리포트는 입력 기록의 변화와 생활 습관을 요약하며 의료적 진단이나 치료 판단을 제공하지 않습니다.</p>
+    </section>`;
+}
+
+async function loadInbodyReport() {
+  const target = document.getElementById('inbodyReport');
+  if (!target) return;
+  try {
+    const response = await fetch(new URL('api/inbody-data', window.location.href).toString(), { credentials:'include', headers:{Accept:'application/json'} });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !Array.isArray(payload.records) || payload.records.length < 2) {
+      target.textContent = '체성분 변화 비교는 인바디 측정 기록이 2회 이상일 때 표시됩니다.';
+      return;
+    }
+    const records = [...payload.records].sort((a,b) => String(a.record_date).localeCompare(String(b.record_date)));
+    const first = records[0], latest = records[records.length - 1];
+    const delta = (key, unit) => {
+      const change = Number(latest[key]) - Number(first[key]);
+      return Number.isFinite(change) ? `${change > 0 ? '+' : ''}${change.toFixed(1)}${unit}` : '-';
+    };
+    target.textContent = `인바디 첫 측정 대비 최근 변화: 체중 ${delta('weight','kg')}, 골격근량 ${delta('skeletal_muscle','kg')}, 체지방률 ${delta('body_fat_percent','%')}`;
+  } catch (error) {
+    target.textContent = '체성분 변화 기록을 불러오지 못했습니다. 인바디 화면에서 다시 확인해 주세요.';
+  }
 }
 
 // ─── Week Grid (최근 7일 동적 요일) ───────────────────────
