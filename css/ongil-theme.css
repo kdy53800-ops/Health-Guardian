@@ -8,13 +8,13 @@
   --gold: var(--hope);
   --gold-light: #D9F0FF;
   --gold-dark: #0068AD;
-  --bg: #F4F8FC;
+  --bg: #F7F8FA;
   --surface: #fff;
-  --surface-2: #F0F7FD;
-  --border: #DCE7F2;
-  --text: #17324D;
-  --text-secondary: #4E657C;
-  --text-muted: #61758A;
+  --surface-2: #F5F6F8;
+  --border: #E3E6EB;
+  --text: #29333F;
+  --text-secondary: #596572;
+  --text-muted: #677482;
   --shadow-sm: 0 3px 16px rgba(0, 58, 145, .035);
   --shadow-md: 0 8px 28px rgba(0, 58, 145, .065);
   --shadow-lg: 0 16px 48px rgba(0, 58, 145, .10);
@@ -22,14 +22,14 @@
   --radius-lg: 22px;
 }
 body { background: var(--bg); color: var(--text); }
-.top-nav { background: var(--primary); box-shadow: 0 2px 12px rgba(0,58,145,.12); }
-.nav-brand-name span { color: #C5EAFF; }
-.nav-links a.active { background: #fff; color: var(--primary); }
+.top-nav { background: #fff; border-bottom: 1px solid var(--border); box-shadow: 0 2px 12px rgba(30,40,50,.035); }
+.nav-brand-name span { color: var(--primary); }
+.nav-links a.active { background: #EFF5FC; color: var(--primary); }
 .nav-avatar, .drawer-avatar { background: #D9F0FF; color: var(--primary-dark); }
 .admin-badge { background: #D9F0FF; color: var(--primary-dark); }
 .page-content { padding-top: 36px; padding-bottom: 44px; }
 .page-header { margin-bottom: 28px; }
-.page-header h1 { letter-spacing: -.035em; color: var(--primary-dark); }
+.page-header h1 { letter-spacing: -.035em; color: var(--text); }
 .page-header h1 .page-icon { background: #E3F2FF; box-shadow: none; }
 .card, .stat-card, .record-card { border-color: var(--border); box-shadow: var(--shadow-sm); }
 .card-header { border-bottom-color: #E7EFF7; }
@@ -43,9 +43,9 @@ body { background: var(--bg); color: var(--text); }
 .form-control { background: #FBFDFF; border-color: #CFDDEB; border-radius: 12px; }
 .form-control:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 3px #E1F0FF; }
 .progress-wrap { background: #E5EFF8; }
-.drawer-header { background: var(--primary); }
+.drawer-header { background: #F5F6F8; border-bottom: 1px solid var(--border); }
 .drawer-nav-item.active { background: #E7F3FF; color: var(--primary); }
-.sub-nav-tabs a.active { background: var(--primary); color: white; }
+.sub-nav-tabs a.active { background: #EFF5FC; color: var(--primary); box-shadow: inset 0 -2px var(--primary); }
 .app-footer { background: #fff; border-top: 1px solid var(--border); padding: 36px 24px; }
 .footer-hospital-wordmark { width: 340px; padding: 12px; box-sizing: content-box; max-width: calc(100% - 24px); }
 .footer-info-label, .footer-copyright { color: var(--text-muted); }
@@ -54,8 +54,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   outline: 3px solid #0086E0; outline-offset: 4px;
 }
 
-/* A calm split layout: official signature on white, blue content panel. */
-.ongil-home { background: #F4F8FC; }
+/* Neutral surfaces with brand blue reserved for small accents. */
+.ongil-home { background: var(--bg); }
 .ongil-home .login-container {
   width: 100%; min-height: 90vh; max-width: 1320px; margin: 0 auto;
   display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
@@ -63,21 +63,21 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .ongil-intro {
   display: flex; flex-direction: column; overflow: hidden;
-  border-radius: 28px 0 0 28px; background: var(--primary); color: white;
+  border-radius: 28px 0 0 28px; background: #F2F4F6; color: var(--text);
 }
 .ongil-signature { background: #fff; padding: 32px 40px; border: 1px solid var(--border); }
 .ongil-signature img { display: block; width: 390px; max-width: 100%; height: auto; }
 .ongil-intro-copy { padding: 56px 44px 40px; flex: 1; }
 .ongil-eyebrow { font-size: .8rem; font-weight: 700; letter-spacing: .06em; color: var(--primary); margin: 0 0 16px; }
-.ongil-intro .ongil-eyebrow { color: #C2E9FF; }
-.ongil-intro h2 { font-size: clamp(2rem, 3.2vw, 3rem); line-height: 1.3; letter-spacing: -.045em; color: #fff; word-break: keep-all; }
-.ongil-description { color: #DCECFF; line-height: 1.9; margin-top: 24px; font-size: 1rem; word-break: keep-all; }
+.ongil-intro .ongil-eyebrow { color: var(--primary); }
+.ongil-intro h2 { font-size: clamp(2rem, 3.2vw, 3rem); line-height: 1.3; letter-spacing: -.045em; color: var(--text); word-break: keep-all; }
+.ongil-description { color: var(--text-secondary); line-height: 1.9; margin-top: 24px; font-size: 1rem; word-break: keep-all; }
 .ongil-steps { margin-top: 48px; display: grid; gap: 22px; }
 .ongil-steps > div { display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; align-items: baseline; }
-.ongil-steps span { color: #BFE7FF; font-size: .75rem; font-weight: 700; }
+.ongil-steps span { color: var(--primary); font-size: .75rem; font-weight: 700; }
 .ongil-steps strong { font-size: 1rem; }
-.ongil-steps p { grid-column: 2; color: #DCECFF; font-size: .84rem; margin-top: 4px; }
-.ongil-intro-note { margin: 0; padding: 24px 44px; border-top: 1px solid rgba(255,255,255,.2); font-size: .8rem; color: #DCECFF; }
+.ongil-steps p { grid-column: 2; color: var(--text-secondary); font-size: .84rem; margin-top: 4px; }
+.ongil-intro-note { margin: 0; padding: 24px 44px; border-top: 1px solid var(--border); font-size: .8rem; color: var(--text-secondary); }
 .ongil-home .login-card {
   width: 100%; max-width: none; border-radius: 0 28px 28px 0; background: white;
   border: 1px solid var(--border); padding: 44px 40px; box-shadow: none;
@@ -86,11 +86,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .ongil-home .logo-area { margin-bottom: 8px; }
 .ongil-home .logo-img { width: 72px; height: 72px; padding: 8px; margin-bottom: 20px; box-shadow: none; border-radius: 0; }
-.ongil-home .brand-name { color: var(--primary-dark); font-size: 2.1rem; letter-spacing: -.045em; }
+.ongil-home .brand-name { color: var(--text); font-size: 2.1rem; letter-spacing: -.045em; }
 .ongil-home .tagline { color: var(--text-secondary); font-size: .95rem; }
 .ongil-home .badge-group { flex-wrap: wrap; margin-top: 22px; }
-.ongil-home .badge { background: #EDF7FF; color: #0062A6; border-color: #D6EBFA; }
-.ongil-home .welcome-section { background: #F5F9FD; border: 1px solid #E3EDF6; padding: 22px; border-radius: 16px; margin: 28px 0 0; text-align: left; }
+.ongil-home .badge { background: #F5F6F8; color: var(--text-secondary); border-color: var(--border); }
+.ongil-home .welcome-section { background: #F8F9FA; border: 1px solid var(--border); padding: 22px; border-radius: 16px; margin: 28px 0 0; text-align: left; }
 .ongil-home .welcome-title { color: var(--text); font-size: .95rem; margin-bottom: 10px; }
 .ongil-home .welcome-text { color: var(--text-secondary); font-size: .86rem; }
 .ongil-home .btn-naver { margin: 28px 0 16px; border-radius: 12px; box-shadow: none; height: 56px; font-size: 1rem; }
@@ -123,3 +123,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Text and controls remain readable on the neutral navigation surfaces. */
+.nav-brand, .nav-brand-name, .nav-user, .nav-profile-btn,
+.drawer-user-name, .drawer-close-btn { color: var(--text); }
+.nav-links a { color: var(--text-secondary); }
+.nav-links a:hover { background: #F3F5F7; color: var(--primary); }
+.nav-profile-btn { background: #F7F8FA; border-color: var(--border); }
+.nav-profile-btn:hover { background: #EEF1F5; }
+.nav-hamburger, .drawer-close-btn { background: #EEF1F5; color: var(--text); }
+.nav-hamburger:active, .drawer-close-btn:hover { background: #E3E8EE; }
+.drawer-user-sub { color: var(--text-secondary); }
+.btn-logout { color: var(--text-secondary); border-color: var(--border); }
+.btn-logout:hover { background: #F3F5F7; color: var(--text); }
+.record-summary-bar, .streak-section {
+  background: #fff; color: var(--text); border: 1px solid var(--border);
+}
+.summary-date span, .summary-stat-val, .streak-info .streak-count { color: var(--primary); }
+.summary-stat-lbl, .streak-info h2, .streak-info p { color: var(--text-secondary); }
+#adminLoginOverlay { background: #F3F5F7; }
