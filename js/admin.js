@@ -302,12 +302,12 @@ function renderDailyChart() {
       datasets: [{
         label: '기록 수',
         data: counts,
-        borderColor: '#004680',
-        backgroundColor: 'rgba(0,70,128,0.08)',
+        borderColor: '#004DBF',
+        backgroundColor: 'rgba(0,77,191,0.08)',
         fill: true,
         tension: 0.4,
         pointRadius: labels.length > 31 ? 0 : 3, // 데이터 많으면 포인트 생략
-        pointBackgroundColor: '#004680',
+        pointBackgroundColor: '#004DBF',
       }],
     },
     options: {
@@ -455,7 +455,7 @@ function renderExerciseAvgChart() {
       datasets: [{
         label: '1회 평균 데이터',
         data: averages,
-        backgroundColor: ['#22c55e', '#06b6d4', '#004680', '#8b5cf6', '#f97316'],
+        backgroundColor: ['#22c55e', '#06b6d4', '#004DBF', '#8b5cf6', '#f97316'],
         borderRadius: 6,
       }],
     },
@@ -797,7 +797,7 @@ function viewUser(userId) {
           datasets: [{
             label: '기록 여부',
             data: counts30,
-            backgroundColor: counts30.map(v => (v ? '#004680' : 'rgba(0,70,128,0.15)')),
+            backgroundColor: counts30.map(v => (v ? '#004DBF' : 'rgba(0,77,191,0.15)')),
             borderRadius: 4,
           }],
         },
@@ -818,9 +818,9 @@ function viewUser(userId) {
 
     const catCfgs = [
       { key: '유산소', color: '#22c55e' },
-      { key: '근력', color: '#004680' },
+      { key: '근력', color: '#004DBF' },
       { key: '유연성', color: '#8b5cf6' },
-      { key: '스포츠', color: '#DDCA4B' },
+      { key: '스포츠', color: '#0099FF' },
     ];
     const catTotals = { 유산소: 0, 근력: 0, 유연성: 0, 스포츠: 0 };
     recs.forEach(record => {

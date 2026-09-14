@@ -35,23 +35,6 @@
       padding: 20px 0;
     }
 
-    /* 밝은 배경 이미지 및 오버레이 */
-    .bg-image {
-      position: absolute;
-      inset: 0;
-      background: url('health_guardian_bright_hero_1776476490660.png') no-repeat center center;
-      background-size: cover;
-      filter: brightness(1.05) saturate(1.1);
-      z-index: 1;
-    }
-
-    .bg-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(240, 249, 255, 0.6) 100%);
-      z-index: 2;
-    }
-
     /* 메인 콘텐츠 카드 (더 밝고 깨끗한 글래스모피즘) */
     .login-card {
       position: relative;
@@ -245,7 +228,7 @@
     }
 
     .welcome-highlight {
-      color: #004680;
+      color: #004DBF;
       font-weight: 700;
     }
 
@@ -272,20 +255,33 @@
       .badge { font-size: 0.72rem; padding: 6px 10px; }
     }
   </style>
+  <link rel="stylesheet" href="css/ongil-theme.css">
 </head>
-<body>
+<body class="ongil-home">
   <div class="login-container">
-    <div class="bg-image"></div>
-    <div class="bg-overlay"></div>
+    <section class="ongil-intro" aria-labelledby="ongil-intro-title">
+      <div class="ongil-signature"><img src="images/ongil-hospital.png" alt="의료법인 온길의료재단 해운대 나눔과행복병원" width="1942" height="274"></div>
+      <div class="ongil-intro-copy">
+        <p class="ongil-eyebrow">당신의 일상과 함께 걷는 온길</p>
+        <h2 id="ongil-intro-title">작은 기록이 모여,<br>건강한 일상으로.</h2>
+        <p class="ongil-description">오늘의 움직임부터 몸의 변화까지.<br>나에게 맞는 속도로, 건강한 습관을 이어가세요.</p>
+        <div class="ongil-steps" aria-label="건강 관리 기능">
+          <div><span>01</span><strong>매일의 기록</strong><p>운동과 생활 습관을 차곡차곡</p></div>
+          <div><span>02</span><strong>변화의 발견</strong><p>기록과 분석으로 나를 이해하기</p></div>
+          <div><span>03</span><strong>꾸준한 동행</strong><p>더 건강한 내일을 함께 준비하기</p></div>
+        </div>
+      </div>
+      <p class="ongil-intro-note">온전한 회복 · 따뜻한 동행 · 계속되는 일상</p>
+    </section>
 
     <div class="login-card">
       <div class="logo-area">
         <div class="logo-img">
           <img src="images/ongil-symbol.png" alt="해운대 나눔과행복병원 로고" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
-        <img class="hospital-wordmark login-hospital-wordmark" src="images/ongil-hospital.png" alt="의료법인 온길의료재단 해운대 나눔과행복병원" width="1942" height="274">
+        <p class="ongil-eyebrow">나의 건강한 하루</p>
         <h1 class="brand-name">건강지킴이</h1>
-        <p class="tagline">당신의 활기찬 일상을 위한<br>스마트한 건강 파트너</p>
+        <p class="tagline">기록하고, 돌아보고, 함께 나아가요.</p>
       </div>
 
       <div class="badge-group">
@@ -295,26 +291,8 @@
       </div>
 
       <div class="welcome-section">
-        <span class="welcome-title">건강지킴이에 오신 것을 환영합니다.</span>
-        <div class="welcome-text">
-          <p>
-            건강지킴이는<br>
-            <span class="welcome-highlight">해운대나눔과행복병원</span>에서 제공하는 건강 관리 프로그램으로,<br>
-            갑상선 환자분들의 지속적인 건강 관리와 일상 속 회복을 지원하기 위해 시작되었습니다.
-          </p>
-          <p>
-            이제 본 프로그램은 환자분들뿐 아니라,<br>
-            건강한 생활 습관을 만들어가고자 하는 모든 분들께 열려 있습니다.
-          </p>
-          <p>
-            운동 기록, 생활 관리, 신체 데이터 분석을 통해<br>
-            스스로의 변화를 확인하고, 보다 체계적인 건강 관리를 경험해보세요.
-          </p>
-          <p class="welcome-closing">
-            해운대나눔과행복병원과 함께,<br>
-            건강한 변화의 시작을 만들어가시기 바랍니다.
-          </p>
-        </div>
+        <span class="welcome-title">누구나 시작할 수 있는 건강 관리</span>
+        <div class="welcome-text"><p>갑상선 환자분들의 일상 속 회복을 돕기 위해 시작한 건강지킴이. 이제 건강한 생활 습관을 만들고 싶은 모든 분과 함께합니다.</p></div>
       </div>
 
       <div class="naver-login-wrap">

@@ -1,17 +1,17 @@
 /* ===================================================
    HEALTH GUARDIAN ??Global Design System
-   Colors: #004680 (Deep Blue), #DDCA4B (Gold), #FFFFFF
+   Colors: #004DBF (Healing Blue), #0099FF (Hope Blue), #FFFFFF
    =================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --primary: #004680;
-  --primary-light: #005fa8;
-  --primary-dark: #003360;
-  --gold: #DDCA4B;
-  --gold-light: #f0e27a;
-  --gold-dark: #b8a530;
+  --primary: #004DBF;
+  --primary-light: #0068D9;
+  --primary-dark: #003A91;
+  --gold: #0099FF;
+  --gold-light: #D9F0FF;
+  --gold-dark: #0068AD;
   --white: #FFFFFF;
   --bg: #f0f4f8;
   --surface: #FFFFFF;
@@ -23,9 +23,9 @@
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --shadow-sm: 0 2px 8px rgba(0,70,128,0.08);
-  --shadow-md: 0 4px 20px rgba(0,70,128,0.12);
-  --shadow-lg: 0 8px 40px rgba(0,70,128,0.16);
+  --shadow-sm: 0 2px 8px rgba(0,77,191,0.08);
+  --shadow-md: 0 4px 20px rgba(0,77,191,0.12);
+  --shadow-lg: 0 8px 40px rgba(0,77,191,0.16);
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
@@ -360,7 +360,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   color: var(--gold-dark);
 }
 .dropdown-item.admin-item .di-icon {
-  background: rgba(221, 202, 75, 0.15);
+  background: rgba(0,153,255, 0.15);
 }
 
 .dropdown-divider {
@@ -426,12 +426,12 @@ h4 { font-size: 1rem; font-weight: 600; }
 .btn-primary {
   background: var(--primary);
   color: var(--white);
-  box-shadow: 0 4px 12px rgba(0,70,128,0.25);
+  box-shadow: 0 4px 12px rgba(0,77,191,0.25);
 }
 
 .btn-primary:hover {
   background: var(--primary-light);
-  box-shadow: 0 6px 20px rgba(0,70,128,0.35);
+  box-shadow: 0 6px 20px rgba(0,77,191,0.35);
   transform: translateY(-1px);
 }
 
@@ -440,12 +440,12 @@ h4 { font-size: 1rem; font-weight: 600; }
 .btn-gold {
   background: var(--gold);
   color: var(--primary-dark);
-  box-shadow: 0 4px 12px rgba(221,202,75,0.3);
+  box-shadow: 0 4px 12px rgba(0,153,255,0.3);
 }
 
 .btn-gold:hover {
   background: var(--gold-light);
-  box-shadow: 0 6px 20px rgba(221,202,75,0.4);
+  box-shadow: 0 6px 20px rgba(0,153,255,0.4);
   transform: translateY(-1px);
 }
 
@@ -522,8 +522,8 @@ h4 { font-size: 1rem; font-weight: 600; }
   font-size: 0.95rem;
 }
 
-.card-icon-blue { background: rgba(0,70,128,0.1); color: var(--primary); }
-.card-icon-gold { background: rgba(221,202,75,0.2); color: var(--gold-dark); }
+.card-icon-blue { background: rgba(0,77,191,0.1); color: var(--primary); }
+.card-icon-gold { background: rgba(0,153,255,0.2); color: var(--gold-dark); }
 .card-icon-green { background: rgba(34,197,94,0.1); color: var(--success); }
 .card-icon-red { background: rgba(239,68,68,0.1); color: var(--danger); }
 
@@ -636,7 +636,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 
 .form-control:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(0,70,128,0.08);
+  box-shadow: 0 0 0 4px rgba(0,77,191,0.08);
 }
 
 .form-control::placeholder {
@@ -757,8 +757,8 @@ textarea.form-control {
   letter-spacing: 0.03em;
 }
 
-.badge-blue { background: rgba(0,70,128,0.1); color: var(--primary); }
-.badge-gold { background: rgba(221,202,75,0.25); color: var(--gold-dark); }
+.badge-blue { background: rgba(0,77,191,0.1); color: var(--primary); }
+.badge-gold { background: rgba(0,153,255,0.25); color: var(--gold-dark); }
 .badge-green { background: rgba(34,197,94,0.1); color: #16a34a; }
 .badge-red { background: rgba(239,68,68,0.1); color: #dc2626; }
 .badge-gray { background: var(--border); color: var(--text-muted); }
@@ -792,7 +792,7 @@ textarea.form-control {
   justify-content: center;
   font-size: 1.1rem;
   color: var(--white);
-  box-shadow: 0 4px 12px rgba(0,70,128,0.25);
+  box-shadow: 0 4px 12px rgba(0,77,191,0.25);
 }
 
 .page-header .subtitle {
@@ -877,8 +877,8 @@ textarea.form-control {
 }
 
 .alert-info {
-  background: rgba(0,70,128,0.07);
-  border: 1px solid rgba(0,70,128,0.15);
+  background: rgba(0,77,191,0.07);
+  border: 1px solid rgba(0,77,191,0.15);
   color: var(--primary);
 }
 
@@ -1296,11 +1296,11 @@ textarea.form-control {
 
 .drawer-nav-item.active {
   color: var(--primary);
-  background: rgba(0, 70, 128, 0.06);
+  background: rgba(0,77,191, 0.06);
 }
 
 .drawer-nav-item.active .drawer-item-icon {
-  background: rgba(0, 70, 128, 0.12);
+  background: rgba(0,77,191, 0.12);
 }
 
 .drawer-item-icon {
@@ -1383,7 +1383,7 @@ textarea.form-control {
   right: -100px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(221,202,75,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,153,255,0.12) 0%, transparent 70%);
   border-radius: 50%;
 }
 
@@ -1394,7 +1394,7 @@ textarea.form-control {
   left: -100px;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(221,202,75,0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,153,255,0.07) 0%, transparent 70%);
   border-radius: 50%;
 }
 
@@ -1425,7 +1425,7 @@ textarea.form-control {
   justify-content: center;
   font-size: 2rem;
   margin: 0 auto 14px;
-  box-shadow: 0 8px 24px rgba(0,70,128,0.3);
+  box-shadow: 0 8px 24px rgba(0,77,191,0.3);
 }
 
 .login-logo h1 {
@@ -1491,7 +1491,7 @@ textarea.form-control {
 
 .record-card:hover {
   box-shadow: var(--shadow-md);
-  border-color: rgba(0,70,128,0.2);
+  border-color: rgba(0,77,191,0.2);
   transform: translateY(-1px);
 }
 
@@ -1527,8 +1527,8 @@ textarea.form-control {
 .metric-chip .chip-icon { font-size: 0.9rem; }
 
 .metric-chip.highlight {
-  background: rgba(0,70,128,0.06);
-  border-color: rgba(0,70,128,0.15);
+  background: rgba(0,77,191,0.06);
+  border-color: rgba(0,77,191,0.15);
   color: var(--primary);
 }
 
@@ -1715,7 +1715,7 @@ textarea.form-control {
 .sub-nav-tabs a.active {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 70, 128, 0.2);
+  box-shadow: 0 4px 12px rgba(0,77,191, 0.2);
 }
 
 

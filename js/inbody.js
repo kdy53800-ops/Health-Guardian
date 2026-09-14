@@ -157,7 +157,7 @@ function renderCharts() {
   createLineChart('chartPhaseAngle', '위상각',         inbodyRecords.map(r => r.phase_angle || 0),  '#8b5cf6');
   
   // 인바디 점수는 특별히 노란색 계열로
-  createLineChart('chartScore',      '인바디 점수',     inbodyRecords.map(r => r.inbody_score),      '#ddca4b');
+  createLineChart('chartScore',      '인바디 점수',     inbodyRecords.map(r => r.inbody_score),      '#0099FF');
 }
 
 function renderRecordList() {

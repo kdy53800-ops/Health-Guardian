@@ -137,9 +137,9 @@ function renderStats(year, month, monthRecs) {
 function renderCatCards(monthRecs) {
   const catCfg = [
     { key: '유산소', icon: '🏃', color: '#16a34a',          bg: 'rgba(34,197,94,0.08)'  },
-    { key: '근력',   icon: '🏋️', color: '#004680',          bg: 'rgba(0,70,128,0.07)'   },
+    { key: '근력',   icon: '🏋️', color: '#004DBF',          bg: 'rgba(0,77,191,0.07)'   },
     { key: '유연성', icon: '🤸', color: '#8b5cf6',          bg: 'rgba(139,92,246,0.08)' },
-    { key: '스포츠', icon: '⚽', color: '#b45309',          bg: 'rgba(221,202,75,0.12)' },
+    { key: '스포츠', icon: '⚽', color: '#b45309',          bg: 'rgba(0,153,255,0.12)' },
   ];
   const catMins = { '유산소': 0, '근력': 0, '유연성': 0, '스포츠': 0 };
   monthRecs.forEach(r => {
@@ -192,7 +192,7 @@ function showRecordSummary(recId) {
   // 메모 HTML 구성
   const memoText = rec.memo ? rec.memo.trim() : '';
   const memoHtml = memoText 
-    ? `<div style="background:rgba(0,70,128,0.03);border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;font-size:0.8rem;color:var(--text-secondary);line-height:1.4;">📝 <strong>메모:</strong> ${memoText}</div>`
+    ? `<div style="background:rgba(0,77,191,0.03);border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;font-size:0.8rem;color:var(--text-secondary);line-height:1.4;">📝 <strong>메모:</strong> ${memoText}</div>`
     : `<div style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">📝 메모가 작성되지 않았습니다.</div>`;
 
   const bodyHtml = `

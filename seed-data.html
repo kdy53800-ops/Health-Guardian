@@ -6,21 +6,22 @@
   <link rel="icon" type="image/png" href="images/ongil-symbol.png">
   <style>
     body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; background: #f0f4f8; }
-    .card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,70,128,0.12); }
-    h2 { color: #004680; margin-bottom: 8px; }
+    .card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,77,191,0.12); }
+    h2 { color: #004DBF; margin-bottom: 8px; }
     p  { color: #5a7a9a; font-size: 0.9rem; margin-bottom: 20px; }
-    button { background: #004680; color: white; border: none; padding: 12px 28px;
+    button { background: #004DBF; color: white; border: none; padding: 12px 28px;
              border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; width: 100%; }
-    button:hover { background: #005fa8; }
+    button:hover { background: #0068D9; }
     #result { margin-top: 20px; padding: 14px; border-radius: 10px; font-size: 0.9rem; display: none; }
     .success { background: rgba(34,197,94,0.1); color: #15803d; border: 1px solid rgba(34,197,94,0.3); }
     .error   { background: rgba(239,68,68,0.1); color: #b91c1c; border: 1px solid rgba(239,68,68,0.3); }
     .record-list { margin-top: 10px; }
-    .record-item { padding: 5px 0; border-bottom: 1px solid rgba(0,70,128,0.1); font-size: 0.82rem; color: #003360; }
+    .record-item { padding: 5px 0; border-bottom: 1px solid rgba(0,77,191,0.1); font-size: 0.82rem; color: #003A91; }
     a.go-btn { display: block; text-align: center; margin-top: 14px; padding: 10px;
-               background: #DDCA4B; color: #003360; font-weight: 700; border-radius: 10px;
+               background: #0099FF; color: #003A91; font-weight: 700; border-radius: 10px;
                text-decoration: none; font-size: 0.9rem; }
   </style>
+  <link rel="stylesheet" href="css/ongil-theme.css">
 </head>
 <body>
   <div class="card">
@@ -144,7 +145,7 @@
         <strong>✅ 완료! ${added}개 추가됨 (${skipped}개 날짜 중복 건너뜀)</strong>
         <div class="record-list">${listHTML}</div>
         <a class="go-btn" href="dashboard.html">📊 대시보드로 이동</a>
-        <a class="go-btn" style="background:#004680; color:white; margin-top:6px" href="history.html">📋 기록 목록 보기</a>
+        <a class="go-btn" style="background:#004DBF; color:white; margin-top:6px" href="history.html">📋 기록 목록 보기</a>
       `;
     }
   </script>

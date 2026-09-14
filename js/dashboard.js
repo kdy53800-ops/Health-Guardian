@@ -10,10 +10,10 @@ let chartFilter = '7'; // '7' or '30'
 let charts = {};
 
 const CHART_COLORS = {
-  primary:    '#004680',
-  primaryBg:  'rgba(0,70,128,0.15)',
-  gold:       '#DDCA4B',
-  goldBg:     'rgba(221,202,75,0.2)',
+  primary:    '#004DBF',
+  primaryBg:  'rgba(0,77,191,0.15)',
+  gold:       '#0099FF',
+  goldBg:     'rgba(0,153,255,0.2)',
   green:      '#22c55e',
   greenBg:    'rgba(34,197,94,0.15)',
   red:        '#ef4444',
@@ -853,9 +853,9 @@ function renderCustomExSummary(period) {
   // 기간 내 카테고리별 집계
   const cats = [
     { key: '유산소',  icon: '🏊', color: '#22c55e' },
-    { key: '근력',    icon: '🏋️', color: '#004680' },
+    { key: '근력',    icon: '🏋️', color: '#004DBF' },
     { key: '유연성',  icon: '🧘', color: '#8b5cf6' },
-    { key: '스포츠',  icon: '⚽', color: '#DDCA4B' },
+    { key: '스포츠',  icon: '⚽', color: '#0099FF' },
   ];
 
   const recordMap = {};
@@ -1015,7 +1015,7 @@ async function fetchAndRenderRanking() {
       // 5위 리스트 하단에 구분선 점선(dashed)을 긋고 본인의 랭킹 및 기록을 강조 표시
       const myRankHtml = `
         <div style="margin: 12px 0 0; border-top: 1px dashed var(--border); padding-top: 12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background: rgba(0,70,128,0.03); border-radius: 8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background: rgba(0,77,191,0.03); border-radius: 8px;">
             <div style="display:flex; align-items:center; gap:12px;">
               <span style="font-weight:800; color:var(--primary); font-size: 0.85rem;">내 순위</span>
               <span style="font-weight:700; color:var(--text); font-size: 0.9rem;">${currentUser ? currentUser.name : '본인'} (본인)</span>
