@@ -402,7 +402,7 @@
 
           // 운영 환경에서는 서버가 비밀번호를 검증하고 서명된 세션 쿠키를 발급합니다.
           if (window.location.protocol.startsWith('http')) {
-            fetch('api/test-login', {
+            fetch('api/naver-login', {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
