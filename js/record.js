@@ -517,7 +517,7 @@ async function handleSave(e) {
       userRecords.push(saved);
     }
     clearRecordDraft();
-    showToast('기록이 저장되었습니다! 🎉', 'success');
+    showToast(saved._pendingSync ? '네트워크가 불안정해 이 기기에 저장했습니다. 연결되면 자동 동기화됩니다.' : '기록이 저장되었습니다! 🎉', saved._pendingSync ? 'default' : 'success');
   } catch (error) {
     console.error('[RecordSave]', error);
     if (error.code === 'duplicate_date' && error.existingRecord) {

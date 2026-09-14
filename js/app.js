@@ -22,6 +22,7 @@ const KEYS = {
   CURRENT_USER: `${APP_NAME}_userSession_v2`,
   GOALS: `${APP_NAME}_goals`,
   RECORDS_MIGRATED: `${APP_NAME}_recordsMigrated`,
+  RECORD_OUTBOX: `${APP_NAME}_recordOutbox`,
 };
 
 // ─── Auth ─────────────────────────────────────────────
@@ -118,6 +119,8 @@ const Auth = {
 
     const allRecords = JSON.parse(localStorage.getItem(KEYS.RECORDS) || '[]');
     localStorage.setItem(KEYS.RECORDS, JSON.stringify(allRecords.filter(r => String(r.userId || '') !== String(user.id))));
+    const pendingRecords = Records.getOutbox().filter(item => String(item.userId || '') !== String(user.id));
+    Records.setOutbox(pendingRecords);
     localStorage.removeItem(KEYS.GOALS + '_' + user.id);
     localStorage.removeItem(KEYS.RECORDS_MIGRATED + '_' + user.id);
     const users = this.getUsers();
@@ -224,7 +227,52 @@ const Records = {
 
   replaceUserRecords(userId, records) {
     const all = this.getAll().filter(r => r.userId !== userId);
-    writeLocalRecords([...all, ...records]);
+    const pending = this.getOutbox().filter(item => item.userId === userId).map(item => ({ ...item.record, _pendingSync: true }));
+    const pendingIds = new Set(pending.map(record => record.id));
+    writeLocalRecords([...all, ...records.filter(record => !pendingIds.has(record.id)), ...pending]);
+  },
+
+  getOutbox() {
+    try {
+      const value = JSON.parse(localStorage.getItem(KEYS.RECORD_OUTBOX) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (error) {
+      return [];
+    }
+  },
+
+  setOutbox(items) {
+    localStorage.setItem(KEYS.RECORD_OUTBOX, JSON.stringify(items));
+  },
+
+  queueForSync(record, userId) {
+    const outbox = this.getOutbox().filter(item => !(item.userId === userId && item.record && item.record.id === record.id));
+    outbox.push({ userId, record: { ...record, userId }, queuedAt: new Date().toISOString() });
+    this.setOutbox(outbox);
+  },
+
+  async syncPending(userId) {
+    const remoteUser = getCurrentRemoteUser(userId);
+    if (!remoteUser || !navigator.onLine) return 0;
+    const pending = this.getOutbox().filter(item => item.userId === userId);
+    let synced = 0;
+    for (const item of pending) {
+      try {
+        const { response, payload } = await this.saveRemote(item.record);
+        if (response.ok && payload && payload.ok) {
+          this.save({ ...payload.record, userId: remoteUser.id });
+          this.setOutbox(this.getOutbox().filter(entry => !(entry.userId === userId && entry.record && entry.record.id === item.record.id)));
+          synced += 1;
+        } else if (payload && payload.code === 'duplicate_date' && payload.existingRecord) {
+          this.save({ ...payload.existingRecord, userId: remoteUser.id });
+          this.setOutbox(this.getOutbox().filter(entry => !(entry.userId === userId && entry.record && entry.record.id === item.record.id)));
+          synced += 1;
+        }
+      } catch (error) {
+        break;
+      }
+    }
+    return synced;
   },
 
   save(record) {
@@ -315,6 +363,7 @@ const Records = {
     if (!remoteUser) return this.getUserRecords(userId);
 
     try {
+      await this.syncPending(userId);
       const response = await fetch(new URL('api/records', window.location.href).toString(), {
         method: 'GET',
         credentials: 'include',
@@ -337,7 +386,7 @@ const Records = {
         return this.migrateLocalRecordsToRemote(remoteUser, records);
       }
 
-      return records;
+      return this.getUserRecords(remoteUser.id);
     } catch (error) {
       console.warn('[Records] Failed to load remote records:', error);
       if (error.message && error.message.includes('로그인 세션이 만료되었습니다')) {
@@ -367,7 +416,19 @@ const Records = {
       return record;
     }
 
-    const { response, payload } = await this.saveRemote(record);
+    let response;
+    let payload;
+    try {
+      ({ response, payload } = await this.saveRemote(record));
+    } catch (error) {
+      if (!navigator.onLine || error instanceof TypeError || String(error.message || '').includes('fetch')) {
+        const pendingRecord = { ...record, userId: remoteUser.id, _pendingSync: true };
+        this.save(pendingRecord);
+        this.queueForSync(pendingRecord, remoteUser.id);
+        return pendingRecord;
+      }
+      throw error;
+    }
     if (!response.ok || !payload || !payload.ok) {
       const error = new Error(
         response.status === 401
@@ -389,6 +450,21 @@ const Records = {
   async deleteAsync(id, userId) {
     const remoteUser = getCurrentRemoteUser(userId);
     if (!remoteUser) {
+      this.delete(id);
+      return;
+    }
+
+    const queuedRecord = this.getOutbox().some(item => (
+      String(item.userId || '') === String(remoteUser.id)
+      && item.record
+      && String(item.record.id || '') === String(id)
+    ));
+    if (queuedRecord) {
+      this.setOutbox(this.getOutbox().filter(item => !(
+        String(item.userId || '') === String(remoteUser.id)
+        && item.record
+        && String(item.record.id || '') === String(id)
+      )));
       this.delete(id);
       return;
     }
@@ -467,6 +543,24 @@ function clamp(val, min, max) {
 function percent(val, goal) {
   if (!goal) return 0;
   return Math.round((val / goal) * 100);
+}
+
+function csvCell(value) {
+  let text = String(value == null ? '' : value);
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadCsvFile(filename, rows) {
+  const csv = `\uFEFF${rows.map(row => row.map(csvCell).join(',')).join('\r\n')}`;
+  const url = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ─── Streak Calc ──────────────────────────────────────
@@ -733,7 +827,62 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNavUser();
   renderMobileNav();
   renderFooter();
+  initializePwa();
 });
+
+let deferredInstallPrompt = null;
+
+function initializePwa() {
+  if (!window.location.protocol.startsWith('http') || !('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/service-worker.js').then(registration => {
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) renderAppUpdateButton();
+      });
+    });
+  }).catch(error => console.warn('[PWA]', error));
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    renderInstallButton();
+  });
+  window.addEventListener('online', async () => {
+    const user = Auth.getUser();
+    if (!user) return;
+    const count = await Records.syncPending(user.id);
+    if (count) showToast(`오프라인 기록 ${count}건을 서버와 동기화했습니다.`, 'success');
+  });
+}
+
+function renderAppUpdateButton() {
+  if (document.getElementById('pwaUpdateButton')) return;
+  const button = document.createElement('button');
+  button.id = 'pwaUpdateButton';
+  button.type = 'button';
+  button.textContent = '새 버전이 준비됐습니다 · 새로고침';
+  button.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:1801;border:0;border-radius:100px;background:var(--text);color:#fff;padding:11px 16px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-family:inherit;font-size:.78rem;font-weight:750;white-space:nowrap;cursor:pointer';
+  button.addEventListener('click', () => window.location.reload());
+  document.body.appendChild(button);
+}
+
+function renderInstallButton() {
+  if (document.getElementById('pwaInstallButton')) return;
+  const button = document.createElement('button');
+  button.id = 'pwaInstallButton';
+  button.type = 'button';
+  button.textContent = '📱 홈 화면에 설치';
+  button.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:1800;border:1px solid var(--border);border-radius:100px;background:#fff;color:var(--primary);padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.12);font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer';
+  button.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    button.remove();
+  });
+  document.body.appendChild(button);
+}
 
 // ─── 모바일 햄버거 드로어 메뉴 ──────────────────────────
 function renderMobileNav() {

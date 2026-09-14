@@ -409,7 +409,7 @@ function renderPersonalReport(report) {
   ];
   return `
     <section class="personal-report" aria-labelledby="personalReportTitle">
-      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강 리포트</h2><p>최근 기록을 생활 습관 관점에서 정리했어요.</p></div><span class="report-period">최근 7일 · 30일</span></div>
+      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강 리포트</h2><p>최근 기록을 생활 습관 관점에서 정리했어요.</p></div><div class="report-actions"><span class="report-period">최근 7일 · 30일</span><button type="button" class="report-action" onclick="exportPersonalRecords()">CSV 저장</button><button type="button" class="report-action" onclick="printPersonalReport()">PDF·인쇄</button></div></div>
       <div class="report-metrics">
         <div class="report-metric"><div class="report-metric-label">7일 운동 시간</div><div class="report-metric-value">${report.recentMinutes.toLocaleString()}분</div><div class="report-metric-note">직전 7일 대비 ${changeText}</div></div>
         <div class="report-metric"><div class="report-metric-label">목표 달성률</div><div class="report-metric-value">${report.goalRate}%</div><div class="report-metric-note">기록한 날의 평균</div></div>
@@ -421,6 +421,24 @@ function renderPersonalReport(report) {
       <div class="inbody-report" id="inbodyReport" role="status">체성분 변화 기록을 확인하는 중입니다.</div>
       <p class="report-disclaimer">이 리포트는 입력 기록의 변화와 생활 습관을 요약하며 의료적 진단이나 치료 판단을 제공하지 않습니다.</p>
     </section>`;
+}
+
+function exportPersonalRecords() {
+  const rows = userRecords.map(record => [
+    record.date, record.weight || '', record.walking || 0, record.running || 0,
+    recordExerciseMinutes(record), record.water || 0, record.fasting || 0,
+    record.heartRate || '', record.condition || 3, record.memo || ''
+  ]);
+  downloadCsvFile(`건강지킴이_${today()}_개인기록.csv`, [
+    ['날짜','체중(kg)','걷기(분)','러닝(분)','총 운동(분)','수분(ml)','공복(시간)','심박수(bpm)','컨디션(1-5)','메모'],
+    ...rows
+  ]);
+}
+
+function printPersonalReport() {
+  document.body.classList.add('print-personal-report');
+  window.print();
+  setTimeout(() => document.body.classList.remove('print-personal-report'), 500);
 }
 
 async function loadInbodyReport() {

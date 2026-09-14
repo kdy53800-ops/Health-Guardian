@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="images/app-icon-180.png">
+  <meta name="theme-color" content="#ffffff">
   <title>대시보드 — 건강지킴이</title>
   <link rel="icon" type="image/png" href="images/ongil-symbol.png">
   <meta name="description" content="나의 운동 통계 대시보드. 주간/월간 운동 차트와 목표 달성률을 확인하세요.">
@@ -71,7 +74,10 @@
     .report-heading { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:16px; }
     .report-heading h2 { font-size:1.08rem; font-weight:850; color:var(--text); }
     .report-heading p { margin-top:4px; font-size:.78rem; color:var(--text-muted); }
-    .report-period { background:var(--surface-2); color:var(--primary); border:1px solid var(--border); border-radius:100px; padding:6px 10px; font-size:.72rem; font-weight:800; white-space:nowrap; }
+    .report-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .report-period, .report-action { background:var(--surface-2); color:var(--primary); border:1px solid var(--border); border-radius:100px; padding:6px 10px; font:inherit; font-size:.72rem; font-weight:800; white-space:nowrap; }
+    .report-action { cursor:pointer; }
+    .report-action:hover, .report-action:focus-visible { border-color:var(--primary); outline:none; }
     .report-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
     .report-metric { padding:14px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface-2); }
     .report-metric-label { font-size:.7rem; color:var(--text-muted); font-weight:700; }
@@ -509,6 +515,16 @@
       .report-heading { flex-direction:column; }
       .report-metrics { grid-template-columns:repeat(2,1fr); }
       .report-insights { grid-template-columns:1fr; }
+    }
+
+    @media print {
+      body.print-personal-report .top-nav,
+      body.print-personal-report .app-footer,
+      body.print-personal-report #mainContent > * { display:none !important; }
+      body.print-personal-report #mainContent,
+      body.print-personal-report #mainContent > .personal-report { display:block !important; }
+      body.print-personal-report .personal-report { box-shadow:none; border:none; margin:0; }
+      body.print-personal-report .report-action { display:none; }
     }
 
   </style>

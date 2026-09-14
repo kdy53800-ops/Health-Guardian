@@ -291,6 +291,20 @@ function renderAttentionBoard() {
     </div>`).join('');
 }
 
+function exportAdminRecords() {
+  const userMap = new Map(allUsers.map(user => [String(user.id), user]));
+  const rows = allRecords.map(record => {
+    const user = userMap.get(String(record.userId)) || {};
+    return [user.name || user.username || '사용자', user.username || '', record.date,
+      record.weight || '', record.walking || 0, record.running || 0,
+      adminRecordMinutes(record), record.water || 0, record.fasting || 0, record.condition || 3];
+  });
+  downloadCsvFile(`건강지킴이_관리자기록_${dateDaysAgo(0)}.csv`, [
+    ['이름','사용자명','날짜','체중(kg)','걷기(분)','러닝(분)','총 운동(분)','수분(ml)','공복(시간)','컨디션(1-5)'],
+    ...rows
+  ]);
+}
+
 function renderPlatformStats() {
   const now = new Date();
   const currentMonthStr = now.toISOString().slice(0, 7); // YYYY-MM
