@@ -19,6 +19,17 @@ function sanitizeNumber(value) {
   return n;
 }
 
+function numberInRange(value, label, min, max) {
+  if (value == null || value === '') return 0;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    const error = new Error(`${label} 값이 허용 범위를 벗어났습니다.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return number;
+}
+
 function sanitizeText(value, fallback = '') {
   if (value == null) return fallback;
   return String(value);
@@ -26,13 +37,20 @@ function sanitizeText(value, fallback = '') {
 
 function sanitizeCustomExercises(value) {
   if (!Array.isArray(value)) return [];
+  if (value.length > 30) {
+    const error = new Error('개인 운동은 한 기록에 최대 30개까지 저장할 수 있습니다.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const categories = new Set(['유산소', '근력', '유연성', '스포츠']);
+  const intensities = new Set(['하', '중', '상']);
   return value
     .map(item => ({
-      id: sanitizeText(item && item.id, randomUUID()),
-      category: sanitizeText(item && item.category, ''),
-      name: sanitizeText(item && item.name, '').trim(),
-      duration: sanitizeNumber(item && item.duration),
-      intensity: sanitizeText(item && item.intensity, '중'),
+      id: sanitizeText(item && item.id, randomUUID()).slice(0, 100),
+      category: categories.has(item && item.category) ? item.category : '유산소',
+      name: sanitizeText(item && item.name, '').trim().slice(0, 80),
+      duration: numberInRange(item && item.duration, '개인 운동 시간', 1, 999),
+      intensity: intensities.has(item && item.intensity) ? item.intensity : '중',
     }))
     .filter(item => item.name);
 }
@@ -64,28 +82,56 @@ function mapRowToRecord(row) {
 function normalizeRecord(input, userId) {
   const source = input || {};
   const date = sanitizeText(source.date, '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new Error('record.date must be in YYYY-MM-DD format.');
+  const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00Z`) : null;
+  if (!parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
+    const error = new Error('날짜 형식이 올바르지 않습니다.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const todayParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date()).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  const todayInKorea = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+  if (date > todayInKorea) {
+    const error = new Error('미래 날짜는 기록할 수 없습니다.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const condition = Number(source.condition || 3);
+  if (!Number.isInteger(condition) || condition < 1 || condition > 5) {
+    const error = new Error('컨디션 값이 올바르지 않습니다.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const memo = sanitizeText(source.memo, '').trim();
+  if (memo.length > 1000) {
+    const error = new Error('메모는 1,000자 이내로 입력해 주세요.');
+    error.statusCode = 400;
+    throw error;
   }
 
   return {
-    id: sanitizeText(source.id, '') || randomUUID(),
+    id: sanitizeText(source.id, '').slice(0, 100) || randomUUID(),
     user_id: userId,
     record_date: date,
-    weight: sanitizeNumber(source.weight),
-    walking: sanitizeNumber(source.walking),
-    running: sanitizeNumber(source.running),
-    walking_km: sanitizeNumber(source.walkingKm),
-    running_km: sanitizeNumber(source.runningKm),
-    squats: sanitizeNumber(source.squats),
-    pushups: sanitizeNumber(source.pushups),
-    situps: sanitizeNumber(source.situps),
-    water: sanitizeNumber(source.water),
-    fasting: sanitizeNumber(source.fasting),
-    heart_rate: sanitizeNumber(source.heartRate),
-    diet: sanitizeText(source.diet, ''),
-    condition: Number(source.condition) || 3,
-    memo: sanitizeText(source.memo, '').trim(),
+    weight: numberInRange(source.weight, '체중', 0, 300),
+    walking: numberInRange(source.walking, '걷기 시간', 0, 999),
+    running: numberInRange(source.running, '러닝 시간', 0, 999),
+    walking_km: numberInRange(source.walkingKm, '걷기 거리', 0, 999),
+    running_km: numberInRange(source.runningKm, '러닝 거리', 0, 999),
+    squats: numberInRange(source.squats, '스쿼트', 0, 99999),
+    pushups: numberInRange(source.pushups, '푸쉬업', 0, 99999),
+    situps: numberInRange(source.situps, '윗몸일으키기', 0, 99999),
+    water: numberInRange(source.water, '수분 섭취량', 0, 9999),
+    fasting: numberInRange(source.fasting, '공복 시간', 0, 48),
+    heart_rate: numberInRange(source.heartRate, '심박수', 0, 300),
+    diet: sanitizeText(source.diet, '').slice(0, 2000),
+    condition,
+    memo,
     custom_exercises: sanitizeCustomExercises(source.customExercises),
     saved_at: sanitizeText(source.savedAt, '') || new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -249,7 +295,11 @@ module.exports = async function handler(req, res) {
 
     sendJson(res, 405, { ok: false, message: 'Method Not Allowed' });
   } catch (error) {
-    const message = error && error.message ? error.message : 'Failed to handle records.';
-    sendJson(res, 500, { ok: false, message });
+    const statusCode = error && error.statusCode ? error.statusCode : 500;
+    if (statusCode >= 500) console.error('[RecordsAPI]', error);
+    const message = statusCode < 500 && error && error.message
+      ? error.message
+      : '기록 처리 중 서버 오류가 발생했습니다.';
+    sendJson(res, statusCode, { ok: false, message });
   }
 };

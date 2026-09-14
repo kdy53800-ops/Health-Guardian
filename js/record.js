@@ -8,6 +8,14 @@ let userGoals = null;
 let userRecords = [];
 let editingId = null;
 let selectedCondition = 3;
+let isSaving = false;
+let draftTimer = null;
+
+const RECORD_DRAFT_PREFIX = 'HealthGuardian_recordDraft_v1';
+const RECORD_FIELD_IDS = [
+  'fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fRunning',
+  'fWalkingKm', 'fRunningKm', 'fWater', 'fFasting', 'fMemo'
+];
 
 // 개인 운동 상태
 let currentExCat = '유산소'; // 현재 선택된 카테고리
@@ -111,15 +119,164 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 개인 운동 초기화: 탭 기본값 렌더
   switchExCat(document.querySelector('.custom-ex-tab'), '유산소');
+
+  restoreRecordDraft();
+  initDraftAutosave();
+  updateRecentRecordButton();
 });
+
+function getRecordDraftKey() {
+  const mode = editingId ? `edit_${editingId}` : 'new';
+  return `${RECORD_DRAFT_PREFIX}_${currentUser.id}_${mode}`;
+}
+
+function collectDraft() {
+  const fields = {};
+  RECORD_FIELD_IDS.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) fields[id] = input.value;
+  });
+  return {
+    fields,
+    condition: selectedCondition,
+    customExercises: customExercises.map(item => ({ ...item })),
+    updatedAt: Date.now(),
+  };
+}
+
+function setDraftStatus(message, state = '') {
+  const status = document.getElementById('draftStatus');
+  if (!status) return;
+  status.className = `draft-status ${state}`.trim();
+  status.replaceChildren();
+  const icon = document.createElement('span');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = state === 'restored' ? '↺' : '💾';
+  const text = document.createElement('span');
+  text.textContent = message;
+  status.append(icon, text);
+}
+
+function saveRecordDraft() {
+  if (!currentUser) return;
+  try {
+    localStorage.setItem(getRecordDraftKey(), JSON.stringify(collectDraft()));
+    setDraftStatus('방금 임시 저장됨', 'saved');
+  } catch (error) {
+    console.warn('[RecordDraft] Failed to save draft:', error);
+    setDraftStatus('임시 저장을 사용할 수 없습니다.');
+  }
+}
+
+function scheduleDraftSave() {
+  clearTimeout(draftTimer);
+  setDraftStatus('입력 내용을 저장하는 중…');
+  draftTimer = setTimeout(saveRecordDraft, 500);
+}
+
+function clearRecordDraft() {
+  clearTimeout(draftTimer);
+  if (!currentUser) return;
+  const prefix = `${RECORD_DRAFT_PREFIX}_${currentUser.id}_`;
+  Object.keys(localStorage)
+    .filter(key => key.startsWith(prefix))
+    .forEach(key => localStorage.removeItem(key));
+}
+
+function restoreRecordDraft() {
+  if (!currentUser) return;
+  let draft = null;
+  try {
+    draft = JSON.parse(localStorage.getItem(getRecordDraftKey()) || 'null');
+  } catch (error) {
+    localStorage.removeItem(getRecordDraftKey());
+  }
+  if (!draft || !draft.fields || typeof draft.fields !== 'object') return;
+  if (!Number.isFinite(Number(draft.updatedAt)) || Date.now() - Number(draft.updatedAt) > 7 * 24 * 60 * 60 * 1000) {
+    localStorage.removeItem(getRecordDraftKey());
+    return;
+  }
+
+  RECORD_FIELD_IDS.forEach(id => {
+    const input = document.getElementById(id);
+    if (input && Object.prototype.hasOwnProperty.call(draft.fields, id)) {
+      input.value = draft.fields[id];
+    }
+  });
+  if (Number(draft.condition) >= 1 && Number(draft.condition) <= 5) {
+    setCondition(Number(draft.condition));
+  }
+  if (Array.isArray(draft.customExercises)) {
+    customExercises = draft.customExercises.slice(0, 30).map(item => ({
+      id: item.id || genId(),
+      category: item.category || '유산소',
+      name: String(item.name || '').slice(0, 80),
+      duration: clamp(item.duration, 1, 999),
+      intensity: ['하', '중', '상'].includes(item.intensity) ? item.intensity : '중',
+    })).filter(item => item.name);
+    renderCustomExList();
+  }
+  updateSummary();
+  ['fWalking', 'fRunning', 'fWater', 'fFasting'].forEach(id => {
+    const key = id.slice(1).toLowerCase();
+    const capKey = key.charAt(0).toUpperCase() + key.slice(1);
+    updateProgress(id, `progress${capKey}`, `pct${capKey}`, key);
+  });
+  setDraftStatus('이전에 입력하던 내용을 복원했습니다.', 'restored');
+}
+
+function initDraftAutosave() {
+  const form = document.getElementById('recordForm');
+  if (!form) return;
+  form.dataset.draftReady = '1';
+  form.addEventListener('input', scheduleDraftSave);
+  form.addEventListener('change', scheduleDraftSave);
+}
+
+function updateRecentRecordButton() {
+  const button = document.getElementById('loadRecentBtn');
+  if (!button) return;
+  button.disabled = !!editingId || !userRecords.length;
+  button.title = editingId
+    ? '수정 중에는 최근 기록을 불러올 수 없습니다.'
+    : (userRecords.length ? '가장 최근 기록의 입력값을 현재 날짜에 적용합니다.' : '불러올 기록이 없습니다.');
+}
+
+function loadRecentRecord() {
+  if (editingId) return;
+  const targetDate = document.getElementById('fDate').value;
+  const recent = [...userRecords]
+    .filter(record => record.id !== editingId && record.date !== targetDate)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  if (!recent) {
+    showToast('불러올 이전 기록이 없습니다.', 'default');
+    return;
+  }
+
+  const preservedDate = targetDate;
+  populateForm({ ...recent, date: preservedDate, memo: '' });
+  document.getElementById('fDate').value = preservedDate;
+  editingId = null;
+  scheduleDraftSave();
+  showToast(`${formatDate(recent.date)} 기록을 불러왔습니다. 날짜와 내용을 확인해 주세요.`, 'success');
+}
+
+function addWater(amount) {
+  const input = document.getElementById('fWater');
+  const next = Math.min((parseFloat(input.value) || 0) + amount, 9999);
+  input.value = next;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
 
 // ─── 기존 기록 모달 컨트롤 ────────────────────────────
 function loadExistingRecord() {
   if (!pendingDuplicateRecord) return;
+  clearRecordDraft();
   editingId = pendingDuplicateRecord.id;
   populateForm(pendingDuplicateRecord);
   document.getElementById('saveBtn').textContent = '✏️ 수정 저장';
   document.getElementById('pageSubtitle').textContent = '기존 기록을 불러왔습니다. 수정 후 저장하세요.';
+  updateRecentRecordButton();
   closeDuplicateModal();
   showToast('기존 기록을 불러왔습니다 📂', 'default');
 }
@@ -148,8 +305,10 @@ function populateForm(record) {
   // 개인 운동 로드
   if (record.customExercises && record.customExercises.length > 0) {
     customExercises = record.customExercises.map(e => ({ ...e, id: e.id || genId() }));
-    renderCustomExList();
+  } else {
+    customExercises = [];
   }
+  renderCustomExList();
 
   // Update all progress bars (목표 있는 항목만)
   ['fWalking','fRunning','fWater','fFasting'].forEach(id => {
@@ -173,8 +332,12 @@ function setCondition(val) {
   selectedCondition = val;
   document.getElementById('fCondition').value = val;
   for (let i = 1; i <= 5; i++) {
-    document.getElementById(`cond${i}`).classList.toggle('selected', i === val);
+    const button = document.getElementById(`cond${i}`);
+    button.classList.toggle('selected', i === val);
+    button.setAttribute('aria-pressed', String(i === val));
   }
+  const form = document.getElementById('recordForm');
+  if (form && form.dataset.draftReady === '1') scheduleDraftSave();
 }
 
 function updateProgress(inputId, progressId, pctId, goalKey) {
@@ -253,7 +416,7 @@ function initGoalEditors() {
     const item = document.createElement('div');
     item.className = 'goal-edit-item';
     item.innerHTML = `
-      <label>${cfg.label} (${cfg.unit})</label>
+      <label for="goal_${escapeAttribute(key)}">${escapeHtml(cfg.label)} (${escapeHtml(cfg.unit)})</label>
       <input type="number" class="goal-input" id="goal_${key}"
         value="${userGoals[key] || 0}" min="0">
     `;
@@ -291,6 +454,9 @@ function saveGoals() {
 // ─── Save Record ──────────────────────────────────────
 async function handleSave(e) {
   e.preventDefault();
+
+  if (isSaving) return;
+  if (!e.currentTarget.reportValidity()) return;
 
   const dateVal = document.getElementById('fDate').value;
   if (!dateVal) {
@@ -336,6 +502,12 @@ async function handleSave(e) {
     savedAt:    new Date().toISOString(),
   };
 
+  const saveButton = document.getElementById('saveBtn');
+  const originalButtonText = saveButton.textContent;
+  isSaving = true;
+  saveButton.disabled = true;
+  saveButton.textContent = '⏳ 저장하는 중…';
+
   try {
     const saved = await Records.saveAsync(record, currentUser.id);
     const existingIdx = userRecords.findIndex(item => item.id === saved.id);
@@ -344,6 +516,7 @@ async function handleSave(e) {
     } else {
       userRecords.push(saved);
     }
+    clearRecordDraft();
     showToast('기록이 저장되었습니다! 🎉', 'success');
   } catch (error) {
     console.error('[RecordSave]', error);
@@ -353,9 +526,15 @@ async function handleSave(e) {
       document.getElementById('duplicateModalDate').textContent =
         `${formatDate(dateVal)} 날짜에 이미 작성된 기록이 있습니다.\n기존 기록을 덮어쓰거나 불러올 수 있습니다.`;
       modal.style.display = 'flex';
+      isSaving = false;
+      saveButton.disabled = false;
+      saveButton.textContent = originalButtonText;
       return;
     }
     showToast(error.message || '기록 저장 중 오류가 발생했습니다.', 'error');
+    isSaving = false;
+    saveButton.disabled = false;
+    saveButton.textContent = originalButtonText;
     return;
   }
 
@@ -393,6 +572,7 @@ function addCustomExerciseWithName(name) {
   customExercises.push(ex);
   renderCustomExList();
   updateSummary();
+  scheduleDraftSave();
 }
 
 function addCustomExercise() {
@@ -407,6 +587,7 @@ function removeExercise(id) {
   customExercises = customExercises.filter(ex => ex.id !== id);
   renderCustomExList();
   updateSummary();
+  scheduleDraftSave();
 }
 
 function renderCustomExList() {
@@ -431,6 +612,7 @@ function renderCustomExList() {
           <input
             type="number"
             min="1" max="999"
+            aria-label="${escapeAttribute(ex.name)} 운동 시간(분)"
             value="${escapeAttribute(ex.duration)}"
             data-exercise-id="${escapeAttribute(ex.id)}"
             oninput="updateExercise(this.dataset.exerciseId,'duration',this.value); updateSummary()"
@@ -438,6 +620,7 @@ function renderCustomExList() {
           <span>분</span>
         </div>
         <select class="ex-intensity-select"
+          aria-label="${escapeAttribute(ex.name)} 운동 강도"
           data-exercise-id="${escapeAttribute(ex.id)}"
           onchange="updateExercise(this.dataset.exerciseId,'intensity',this.value)">
           <option value="하" ${ex.intensity === '하' ? 'selected' : ''}>하</option>
@@ -445,6 +628,7 @@ function renderCustomExList() {
           <option value="상" ${ex.intensity === '상' ? 'selected' : ''}>상</option>
         </select>
         <button type="button" class="ex-remove-btn"
+          aria-label="${escapeAttribute(ex.name)} 운동 삭제"
           data-exercise-id="${escapeAttribute(ex.id)}"
           onclick="removeExercise(this.dataset.exerciseId)">✕</button>
       </div>
@@ -456,4 +640,5 @@ function updateExercise(id, field, value) {
   const ex = customExercises.find(e => e.id === id);
   if (!ex) return;
   ex[field] = field === 'duration' ? (parseFloat(value) || 0) : value;
+  scheduleDraftSave();
 }

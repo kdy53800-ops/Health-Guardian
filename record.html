@@ -154,6 +154,60 @@
       flex-wrap: wrap;
     }
 
+    .record-quick-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: -4px 0 20px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .draft-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 24px;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .draft-status.saved { color: #15803d; }
+    .draft-status.restored { color: var(--primary); }
+
+    .quick-water-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .quick-water-btn {
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      padding: 6px 11px;
+      font: inherit;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color .18s, color .18s, background .18s;
+    }
+
+    .quick-water-btn:hover,
+    .quick-water-btn:focus-visible {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #eff5fc;
+      outline: none;
+    }
+
     .summary-date {
       font-size: 1.1rem;
       font-weight: 800;
@@ -269,6 +323,8 @@
       .summary-stat-val { font-size: 1.1rem; }
       .summary-date { font-size: 0.95rem; }
       .section-card { padding: 16px; }
+      .record-quick-actions { align-items: stretch; flex-direction: column; }
+      .record-quick-actions .btn { width: 100%; }
       .cond-btn { min-width: 56px; padding: 8px 4px; }
       .cond-btn .cond-emoji { font-size: 1.3rem; }
       /* 저장 버튼: 화면 하단에 고정, safe-area 포함 */
@@ -584,6 +640,15 @@
         </div>
       </div>
 
+      <div class="record-quick-actions" aria-label="빠른 기록 도구">
+        <button type="button" class="btn btn-outline btn-sm" id="loadRecentBtn" onclick="loadRecentRecord()">
+          🕒 최근 기록 불러오기
+        </button>
+        <div class="draft-status" id="draftStatus" role="status" aria-live="polite">
+          <span aria-hidden="true">💾</span><span>입력 내용은 이 기기에 자동 임시 저장됩니다.</span>
+        </div>
+      </div>
+
       <form id="recordForm" onsubmit="handleSave(event)">
 
         <!-- 1. 기본 정보 -->
@@ -734,6 +799,11 @@
               <label class="form-label" for="fWater">💧 수분섭취 <span class="unit">(ml)</span></label>
               <input type="number" id="fWater" class="form-control" placeholder="0" min="0" max="9999"
                 oninput="updateProgress('fWater','progressWater','pctWater','water'); updateSummary()">
+              <div class="quick-water-buttons" aria-label="수분 섭취 빠른 추가">
+                <button type="button" class="quick-water-btn" onclick="addWater(250)">+250ml</button>
+                <button type="button" class="quick-water-btn" onclick="addWater(500)">+500ml</button>
+                <button type="button" class="quick-water-btn" onclick="addWater(1000)">+1,000ml</button>
+              </div>
               <div class="input-goal-info">
                 <span class="goal-pct" id="pctWater">목표: 0%</span>
                 <span class="goal-target" id="targetWater">목표: 2000ml</span>
@@ -802,7 +872,7 @@
             </div>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <textarea id="fMemo" class="form-control" aria-label="오늘의 메모" placeholder="예) 오늘 스쿼트 100개 달성! 내일도 파이팅 💪" rows="3"></textarea>
+            <textarea id="fMemo" class="form-control" aria-label="오늘의 메모" placeholder="예) 오늘 스쿼트 100개 달성! 내일도 파이팅 💪" rows="3" maxlength="1000"></textarea>
           </div>
         </div>
 
