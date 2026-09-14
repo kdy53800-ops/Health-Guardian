@@ -33,8 +33,8 @@ function filterUserSelect() {
       item.className = `search-result-item ${selectedUserId === u.id ? 'active' : ''}`;
       item.innerHTML = `
         <div class="user-info-brief">
-          <span class="user-name-id">${u.name || '이름없음'} <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted); ml-4">@${u.username}</span></span>
-          <span class="user-meta-brief">${u.gender || '-'} / ${u.age || '-'}세</span>
+          <span class="user-name-id">${escapeHtml(u.name || '이름없음')} <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted); ml-4">@${escapeHtml(u.username)}</span></span>
+          <span class="user-meta-brief">${escapeHtml(u.gender || '-')} / ${escapeHtml(u.age || '-')}세</span>
         </div>
         <div class="select-indicator">선택됨</div>
       `;
@@ -65,9 +65,6 @@ function selectUserFromResult(userId, label) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('adminLoginOverlay');
-  
-  // Initialize Supabase Client
-  await initSupabase();
   
   // Set default date
   document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
@@ -104,8 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function adminLogout() {
-  await supabaseClient.auth.signOut();
-  window.location.href = 'index.html';
+  Auth.logout();
 }
 
 async function loadSpecialUsers() {
@@ -131,7 +127,7 @@ async function loadSpecialUsers() {
     specialUsersData = (payload.users || []).filter(u => u.isSpecial);
     filterUserSelect();
   } catch (err) {
-    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+    if (window.location.protocol === 'file:') {
       specialUsersData = JSON.parse(localStorage.getItem('users') || '[]').filter(u => u.isSpecial);
       filterUserSelect();
     } else {
@@ -177,7 +173,7 @@ async function loadUserRecords() {
     
     renderRecords(result.records);
   } catch (err) {
-    if (window.location.protocol === 'file:' || err.message === 'Failed to fetch') {
+    if (window.location.protocol === 'file:') {
       const allInBody = JSON.parse(localStorage.getItem('inbody_records') || '[]');
       const userInBody = allInBody.filter(r => r.userId === selectedUserId);
       renderRecords(userInBody);
@@ -200,7 +196,7 @@ function renderRecords(records) {
   records.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td data-label="측정일자"><strong>${r.record_date}</strong></td>
+      <td data-label="측정일자"><strong>${escapeHtml(r.record_date)}</strong></td>
       <td data-label="체중">${r.weight} kg</td>
       <td data-label="골격근량">${r.skeletal_muscle} kg</td>
       <td data-label="체지방량">${r.body_fat_mass !== undefined ? r.body_fat_mass + ' kg' : '-'}</td>
@@ -210,10 +206,10 @@ function renderRecords(records) {
       <td data-label="위상각">${r.phase_angle !== undefined ? r.phase_angle : '-'}</td>
       <td data-label="점수">${r.inbody_score} 점</td>
       <td data-label="이미지">
-        ${r.image_url ? `<a href="${r.image_url}" target="_blank" style="color: var(--primary); text-decoration: underline; font-size: 0.8rem;">보기</a>` : '<span style="color:var(--text-muted);font-size:0.8rem;">없음</span>'}
+        ${r.image_url ? `<a href="${escapeAttribute(r.image_url)}" target="_blank" rel="noopener" style="color: var(--primary); text-decoration: underline; font-size: 0.8rem;">보기</a>` : '<span style="color:var(--text-muted);font-size:0.8rem;">없음</span>'}
       </td>
       <td data-label="관리">
-        <button class="btn" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;padding:4px 8px;font-size:0.75rem;" onclick="deleteRecord('${r.id}')">삭제</button>
+        <button class="btn" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;padding:4px 8px;font-size:0.75rem;" data-record-id="${escapeAttribute(r.id)}" onclick="deleteRecord(this.dataset.recordId)">삭제</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -256,6 +252,11 @@ function handleFileSelect(e) {
   
   if (!file.type.startsWith('image/')) {
     alert('이미지 파일만 업로드 가능합니다.');
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    alert('원본 이미지는 8MB 이하만 선택할 수 있습니다.');
+    e.target.value = '';
     return;
   }
   
@@ -396,7 +397,7 @@ async function saveRecord() {
     loadUserRecords(); // Reload list
     
   } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+    if (window.location.protocol === 'file:') {
       alert('[로컬 테스트 모드] 가상으로 저장되었습니다.');
       document.getElementById('weight').value = '';
       document.getElementById('skeletalMuscle').value = '';
@@ -441,7 +442,7 @@ async function deleteRecord(id) {
     alert('삭제되었습니다.');
     loadUserRecords();
   } catch (err) {
-    if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
+    if (window.location.protocol === 'file:') {
       alert('[로컬 테스트 모드] 가상으로 삭제되었습니다.');
       loadUserRecords();
       return;

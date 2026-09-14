@@ -181,8 +181,8 @@ function showRecordSummary(recId) {
     const catIcons = { '유산소': '🏃', '근력': '🏋️', '유연성': '🤸', '스포츠': '⚽' };
     customExHtml += rec.customExercises.map(ex => `
       <div class="modal-custom-item">
-        <span>${catIcons[ex.category] || '🏅'} [${ex.category}] <strong>${ex.name}</strong></span>
-        <span style="font-weight:700;color:var(--primary);">${ex.duration}분</span>
+        <span>${catIcons[ex.category] || '🏅'} [${escapeHtml(ex.category)}] <strong>${escapeHtml(ex.name)}</strong></span>
+        <span style="font-weight:700;color:var(--primary);">${escapeHtml(ex.duration)}분</span>
       </div>
     `).join('');
   } else {
@@ -192,7 +192,7 @@ function showRecordSummary(recId) {
   // 메모 HTML 구성
   const memoText = rec.memo ? rec.memo.trim() : '';
   const memoHtml = memoText 
-    ? `<div style="background:rgba(0,77,191,0.03);border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;font-size:0.8rem;color:var(--text-secondary);line-height:1.4;">📝 <strong>메모:</strong> ${memoText}</div>`
+    ? `<div style="background:rgba(0,77,191,0.03);border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;font-size:0.8rem;color:var(--text-secondary);line-height:1.4;">📝 <strong>메모:</strong> ${escapeHtml(memoText)}</div>`
     : `<div style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">📝 메모가 작성되지 않았습니다.</div>`;
 
   const bodyHtml = `
@@ -236,7 +236,7 @@ function showRecordSummary(recId) {
   // 수정 가능 여부 판단 (기한 제한 없음)
   let footerHtml = `
     <button class="modal-btn modal-btn-secondary" onclick="hideSummaryModal()">닫기</button>
-    <button class="modal-btn modal-btn-primary" onclick="window.location.href='record.html?edit=${rec.id}'">기록 수정하기</button>
+    <button class="modal-btn modal-btn-primary" data-record-id="${escapeAttribute(rec.id)}" onclick="window.location.href='record.html?edit='+encodeURIComponent(this.dataset.recordId)">기록 수정하기</button>
   `;
 
   document.getElementById('summaryModalFooter').innerHTML = footerHtml;

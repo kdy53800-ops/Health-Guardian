@@ -207,7 +207,7 @@ function renderRecordList() {
           <span class="detail-val" style="color: var(--gold);">${r.inbody_score}점</span>
         </div>
       </div>
-      ${r.image_url ? `<button class="btn-view-image" onclick="showImageModal('${r.image_url}')">결과지 보기</button>` : ''}
+      ${r.image_url ? `<button class="btn-view-image" data-image-url="${escapeAttribute(r.image_url)}" onclick="showImageModal(this.dataset.imageUrl)">결과지 보기</button>` : ''}
     `;
     
     container.appendChild(item);

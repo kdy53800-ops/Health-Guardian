@@ -1,5 +1,6 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAuthSession } = require('./_lib/admin-auth');
+const { privateImageUrl } = require('./_lib/inbody-storage');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -27,7 +28,10 @@ module.exports = async function handler(req, res) {
       headers: { 'Accept': 'application/json' }
     });
 
-    sendJson(res, 200, { ok: true, records: Array.isArray(records) ? records : [] });
+    const safeRecords = Array.isArray(records)
+      ? records.map(record => ({ ...record, image_url: record.image_url ? privateImageUrl(record.id) : null }))
+      : [];
+    sendJson(res, 200, { ok: true, records: safeRecords });
 
   } catch (error) {
     console.error('[UserInbodyAPI]', error);

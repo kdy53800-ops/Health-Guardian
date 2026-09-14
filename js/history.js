@@ -96,9 +96,9 @@ function buildRecordCard(r) {
     return `
       <div class="metric-chip" style="background:rgba(139,92,246,0.07); border-color:rgba(139,92,246,0.18);">
         <span class="chip-icon">${catIcon}</span>
-        <span class="chip-val" style="color:#7c3aed">${ex.name || ex.category}</span>
-        <span style="color:var(--text-muted); font-weight:400; font-size:0.72rem">${ex.duration}분</span>
-        <span style="font-size:0.65rem; font-weight:700; color:${intensityColor}; margin-left:1px">[${ex.intensity}]</span>
+        <span class="chip-val" style="color:#7c3aed">${escapeHtml(ex.name || ex.category)}</span>
+        <span style="color:var(--text-muted); font-weight:400; font-size:0.72rem">${escapeHtml(ex.duration)}분</span>
+        <span style="font-size:0.65rem; font-weight:700; color:${intensityColor}; margin-left:1px">[${escapeHtml(ex.intensity)}]</span>
       </div>
     `;
   }).join('');
@@ -106,7 +106,7 @@ function buildRecordCard(r) {
 
 
   return `
-    <div class="record-card fade-in" id="card_${r.id}">
+    <div class="record-card fade-in" id="card_${escapeAttribute(r.id)}">
       <div class="record-card-top">
         <div class="record-card-date-block">
           <div class="date-icon">
@@ -119,8 +119,8 @@ function buildRecordCard(r) {
           </div>
         </div>
         <div class="record-card-actions">
-          <a href="record.html?edit=${r.id}" class="btn btn-outline btn-sm">✏️ 수정</a>
-          <button class="btn btn-danger btn-sm" onclick="openDeleteConfirm('${r.id}')">🗑️</button>
+          <a href="record.html?edit=${encodeURIComponent(r.id)}" class="btn btn-outline btn-sm">✏️ 수정</a>
+          <button class="btn btn-danger btn-sm" data-record-id="${escapeAttribute(r.id)}" onclick="openDeleteConfirm(this.dataset.recordId)">🗑️</button>
         </div>
       </div>
 
@@ -131,7 +131,7 @@ function buildRecordCard(r) {
           <span>${CONDITION_EMOJI[cond]}</span>
           <span style="font-size:0.8rem">${CONDITION_MAP[cond]}</span>
         </div>
-        ${r.memo ? `<div class="record-memo">"${r.memo}"</div>` : ''}
+        ${r.memo ? `<div class="record-memo">"${escapeHtml(r.memo)}"</div>` : ''}
       </div>
     </div>
   `;

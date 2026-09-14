@@ -24,6 +24,23 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (session.provider === 'test' && /^test_(admin|user)_001$/.test(session.uid)) {
+      const isAdmin = session.uid === 'test_admin_001';
+      sendJson(res, 200, {
+        ok: true,
+        user: {
+          id: session.uid,
+          name: isAdmin ? '테스트 관리자' : '테스트 유저',
+          username: isAdmin ? 'test_admin' : 'test_user',
+          isAdmin,
+          isSpecial: true,
+          authProvider: 'test',
+          exp: session.exp,
+        },
+      });
+      return;
+    }
+
     const rows = await fetchSupabase(
       `/rest/v1/profiles?select=*&id=eq.${encodeEq(session.uid)}&limit=1`,
       { headers: { Accept: 'application/json' } }

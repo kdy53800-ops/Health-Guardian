@@ -157,10 +157,10 @@ function renderGrowthTable(data) {
         <div class="u-info">
           <div style="display:flex; flex-direction:column; align-items:flex-start;">
             <div style="display:flex; align-items:center;">
-              <div class="u-name" style="background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display:inline-block; font-weight: 700;">${item.user.name || '이름없음'}</div>
+              <div class="u-name" style="background: var(--primary-dark); padding: 3px 10px; border-radius: 100px; color: #fff; font-size: 0.85rem; display:inline-block; font-weight: 700;">${escapeHtml(item.user.name || '이름없음')}</div>
               ${item.user.isSpecial ? '<span class="u-special" style="margin-left:6px;">⭐</span>' : ''}
             </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; margin-left:4px;">@${item.user.username}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; margin-left:4px;">@${escapeHtml(item.user.username)}</div>
           </div>
         </div>
       </td>
@@ -193,7 +193,7 @@ function showUserGraph(userId) {
   if (!item) return;
   
   document.getElementById('growthGraphArea').style.display = 'block';
-  document.getElementById('graphTitle').innerHTML = `📈 ${item.user.name || '이름없음'}님의 체성분 변화 추이`;
+  document.getElementById('graphTitle').textContent = `📈 ${item.user.name || '이름없음'}님의 체성분 변화 추이`;
   
   const records = item.userRecords;
   const labels = records.map(r => r.date.substring(5)); // MM-DD

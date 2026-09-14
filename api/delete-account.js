@@ -1,6 +1,7 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { readSessionFromRequest } = require('./_lib/session');
 const { getOrigin } = require('./_lib/naver');
+const { extractObjectPath } = require('./_lib/inbody-storage');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -45,10 +46,8 @@ module.exports = async function handler(req, res) {
         for (const record of records) {
           if (record.image_url) {
             try {
-              // Extract storage path: /public/inbody_images/userId/fileName
-              const urlParts = record.image_url.split('/storage/v1/object/public/inbody_images/');
-              if (urlParts.length === 2) {
-                const storagePath = `inbody_images/${urlParts[1]}`;
+              const storagePath = extractObjectPath(record.image_url);
+              if (storagePath) {
                 await fetchSupabase(`/storage/v1/object/${storagePath}`, {
                   method: 'DELETE'
                 });

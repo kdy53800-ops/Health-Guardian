@@ -1,7 +1,7 @@
 const { randomUUID } = require('crypto');
 const { fetchSupabase } = require('./_lib/supabase');
 const { getOrigin } = require('./_lib/naver');
-const { readSessionFromRequest } = require('./_lib/session');
+const { requireAuthSession } = require('./_lib/admin-auth');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -181,15 +181,14 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const session = readSessionFromRequest(req);
-  if (!session || !session.uid) {
-    sendJson(res, 401, { ok: false, message: 'Login session is required.' });
-    return;
-  }
-
-  const userId = session.uid;
-
   try {
+    const auth = await requireAuthSession(req);
+    if (!auth.ok) {
+      sendJson(res, auth.statusCode, { ok: false, message: auth.message });
+      return;
+    }
+    const userId = auth.id;
+
     if (req.method === 'GET') {
       const records = await getRecords(userId);
       sendJson(res, 200, { ok: true, records });

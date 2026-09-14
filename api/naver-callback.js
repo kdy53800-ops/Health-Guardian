@@ -7,7 +7,7 @@ const {
   readStatePayload,
   redirectWithError,
 } = require('./_lib/naver');
-const { createSessionCookie } = require('./_lib/session');
+const { createSessionCookie, SESSION_TTL_SECONDS } = require('./_lib/session');
 const { syncProfile } = require('./_lib/supabase');
 
 function normalizePhone(value) {
@@ -143,7 +143,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const exp = Date.now() + (10 * 365 * 24 * 60 * 60 * 1000); // 10 years
+    const exp = Date.now() + (SESSION_TTL_SECONDS * 1000);
     const session = {
       ...buildSessionPayload(naverProfile, syncResult.profile),
       exp
@@ -156,7 +156,7 @@ module.exports = async function handler(req, res) {
         uid: syncResult.profile.id,
         provider: 'naver',
         oauthProviderId: naverProfile.oauthProviderId || '',
-        exp: Date.now() + (10 * 365 * 24 * 60 * 60 * 1000), // 10 years
+        exp,
       }, origin));
     }
 

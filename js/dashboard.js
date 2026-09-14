@@ -931,7 +931,7 @@ function renderCustomExSummary(period) {
       ${topExercises.map(([name, cnt], i) => `
         <div style="display:flex; align-items:center; justify-content:space-between;
           padding:4px 0; font-size:0.8rem;">
-          <span style="color:var(--text);">${['🥇','🥈','🥉','④','⑤'][i]} ${name}</span>
+          <span style="color:var(--text);">${['🥇','🥈','🥉','④','⑤'][i]} ${escapeHtml(name)}</span>
           <span style="color:var(--text-secondary); font-weight:600;">${cnt}회</span>
         </div>
       `).join('')}
@@ -999,7 +999,7 @@ async function fetchAndRenderRanking() {
         <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-light);">
           <div style="display:flex; align-items:center; gap:12px;">
             <span style="font-weight:800; color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'var(--text-muted)'}; width:20px;">${i+1}</span>
-            <span style="font-weight:700; color:var(--text);">${u.name}</span>
+            <span style="font-weight:700; color:var(--text);">${escapeHtml(u.name)}</span>
           </div>
           <div style="font-weight:800; color:var(--primary);">${u.value.toLocaleString()}<span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;"> ${unit}</span></div>
         </div>

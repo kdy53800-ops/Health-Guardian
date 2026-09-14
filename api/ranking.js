@@ -1,5 +1,5 @@
 const { fetchSupabase } = require('./_lib/supabase');
-const { readSessionFromRequest } = require('./_lib/session');
+const { requireAuthSession } = require('./_lib/admin-auth');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -14,6 +14,12 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const auth = await requireAuthSession(req);
+    if (!auth.ok) {
+      sendJson(res, auth.statusCode, { ok: false, message: auth.message });
+      return;
+    }
+
     // 1. Calculate current month range (KST) or previous month if today is the 1st
     const now = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)); // UTC+9
     const year = now.getUTCFullYear();
@@ -89,15 +95,14 @@ module.exports = async function handler(req, res) {
     // Top 5 lists
     const topAttendance = sortedAttendance
       .slice(0, 5)
-      .map(u => ({ name: u.name, value: u.attendanceCount, id: u.id }));
+      .map(u => ({ name: u.name, value: u.attendanceCount }));
 
     const topExercise = sortedExercise
       .slice(0, 5)
-      .map(u => ({ name: u.name, value: u.totalExerciseMins, id: u.id }));
+      .map(u => ({ name: u.name, value: u.totalExerciseMins }));
 
     // Get logged-in user ranking
-    const session = readSessionFromRequest(req);
-    const userId = session ? session.uid : null;
+    const userId = auth.id;
     let myAttendance = null;
     let myExercise = null;
 
@@ -138,4 +143,3 @@ module.exports = async function handler(req, res) {
     });
   }
 };
-

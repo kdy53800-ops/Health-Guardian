@@ -12,7 +12,7 @@ async function requireAdminSession(req) {
   }
 
   // 이스터에그 테스트 관리자 계정은 검증 우회
-  if (session.uid === 'test_admin_001') {
+  if (session.uid === 'test_admin_001' && session.provider === 'test') {
     return {
       ok: true,
       session,
@@ -41,7 +41,22 @@ async function requireAuthSession(req) {
   if (!session || !session.uid) {
     return { ok: false, statusCode: 401, message: 'Login session is required.' };
   }
-  return { ok: true, session, id: session.uid };
+  if (session.provider === 'test' && /^test_(admin|user)_001$/.test(session.uid)) {
+    return { ok: true, session, id: session.uid, isTest: true };
+  }
+
+  const rows = await fetchSupabase(
+    `/rest/v1/profiles?select=id,is_blocked&id=eq.${encodeEq(session.uid)}&limit=1`,
+    { headers: { Accept: 'application/json' } }
+  );
+  const profile = Array.isArray(rows) && rows[0] ? rows[0] : null;
+  if (!profile) {
+    return { ok: false, statusCode: 404, message: 'User profile not found.' };
+  }
+  if (profile.is_blocked) {
+    return { ok: false, statusCode: 403, message: 'This account has been blocked.' };
+  }
+  return { ok: true, session, id: session.uid, profile };
 }
 
 module.exports = {

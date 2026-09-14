@@ -140,7 +140,7 @@
       <div class="admin-filter-bar">
         <div class="filter-group">
           <span class="filter-label">🚻 성별</span>
-          <select id="filterGender" class="filter-select" onchange="updateFilters()">
+          <select id="filterGender" class="filter-select" aria-label="성별 필터" onchange="updateFilters()">
             <option value="all">전체</option>
             <option value="남">남성</option>
             <option value="여">여성</option>
@@ -148,7 +148,7 @@
         </div>
         <div class="filter-group">
           <span class="filter-label">🎂 연령대</span>
-          <select id="filterAge" class="filter-select" onchange="updateFilters()">
+          <select id="filterAge" class="filter-select" aria-label="연령 필터" onchange="updateFilters()">
             <option value="all">전체</option>
             <option value="20">20대</option>
             <option value="30">30대</option>
@@ -158,11 +158,11 @@
         </div>
         <div class="filter-group">
           <span class="filter-label">📅 월별</span>
-          <input type="month" id="filterMonth" class="filter-select" onchange="updateFilters()">
+          <input type="month" id="filterMonth" class="filter-select" aria-label="월 필터" onchange="updateFilters()">
         </div>
         <div class="filter-group">
           <span class="filter-label">⭐ 대상</span>
-          <select id="filterSpecial" class="filter-select" onchange="updateFilters()" style="border-color:var(--gold);">
+          <select id="filterSpecial" class="filter-select" aria-label="특별관리 필터" onchange="updateFilters()" style="border-color:var(--gold);">
             <option value="all">전체 사용자</option>
             <option value="special">특별관리 대상</option>
           </select>

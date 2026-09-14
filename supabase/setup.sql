@@ -14,6 +14,7 @@ create table if not exists public.profiles (
   oauth_provider_id text,
   is_admin boolean not null default false,
   is_special boolean not null default false,
+  is_blocked boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -148,6 +149,7 @@ create table if not exists public.inbody_records (
   body_fat_percent numeric not null default 0,
   ecw_ratio numeric not null default 0,
   inbody_score integer not null default 0,
+  phase_angle numeric not null default 0,
   image_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -187,10 +189,11 @@ for each row
 execute function public.set_updated_at();
 
 -- ==========================================
--- STORAGE BUCKETS (Must be created via UI or SQL if supported)
+-- STORAGE BUCKETS
 -- ==========================================
--- insert into storage.buckets (id, name, public) values ('inbody_images', 'inbody_images', true) on conflict do nothing;
--- drop policy if exists "Public Access" on storage.objects;
--- create policy "Public Access" on storage.objects for select using (bucket_id = 'inbody_images');
--- drop policy if exists "Admin Upload" on storage.objects;
--- create policy "Admin Upload" on storage.objects for insert with check (bucket_id = 'inbody_images' and exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+insert into storage.buckets (id, name, public)
+values ('inbody_images', 'inbody_images', false)
+on conflict (id) do update set public = false;
+
+-- Images are accessed only through authenticated server APIs using the service role.
+drop policy if exists "Public Access" on storage.objects;

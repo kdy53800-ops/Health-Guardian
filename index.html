@@ -393,13 +393,36 @@
           const type = confirm('테스트 계정으로 접속하시겠습니까?\n확인: 관리자 / 취소: 일반 사용자') ? 'admin' : 'user';
           
           const pass = prompt('테스트 계정 비밀번호를 입력하세요:');
-          if (pass !== '6476') {
-            alert('비밀번호가 틀렸습니다.');
-            return;
-          }
+          if (pass === null) return;
 
-          const loginAndRedirect = () => {
-            Auth.setUser({
+          const loginAndRedirect = (user) => {
+            Auth.setUser(user);
+            window.location.href = 'dashboard.html';
+          };
+
+          // 운영 환경에서는 서버가 비밀번호를 검증하고 서명된 세션 쿠키를 발급합니다.
+          if (window.location.protocol.startsWith('http')) {
+            fetch('api/test-login', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type, password: pass })
+            }).then(async (response) => {
+              const payload = await response.json().catch(() => null);
+              if (!response.ok || !payload || !payload.ok) {
+                throw new Error((payload && payload.message) || '테스트 로그인에 실패했습니다.');
+              }
+              loginAndRedirect(payload.user);
+            }).catch((err) => {
+              alert(err.message || '테스트 로그인에 실패했습니다.');
+            });
+          } else {
+            // 서버가 없는 로컬 파일 미리보기에서만 기존 테스트 비밀번호를 사용합니다.
+            if (pass !== '6476') {
+              alert('비밀번호가 틀렸습니다.');
+              return;
+            }
+            loginAndRedirect({
               id: type === 'admin' ? 'test_admin_001' : 'test_user_001',
               name: type === 'admin' ? '테스트 관리자' : '테스트 유저',
               username: type === 'admin' ? 'test_admin' : 'test_user',
@@ -407,21 +430,6 @@
               isSpecial: true,
               authProvider: 'test'
             });
-            window.location.href = 'dashboard.html';
-          };
-
-          // 서버(http/https) 환경에서만 쿠키 발급 API 호출 시도 (로컬 파일 실행 시 생략)
-          if (window.location.protocol.startsWith('http')) {
-            fetch('api/test-login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type })
-            }).then(loginAndRedirect).catch((err) => {
-              console.warn('API login failed:', err);
-              loginAndRedirect(); // API 실패해도 로컬 로그인 강행
-            });
-          } else {
-            loginAndRedirect(); // file:/// 환경 등
           }
         }
         

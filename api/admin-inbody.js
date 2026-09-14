@@ -1,5 +1,10 @@
+const { randomUUID } = require('crypto');
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
+const { BUCKET, extractObjectPath, privateImageUrl } = require('./_lib/inbody-storage');
+
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -10,8 +15,12 @@ function sendJson(res, statusCode, payload) {
 async function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   const chunks = [];
+  let total = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > MAX_BODY_BYTES) throw Object.assign(new Error('Request body is too large.'), { statusCode: 413 });
+    chunks.push(buffer);
   }
   if (!chunks.length) return null;
   try {
@@ -44,7 +53,10 @@ module.exports = async function handler(req, res) {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
-      sendJson(res, 200, { ok: true, records: Array.isArray(records) ? records : [] });
+      const safeRecords = Array.isArray(records)
+        ? records.map(record => ({ ...record, image_url: record.image_url ? privateImageUrl(record.id) : null }))
+        : [];
+      sendJson(res, 200, { ok: true, records: safeRecords });
       return;
     }
 
@@ -63,20 +75,32 @@ module.exports = async function handler(req, res) {
         return;
       }
 
+      const numericFields = { weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, phaseAngle };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || Object.values(numericFields).some(value => !Number.isFinite(Number(value)))) {
+        sendJson(res, 400, { ok: false, message: '날짜와 측정값을 올바르게 입력해 주세요.' });
+        return;
+      }
+
       let imageUrl = null;
       if (imageBase64 && fileName) {
-        const buffer = Buffer.from(imageBase64.split(',')[1], 'base64');
-        // Sanitize fileName: remove special characters that cause 'Invalid key' in Supabase Storage
-        const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const uploadPath = `inbody_images/${userId}/${date}_${Math.random().toString(36).substring(2, 7)}_${safeFileName}`;
+        const match = String(imageBase64).match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+        if (!match) {
+          sendJson(res, 400, { ok: false, message: '지원하지 않는 이미지 형식입니다.' });
+          return;
+        }
+        const buffer = Buffer.from(match[2], 'base64');
+        if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) {
+          sendJson(res, 413, { ok: false, message: '이미지는 2MB 이하만 업로드할 수 있습니다.' });
+          return;
+        }
+        const uploadPath = `${BUCKET}/${userId}/${date}_${randomUUID()}.jpg`;
         
         await fetchSupabase(`/storage/v1/object/${uploadPath}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'image/png' },
+          headers: { 'Content-Type': 'image/jpeg', 'x-upsert': 'false' },
           body: buffer
         });
-        const { supabaseUrl } = require('./_lib/supabase').getSupabaseEnv();
-        imageUrl = `${supabaseUrl}/storage/v1/object/public/${uploadPath}`;
+        imageUrl = uploadPath;
       }
 
       const recordId = `inbody_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
@@ -126,9 +150,8 @@ module.exports = async function handler(req, res) {
       if (record && record.image_url) {
         try {
           // Extract storage path: /public/inbody_images/userId/fileName
-          const urlParts = record.image_url.split('/storage/v1/object/public/inbody_images/');
-          if (urlParts.length === 2) {
-            const storagePath = `inbody_images/${urlParts[1]}`;
+          const storagePath = extractObjectPath(record.image_url);
+          if (storagePath) {
             await fetchSupabase(`/storage/v1/object/${storagePath}`, {
               method: 'DELETE'
             });
@@ -159,6 +182,6 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('[AdminInbodyAPI]', error);
-    sendJson(res, 500, { ok: false, message: error.message || 'Internal Server Error' });
+    sendJson(res, error.statusCode || 500, { ok: false, message: error.message || 'Internal Server Error' });
   }
 };

@@ -5,6 +5,16 @@
 
 const APP_NAME = 'HealthGuardian';
 
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  })[char]);
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
 // ─── Storage Keys ────────────────────────────────────
 const KEYS = {
   RECORDS: `${APP_NAME}_records`,
@@ -65,16 +75,14 @@ const Auth = {
   },
 
   logout() {
-    const user = this.getUser();
     localStorage.removeItem(KEYS.CURRENT_USER);
 
-    if (user && user.authProvider === 'naver') {
+    if (window.location.protocol.startsWith('http')) {
       fetch(new URL('api/logout', window.location.href).toString(), {
         method: 'POST',
         credentials: 'include',
         keepalive: true,
       }).catch(() => {});
-      localStorage.removeItem(KEYS.CURRENT_USER);
       window.location.href = 'index.html?logout=1';
       return;
     }
@@ -331,12 +339,13 @@ const Records = {
 
       return records;
     } catch (error) {
-      console.warn('[Records] Falling back to local records:', error);
+      console.warn('[Records] Failed to load remote records:', error);
       if (error.message && error.message.includes('로그인 세션이 만료되었습니다')) {
         alert(error.message);
         Auth.logout();
         return [];
       }
+      showToast('서버 기록을 불러오지 못했습니다. 표시된 내용은 이 기기에 저장된 최근 기록일 수 있습니다.', 'error');
       return this.getUserRecords(userId);
     }
   },
@@ -549,7 +558,11 @@ function showToast(msg, type = 'default') {
   const icons = { success: '✅', error: '❌', default: 'ℹ️' };
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type] || icons.default}</span><span>${msg}</span>`;
+  const icon = document.createElement('span');
+  icon.textContent = icons[type] || icons.default;
+  const message = document.createElement('span');
+  message.textContent = String(msg == null ? '' : msg);
+  toast.append(icon, message);
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -606,14 +619,14 @@ function renderNavUser() {
   profile.id = 'navProfile';
   profile.innerHTML = `
     <button class="nav-profile-btn" id="navProfileBtn" aria-haspopup="true" aria-expanded="false">
-      <div class="nav-avatar" id="navAvatar">${initial}</div>
-      <span class="nav-username" id="navUsername">${displayName}</span>
+       <div class="nav-avatar" id="navAvatar">${escapeHtml(initial)}</div>
+       <span class="nav-username" id="navUsername">${escapeHtml(displayName)}</span>
       <span class="profile-caret">▼</span>
     </button>
     <div class="nav-profile-dropdown" id="navProfileDropdown" role="menu">
       <div class="dropdown-user-header">
-        <div class="dropdown-user-name">${displayName}</div>
-        <div class="dropdown-user-sub">${user.username || ''}</div>
+        <div class="dropdown-user-name">${escapeHtml(displayName)}</div>
+        <div class="dropdown-user-sub">${escapeHtml(user.username || '')}</div>
       </div>
       ${adminItemHTML}
       <button class="dropdown-item logout-item" onclick="Auth.logout()" role="menuitem">
@@ -798,10 +811,10 @@ function renderMobileNav() {
   drawer.setAttribute('aria-label', '사이드 메뉴');
   drawer.innerHTML = `
     <div class="drawer-header">
-      <div class="drawer-avatar">${initial}</div>
+      <div class="drawer-avatar">${escapeHtml(initial)}</div>
       <div class="drawer-user-info">
-        <div class="drawer-user-name">${user.name || user.username || '사용자'}</div>
-        <div class="drawer-user-sub">${user.username || ''}</div>
+        <div class="drawer-user-name">${escapeHtml(user.name || user.username || '사용자')}</div>
+        <div class="drawer-user-sub">${escapeHtml(user.username || '')}</div>
       </div>
       <button class="drawer-close-btn" onclick="closeDrawer()" aria-label="메뉴 닫기">✕</button>
     </div>

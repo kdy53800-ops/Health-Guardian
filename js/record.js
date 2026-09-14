@@ -421,29 +421,32 @@ function renderCustomExList() {
   container.innerHTML = customExercises.map(ex => {
     const cfg = EX_CAT_CFG[ex.category] || EX_CAT_CFG['유산소'];
     return `
-      <div class="custom-ex-row" id="exRow_${ex.id}">
-        <div class="cat-badge ${cfg.badge}" title="${ex.category}">${cfg.icon}</div>
+      <div class="custom-ex-row" id="exRow_${escapeAttribute(ex.id)}">
+        <div class="cat-badge ${cfg.badge}" title="${escapeAttribute(ex.category)}">${cfg.icon}</div>
         <div class="ex-name-label">
-          <span class="ex-cat-tag">${ex.category}</span>
-          <strong>${ex.name}</strong>
+          <span class="ex-cat-tag">${escapeHtml(ex.category)}</span>
+          <strong>${escapeHtml(ex.name)}</strong>
         </div>
         <div class="ex-dur-wrap">
           <input
             type="number"
             min="1" max="999"
-            value="${ex.duration}"
-            oninput="updateExercise('${ex.id}','duration',this.value); updateSummary()"
+            value="${escapeAttribute(ex.duration)}"
+            data-exercise-id="${escapeAttribute(ex.id)}"
+            oninput="updateExercise(this.dataset.exerciseId,'duration',this.value); updateSummary()"
           >
           <span>분</span>
         </div>
         <select class="ex-intensity-select"
-          onchange="updateExercise('${ex.id}','intensity',this.value)">
+          data-exercise-id="${escapeAttribute(ex.id)}"
+          onchange="updateExercise(this.dataset.exerciseId,'intensity',this.value)">
           <option value="하" ${ex.intensity === '하' ? 'selected' : ''}>하</option>
           <option value="중" ${ex.intensity === '중' ? 'selected' : ''}>중</option>
           <option value="상" ${ex.intensity === '상' ? 'selected' : ''}>상</option>
         </select>
         <button type="button" class="ex-remove-btn"
-          onclick="removeExercise('${ex.id}')">✕</button>
+          data-exercise-id="${escapeAttribute(ex.id)}"
+          onclick="removeExercise(this.dataset.exerciseId)">✕</button>
       </div>
     `;
   }).join('');
