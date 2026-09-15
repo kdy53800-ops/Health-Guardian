@@ -25,6 +25,7 @@ const KEYS = {
   RECORD_OUTBOX: `${APP_NAME}_recordOutbox`,
   NOTIFICATION_PREFS: `${APP_NAME}_notificationPrefs`,
   NOTIFICATION_SEEN: `${APP_NAME}_notificationSeen`,
+  NOTIFICATION_PROMPT_SEEN: `${APP_NAME}_notificationPromptSeen_v1`,
 };
 
 // ─── Auth ─────────────────────────────────────────────
@@ -127,6 +128,7 @@ const Auth = {
     localStorage.removeItem(KEYS.RECORDS_MIGRATED + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_SEEN + '_' + user.id);
+    localStorage.removeItem(KEYS.NOTIFICATION_PROMPT_SEEN + '_' + user.id);
     const users = this.getUsers();
     this.saveUsers(users.filter(u => String(u.id) !== String(user.id)));
     localStorage.removeItem(KEYS.CURRENT_USER);
@@ -685,6 +687,15 @@ const HealthNotifications = {
     localStorage.setItem(this.preferenceKey(userId), enabled ? 'enabled' : 'disabled');
   },
 
+  shouldShowInitialPrompt(userId) {
+    return !localStorage.getItem(this.preferenceKey(userId))
+      && localStorage.getItem(`${KEYS.NOTIFICATION_PROMPT_SEEN}_${userId}`) !== 'seen';
+  },
+
+  markInitialPromptSeen(userId) {
+    localStorage.setItem(`${KEYS.NOTIFICATION_PROMPT_SEEN}_${userId}`, 'seen');
+  },
+
   daysSince(dateText) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateText || ''))) return null;
     const [year, month, day] = dateText.split('-').map(Number);
@@ -849,6 +860,10 @@ function initializeHealthNotifications() {
   if (!user || window.location.protocol === 'file:') return;
   setTimeout(async () => {
     await HealthNotifications.evaluate(user);
+    if (HealthNotifications.shouldShowInitialPrompt(user.id)) {
+      HealthNotifications.markInitialPromptSeen(user.id);
+      openNotificationCenter();
+    }
     if ('Notification' in window && Notification.permission === 'granted') {
       HealthNotifications.deliver(user).catch(error => console.warn('[HealthNotifications]', error));
     }
