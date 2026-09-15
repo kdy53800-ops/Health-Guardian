@@ -40,6 +40,7 @@ const Auth = {
         localStorage.removeItem(KEYS.CURRENT_USER);
         return null;
       }
+      seedTestAccountData(user);
       return user;
     } catch (e) {
       return null;
@@ -951,6 +952,9 @@ function seedTestAccountData(user) {
     date.setDate(date.getDate() + offset);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
+  const seedKey = `${APP_NAME}_testDataSeeded_${userId}`;
+  const seedDate = dateAtOffset(0);
+  if (localStorage.getItem(seedKey) === seedDate) return;
   const samples = [
     [-28, 20, 0, 15, 1500, 3, 68.4], [-24, 25, 5, 20, 1700, 3, 68.1],
     [-20, 30, 0, 20, 1800, 4, 67.9], [-16, 35, 10, 25, 1900, 4, 67.6],
@@ -978,6 +982,7 @@ function seedTestAccountData(user) {
   const existing = readLocalRecords().filter(record => !(String(record.userId) === userId && String(record.id || '').startsWith('test-seed-')));
   writeLocalRecords([...existing, ...fixtures]);
   localStorage.setItem(`${KEYS.GOALS}_${userId}`, JSON.stringify({ walking:30, running:15, water:2000, fasting:12, weight:0, customEx:30 }));
+  localStorage.setItem(seedKey, seedDate);
 }
 
 function openNotificationCenter() {
