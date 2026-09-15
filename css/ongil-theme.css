@@ -155,7 +155,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .ongil-home .login-footer { font-size: .8rem; margin-top: 18px; }
 .ongil-home .admin-link { align-self: center; margin-top: 24px; font-size: .8rem; }
 .mobile-login-next, .mobile-login-back { display: none; }
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .ongil-login-root { overflow: hidden; }
   .ongil-home { overflow: hidden; min-height: 100dvh; }
   .ongil-home .login-container {
@@ -179,9 +179,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .ongil-steps { display: none; }
   .ongil-intro-note { padding: 22px 28px; padding-bottom: max(22px, env(safe-area-inset-bottom)); font-size: .72rem; }
   .mobile-login-next {
-    position: absolute; right: 0; top: 50%; z-index: 2; transform: translateY(-50%);
-    display: flex; align-items: center; gap: 8px; padding: 13px 10px 13px 16px;
-    border: 1px solid #D3DCE6; border-right: 0; border-radius: 22px 0 0 22px;
+    position: absolute; right: max(14px, env(safe-area-inset-right)); top: 50%; z-index: 2; transform: translateY(-50%);
+    display: flex; align-items: center; gap: 8px; padding: 13px 16px;
+    border: 1px solid #D3DCE6; border-radius: 999px;
     background: rgba(255,255,255,.94); color: var(--primary); box-shadow: 0 6px 20px rgba(20,40,60,.08);
     font-family: inherit; font-size: .78rem; font-weight: 700; line-height: 1; cursor: pointer;
   }
@@ -198,6 +198,32 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     font-family: inherit; font-size: .8rem; font-weight: 600; line-height: 1; cursor: pointer;
   }
   .ongil-home .app-footer { display: none; }
+}
+@media (max-width: 1100px) and (max-height: 700px) {
+  .ongil-signature { padding: 14px 20px; }
+  .ongil-signature img { width: 320px; }
+  .ongil-intro-copy { padding: 20px 24px; }
+  .ongil-intro h2 { font-size: 1.65rem; }
+  .ongil-description { margin-top: 10px; font-size: .82rem; line-height: 1.65; }
+  .ongil-intro-note { padding: 14px 24px; }
+  .ongil-home .login-card { padding-top: 54px; padding-bottom: 22px; }
+}
+@media (min-width: 1101px) and (max-height: 800px) {
+  .ongil-home .login-container { min-height: 100dvh; padding-top: 20px; padding-bottom: 20px; }
+  .ongil-signature { padding: 20px 36px; }
+  .ongil-intro-copy { padding: 28px 40px 22px; }
+  .ongil-intro h2 { font-size: 2.15rem; }
+  .ongil-description { margin-top: 14px; line-height: 1.65; }
+  .ongil-steps { margin-top: 24px; gap: 12px; }
+  .ongil-intro-note { padding: 15px 40px; }
+  .ongil-home .login-card { padding: 24px 36px; }
+  .ongil-home .logo-img { width: 56px; height: 56px; margin-bottom: 10px; }
+  .ongil-home .brand-name { font-size: 1.8rem; }
+  .ongil-home .badge-group { margin-top: 12px; }
+  .ongil-home .welcome-section { margin-top: 14px; padding: 14px 18px; }
+  .ongil-home .btn-naver { margin: 16px 0 10px; height: 50px; }
+  .ongil-home .login-footer { margin-top: 9px; }
+  .ongil-home .admin-link { margin-top: 12px; }
 }
 @media (max-width: 480px) {
   .page-content { padding: 24px 16px; }
@@ -231,3 +257,29 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .summary-date span, .summary-stat-val, .streak-info .streak-count { color: var(--primary); }
 .summary-stat-lbl, .streak-info h2, .streak-info p { color: var(--text-secondary); }
 #adminLoginOverlay { background: #F3F5F7; }
+
+/* Keep navigation usable on tablets and narrow desktop windows. */
+@media (max-width: 1100px) {
+  .top-nav { padding: 0 clamp(12px, 2.4vw, 24px); gap: 12px; }
+  .nav-links { display: none; }
+  .nav-right { margin-left: auto; gap: 8px; }
+  .nav-hamburger {
+    display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; flex: 0 0 42px;
+    border: 0; border-radius: 11px; cursor: pointer;
+    font-family: inherit; font-size: 1.25rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+@media (max-width: 520px) {
+  :root { --nav-height: 64px; }
+  .top-nav { gap: 8px; }
+  .nav-brand { gap: 7px; min-width: 0; }
+  .nav-brand-name { max-width: 112px; overflow: hidden; text-overflow: ellipsis; font-size: 1.02rem; }
+  .nav-right { gap: 6px; }
+  .nav-profile-btn { width: 40px; height: 40px; padding: 2px; justify-content: center; }
+  .nav-profile-btn .nav-avatar { width: 34px; height: 34px; }
+  .nav-profile-btn .nav-username, .nav-profile-btn .profile-caret { display: none; }
+  .notification-bell { width: 40px; height: 40px; }
+  .nav-hamburger { width: 40px; height: 40px; flex-basis: 40px; }
+}
