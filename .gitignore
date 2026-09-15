@@ -15,3 +15,6 @@ Health Guardian/
 
 .vercel
 .env*
+
+# Local rendering and QA artifacts
+tmp/
