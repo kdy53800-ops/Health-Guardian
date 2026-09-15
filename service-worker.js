@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-guardian-shell-v1';
+const CACHE_NAME = 'health-guardian-shell-v2';
 const APP_SHELL = [
   '/', '/index.html', '/dashboard.html', '/record.html', '/history.html', '/monthly.html', '/inbody.html',
   '/terms.html', '/privacy.html',
@@ -34,4 +34,13 @@ self.addEventListener('fetch', event => {
     if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
     return response;
   })));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(openClients => {
+    const dashboard = openClients.find(client => new URL(client.url).pathname.endsWith('/dashboard.html'));
+    if (dashboard) return dashboard.focus();
+    return clients.openWindow('/dashboard.html');
+  }));
 });

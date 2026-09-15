@@ -23,6 +23,8 @@ const KEYS = {
   GOALS: `${APP_NAME}_goals`,
   RECORDS_MIGRATED: `${APP_NAME}_recordsMigrated`,
   RECORD_OUTBOX: `${APP_NAME}_recordOutbox`,
+  NOTIFICATION_PREFS: `${APP_NAME}_notificationPrefs`,
+  NOTIFICATION_SEEN: `${APP_NAME}_notificationSeen`,
 };
 
 // ─── Auth ─────────────────────────────────────────────
@@ -123,6 +125,8 @@ const Auth = {
     Records.setOutbox(pendingRecords);
     localStorage.removeItem(KEYS.GOALS + '_' + user.id);
     localStorage.removeItem(KEYS.RECORDS_MIGRATED + '_' + user.id);
+    localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id);
+    localStorage.removeItem(KEYS.NOTIFICATION_SEEN + '_' + user.id);
     const users = this.getUsers();
     this.saveUsers(users.filter(u => String(u.id) !== String(user.id)));
     localStorage.removeItem(KEYS.CURRENT_USER);
@@ -665,6 +669,195 @@ function showToast(msg, type = 'default') {
   }, 3000);
 }
 
+// ─── Consent-based health reminders ──────────────────
+const HealthNotifications = {
+  alerts: [],
+
+  preferenceKey(userId) {
+    return `${KEYS.NOTIFICATION_PREFS}_${userId}`;
+  },
+
+  isEnabled(userId) {
+    return localStorage.getItem(this.preferenceKey(userId)) === 'enabled';
+  },
+
+  setEnabled(userId, enabled) {
+    localStorage.setItem(this.preferenceKey(userId), enabled ? 'enabled' : 'disabled');
+  },
+
+  daysSince(dateText) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateText || ''))) return null;
+    const [year, month, day] = dateText.split('-').map(Number);
+    const target = new Date(year, month - 1, day);
+    const now = new Date();
+    const current = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.max(0, Math.floor((current - target) / 86400000));
+  },
+
+  async evaluate(user) {
+    if (!user) return [];
+    const records = Records.getUserRecords(user.id).filter(record => record && record.date).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const alerts = [];
+    const todayText = today();
+    const hasToday = records.some(record => record.date === todayText);
+    const lastRecord = records[0] || null;
+    const inactiveDays = lastRecord ? this.daysSince(lastRecord.date) : this.daysSince(user.createdAt && String(user.createdAt).slice(0, 10));
+
+    if (inactiveDays != null && inactiveDays >= 7) {
+      alerts.push({ type: 'inactive', icon: '📅', title: `${inactiveDays}일 동안 기록이 없어요`, body: '오늘의 작은 움직임부터 부담 없이 기록해 보세요.', href: 'record.html' });
+    } else if (!hasToday && records.some(record => record.date === prevDay(todayText))) {
+      const streak = calcStreak(records);
+      if (streak >= 2) alerts.push({ type: 'streak', icon: '🔥', title: `${streak}일 연속 기록을 이어가세요`, body: '오늘 기록을 남기면 연속 기록이 계속됩니다.', href: 'record.html' });
+    }
+
+    if (user.authProvider === 'naver' && user.supabaseUserId) {
+      try {
+        const response = await fetch(new URL('api/inbody-data', window.location.href).toString(), {
+          credentials: 'include', headers: { Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        const inbodyRecords = response.ok && payload && Array.isArray(payload.records) ? payload.records : [];
+        const latest = inbodyRecords.map(record => record.record_date).filter(Boolean).sort().pop();
+        const elapsed = this.daysSince(latest);
+        if (elapsed != null && elapsed >= 90) {
+          alerts.push({ type: 'inbody', icon: '💪', title: '인바디 재측정 시기예요', body: `마지막 측정 후 ${elapsed}일이 지났습니다. 변화 추이를 다시 확인해 보세요.`, href: 'inbody.html' });
+        }
+      } catch (error) {
+        console.warn('[HealthNotifications] InBody reminder unavailable:', error.message);
+      }
+    }
+
+    this.alerts = alerts;
+    this.updateBadge();
+    this.renderList();
+    return alerts;
+  },
+
+  updateBadge() {
+    const count = document.getElementById('notificationCount');
+    if (!count) return;
+    count.textContent = String(this.alerts.length);
+    count.hidden = this.alerts.length === 0;
+  },
+
+  renderList() {
+    const list = document.getElementById('healthNotificationList');
+    if (!list) return;
+    if (!this.alerts.length) {
+      list.innerHTML = '<div class="health-notification-empty">현재 확인할 건강 알림이 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = this.alerts.map(alert => `
+      <a class="health-notification-item" href="${escapeAttribute(alert.href)}">
+        <span class="health-notification-icon">${alert.icon}</span>
+        <span><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.body)}</small></span>
+      </a>`).join('');
+  },
+
+  updatePermissionUI(user) {
+    const status = document.getElementById('healthNotificationStatus');
+    const button = document.getElementById('healthNotificationToggle');
+    if (!status || !button) return;
+    const supported = 'Notification' in window && 'serviceWorker' in navigator;
+    const enabled = supported && this.isEnabled(user.id) && Notification.permission === 'granted';
+    if (!supported) {
+      status.textContent = '이 브라우저에서는 PWA 알림을 지원하지 않습니다.';
+      button.hidden = true;
+      return;
+    }
+    button.hidden = false;
+    button.textContent = enabled ? 'PWA 알림 끄기' : 'PWA 알림 받기';
+    button.classList.toggle('enabled', enabled);
+    status.textContent = Notification.permission === 'denied'
+      ? '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용할 수 있습니다.'
+      : (enabled ? '이 기기에서 하루 한 번 필요한 알림만 알려드립니다.' : '버튼을 눌러 동의한 경우에만 알림을 보냅니다.');
+  },
+
+  async toggle(user) {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    const enabled = this.isEnabled(user.id) && Notification.permission === 'granted';
+    if (enabled) {
+      this.setEnabled(user.id, false);
+      this.updatePermissionUI(user);
+      showToast('PWA 건강 알림을 껐습니다.', 'default');
+      return;
+    }
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      this.setEnabled(user.id, false);
+      this.updatePermissionUI(user);
+      showToast('알림 권한이 허용되지 않았습니다.', 'default');
+      return;
+    }
+    this.setEnabled(user.id, true);
+    this.updatePermissionUI(user);
+    await this.deliver(user, true);
+    showToast('PWA 건강 알림을 켰습니다.', 'success');
+  },
+
+  async deliver(user, force = false) {
+    if (!this.isEnabled(user.id) || Notification.permission !== 'granted' || !this.alerts.length) return;
+    const seenKey = `${KEYS.NOTIFICATION_SEEN}_${user.id}`;
+    const signature = `${today()}:${this.alerts.map(alert => alert.type).sort().join(',')}`;
+    if (!force && localStorage.getItem(seenKey) === signature) return;
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification('건강지킴이 알림', {
+      body: this.alerts.map(alert => `${alert.icon} ${alert.title}`).join('\n'),
+      icon: '/images/app-icon-192.png',
+      badge: '/images/app-icon-192.png',
+      tag: `health-reminder-${today()}`,
+      renotify: false,
+      data: { url: '/dashboard.html' },
+    });
+    localStorage.setItem(seenKey, signature);
+  },
+};
+
+function openNotificationCenter() {
+  const user = Auth.getUser();
+  if (!user) return;
+  let overlay = document.getElementById('healthNotificationOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'healthNotificationOverlay';
+    overlay.className = 'health-notification-overlay';
+    overlay.innerHTML = `
+      <section class="health-notification-panel" role="dialog" aria-modal="true" aria-labelledby="healthNotificationTitle">
+        <div class="health-notification-header"><div><h2 id="healthNotificationTitle">건강 알림</h2><p>기록 변화를 바탕으로 생활 관리를 도와드려요.</p></div><button type="button" class="health-notification-close" aria-label="알림 닫기">×</button></div>
+        <div id="healthNotificationList" class="health-notification-list"></div>
+        <div class="health-notification-consent"><div><strong>PWA 알림</strong><p id="healthNotificationStatus"></p></div><button type="button" id="healthNotificationToggle"></button></div>
+        <p class="health-notification-note">의료적 진단이 아닌 기록 및 재측정 시기 안내입니다.</p>
+      </section>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', event => { if (event.target === overlay) closeNotificationCenter(); });
+    overlay.querySelector('.health-notification-close').addEventListener('click', closeNotificationCenter);
+    overlay.querySelector('#healthNotificationToggle').addEventListener('click', () => HealthNotifications.toggle(Auth.getUser()));
+  }
+  overlay.classList.add('open');
+  HealthNotifications.renderList();
+  HealthNotifications.updatePermissionUI(user);
+  overlay.querySelector('.health-notification-close').focus();
+}
+
+function closeNotificationCenter() {
+  document.getElementById('healthNotificationOverlay')?.classList.remove('open');
+  document.getElementById('notificationBell')?.focus();
+}
+
+function initializeHealthNotifications() {
+  const user = Auth.getUser();
+  if (!user || window.location.protocol === 'file:') return;
+  setTimeout(async () => {
+    await HealthNotifications.evaluate(user);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      HealthNotifications.deliver(user).catch(error => console.warn('[HealthNotifications]', error));
+    }
+  }, 1200);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeNotificationCenter();
+  });
+}
+
 // ─── Nav Active Link ───────────────────────────────────
 function setActiveNav() {
   const page = window.location.pathname.split('/').pop() || 'index.html';
@@ -694,6 +887,7 @@ function renderNavUser() {
   // 기존 nav-user, nav-profile 제거 후 재생성
   navRight.querySelector('.nav-user')?.remove();
   navRight.querySelector('.nav-profile')?.remove();
+  navRight.querySelector('.notification-bell')?.remove();
 
   const initial = (user.name || user.username || '?')[0].toUpperCase();
   const displayName = user.name || user.username || '사용자';
@@ -734,7 +928,14 @@ function renderNavUser() {
     </div>
   `;
 
-  navRight.appendChild(profile);
+  const notificationButton = document.createElement('button');
+  notificationButton.type = 'button';
+  notificationButton.className = 'notification-bell';
+  notificationButton.id = 'notificationBell';
+  notificationButton.setAttribute('aria-label', '건강 알림 열기');
+  notificationButton.innerHTML = '<span aria-hidden="true">🔔</span><span class="notification-count" id="notificationCount" hidden>0</span>';
+  notificationButton.addEventListener('click', openNotificationCenter);
+  navRight.append(notificationButton, profile);
 
   // 클릭으로 드롭다운 토글
   const profileBtn = profile.querySelector('#navProfileBtn');
@@ -828,6 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderMobileNav();
   renderFooter();
   initializePwa();
+  initializeHealthNotifications();
 });
 
 let deferredInstallPrompt = null;
