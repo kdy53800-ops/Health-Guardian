@@ -1,6 +1,7 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
 const { writeAdminAudit } = require('./_lib/audit');
+const { buildTestAdminData, buildTestAuditLogs } = require('./_lib/test-fixtures');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -65,13 +66,18 @@ module.exports = async function handler(req, res) {
     const requestUrl = new URL(req.url, 'http://localhost');
     if (requestUrl.searchParams.get('view') === 'audit') {
       if (auth.session.provider === 'test') {
-        sendJson(res, 200, { ok: true, logs: [] });
+        sendJson(res, 200, { ok: true, logs: buildTestAuditLogs(), demo: true });
         return;
       }
       const logs = await fetchSupabase('/rest/v1/admin_audit_logs?select=id,actor_name,action,target_type,target_id,details,created_at&order=created_at.desc&limit=50', {
         headers: { Accept: 'application/json' },
       });
       sendJson(res, 200, { ok: true, logs: Array.isArray(logs) ? logs : [] });
+      return;
+    }
+
+    if (auth.session.provider === 'test') {
+      sendJson(res, 200, { ok:true, ...buildTestAdminData(), demo:true });
       return;
     }
 

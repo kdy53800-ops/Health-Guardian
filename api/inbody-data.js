@@ -1,6 +1,7 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAuthSession } = require('./_lib/admin-auth');
 const { privateImageUrl } = require('./_lib/inbody-storage');
+const { buildTestInbodyRecords } = require('./_lib/test-fixtures');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -20,6 +21,11 @@ module.exports = async function handler(req, res) {
     const auth = await requireAuthSession(req);
     if (!auth.ok) {
       sendJson(res, auth.statusCode, { ok: false, message: auth.message });
+      return;
+    }
+
+    if (auth.isTest) {
+      sendJson(res, 200, { ok:true, records:buildTestInbodyRecords(auth.id), demo:true });
       return;
     }
 

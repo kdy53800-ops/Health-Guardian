@@ -802,6 +802,24 @@ textarea.form-control {
   margin-left: 52px;
 }
 
+.demo-data-notice {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
+  padding:12px 16px;
+  border:1px solid #cdddec;
+  border-radius:12px;
+  background:#f4f8fb;
+  color:#40586f;
+  font-size:.82rem;
+  line-height:1.5;
+}
+.demo-data-notice strong { color:#0b5797; white-space:nowrap; }
+@media (max-width:640px) {
+  .demo-data-notice { align-items:flex-start; flex-direction:column; gap:3px; }
+}
+
 /* ===== SECTION TITLE ===== */
 .section-title {
   font-size: 1.05rem;

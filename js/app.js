@@ -48,6 +48,7 @@ const Auth = {
 
   setUser(user) {
     localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(user));
+    seedTestAccountData(user);
   },
 
   getUsers() {
@@ -940,6 +941,44 @@ const HealthNotifications = {
     localStorage.setItem(seenKey, signature);
   },
 };
+
+function seedTestAccountData(user) {
+  if (!user || user.authProvider !== 'test' || !/^test_(admin|user)_001$/.test(String(user.id || ''))) return;
+  const userId = String(user.id);
+  const dateAtOffset = offset => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() + offset);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const samples = [
+    [-28, 20, 0, 15, 1500, 3, 68.4], [-24, 25, 5, 20, 1700, 3, 68.1],
+    [-20, 30, 0, 20, 1800, 4, 67.9], [-16, 35, 10, 25, 1900, 4, 67.6],
+    [-12, 30, 10, 25, 2000, 4, 67.4], [-9, 40, 0, 30, 2100, 4, 67.2],
+    [-6, 35, 15, 30, 2000, 5, 67.0], [-4, 45, 10, 35, 2200, 4, 66.9],
+    [-2, 50, 0, 35, 2300, 5, 66.8], [0, 40, 20, 40, 2100, 5, 66.7],
+  ];
+  const fixtures = samples.map(([offset, walking, running, strength, water, condition, weight], index) => ({
+    id: `test-seed-${userId}-${index}`,
+    userId,
+    date: dateAtOffset(offset),
+    walking,
+    running,
+    walkingKm: Number((walking * 0.075).toFixed(1)),
+    runningKm: Number((running * 0.14).toFixed(1)),
+    weight,
+    water,
+    fasting: 12,
+    heartRate: 68 + (index % 4) * 2,
+    condition,
+    memo: index === samples.length - 1 ? '테스트 화면 확인용 가상 기록' : '',
+    customExercises: [{ id:`test-ex-${index}`, category:'근력', name:'전신 근력운동', duration:strength, intensity:'보통', sets:3, reps:12 }],
+    savedAt: `${dateAtOffset(offset)}T09:00:00.000Z`,
+  }));
+  const existing = readLocalRecords().filter(record => !(String(record.userId) === userId && String(record.id || '').startsWith('test-seed-')));
+  writeLocalRecords([...existing, ...fixtures]);
+  localStorage.setItem(`${KEYS.GOALS}_${userId}`, JSON.stringify({ walking:30, running:15, water:2000, fasting:12, weight:0, customEx:30 }));
+}
 
 function openNotificationCenter() {
   const user = Auth.getUser();

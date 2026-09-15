@@ -1,5 +1,6 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAuthSession } = require('./_lib/admin-auth');
+const { buildTestAdminData } = require('./_lib/test-fixtures');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -18,6 +19,32 @@ module.exports = async function handler(req, res) {
     const auth = await requireAuthSession(req);
     if (!auth.ok) {
       sendJson(res, auth.statusCode, { ok: false, message: auth.message });
+      return;
+    }
+
+    if (auth.isTest) {
+      const fixture = buildTestAdminData();
+      const stats = fixture.users.map(user => {
+        const records = fixture.records.filter(record => record.userId === user.id);
+        return {
+          id:user.id,
+          name:user.name,
+          attendanceCount:records.length,
+          totalExerciseMins:records.reduce((sum, record) => sum + record.walking + record.running + record.customExercises.reduce((subtotal, exercise) => subtotal + exercise.duration, 0), 0),
+        };
+      });
+      const attendance = [...stats].sort((a,b) => b.attendanceCount - a.attendanceCount || a.name.localeCompare(b.name));
+      const exercise = [...stats].sort((a,b) => b.totalExerciseMins - a.totalExerciseMins || a.name.localeCompare(b.name));
+      const currentAttendance = attendance.findIndex(user => user.id === auth.id);
+      const currentExercise = exercise.findIndex(user => user.id === auth.id);
+      sendJson(res, 200, {
+        ok:true,
+        topAttendance:attendance.slice(0,5).map(user => ({ name:user.name, value:user.attendanceCount })),
+        topExercise:exercise.slice(0,5).map(user => ({ name:user.name, value:user.totalExerciseMins })),
+        myAttendance:{ rank:currentAttendance + 1, value:attendance[currentAttendance].attendanceCount },
+        myExercise:{ rank:currentExercise + 1, value:exercise[currentExercise].totalExerciseMins },
+        demo:true,
+      });
       return;
     }
 

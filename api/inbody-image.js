@@ -22,6 +22,10 @@ module.exports = async function handler(req, res) {
       sendJson(res, auth.statusCode, { ok: false, message: auth.message });
       return;
     }
+    if (auth.isTest) {
+      sendJson(res, 404, { ok:false, message:'테스트 계정에는 저장된 인바디 이미지가 없습니다.' });
+      return;
+    }
 
     const id = new URL(req.url, 'http://localhost').searchParams.get('id') || '';
     if (!id) {

@@ -382,13 +382,12 @@ function buildPersonalReport(streak) {
     .reduce((sum, exercise) => sum + (Number(exercise.duration) || 0), 0), 0);
 
   const insights = [];
-  if (!recent7.length) insights.push('최근 7일 기록이 없습니다. 오늘 가능한 활동부터 가볍게 기록해 보세요.');
-  else if (exerciseChange != null && exerciseChange >= 10) insights.push(`최근 7일 운동 시간이 직전 7일보다 ${exerciseChange}% 늘었습니다. 현재 흐름을 이어가 보세요.`);
-  else if (exerciseChange != null && exerciseChange <= -20) insights.push(`최근 7일 운동 시간이 직전 7일보다 ${Math.abs(exerciseChange)}% 줄었습니다. 부담 없는 활동부터 다시 시작해 보세요.`);
+  if (!recent7.length) insights.push('최근 7일에 입력된 활동 기록이 없습니다.');
+  else if (exerciseChange != null && exerciseChange >= 10) insights.push(`최근 7일 운동 시간이 직전 7일보다 ${exerciseChange}% 증가했습니다.`);
+  else if (exerciseChange != null && exerciseChange <= -20) insights.push(`최근 7일 운동 시간이 직전 7일보다 ${Math.abs(exerciseChange)}% 감소했습니다.`);
   else insights.push(`최근 7일 동안 ${recent7.length}일, 총 ${recentMinutes}분의 활동을 기록했습니다.`);
-  if (recent7.length >= 3 && strengthMinutes === 0) insights.push('걷기·러닝 기록에 비해 근력 운동 기록이 없습니다. 생활 패턴에 맞는 근력 활동도 함께 기록해 보세요.');
-  else if (goalRate >= 80) insights.push(`최근 7일 평균 목표 달성률이 ${goalRate}%입니다. 꾸준한 기록 습관이 잘 이어지고 있습니다.`);
-  else insights.push('목표 달성률은 개인 목표 설정값을 기준으로 계산됩니다. 부담되면 기록 화면에서 목표를 조정할 수 있습니다.');
+  if (recent7.length >= 3 && strengthMinutes === 0) insights.push('최근 7일 기록에는 근력 운동 항목이 없습니다.');
+  else insights.push(`최근 7일 평균 목표 달성률은 사용자가 설정한 목표 기준으로 ${goalRate}%입니다.`);
 
   const thisMonth = end.slice(0, 7);
   const currentMonthRecords = userRecords.filter(record => record.date.startsWith(thisMonth));
@@ -422,7 +421,7 @@ function renderPersonalReport(report) {
   ];
   return `
     <section class="personal-report" aria-labelledby="personalReportTitle">
-      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강 리포트</h2><p>최근 기록을 생활 습관 관점에서 정리했어요.</p></div><div class="report-actions"><span class="report-period">최근 7일 · 30일</span><button type="button" class="report-action" onclick="exportPersonalRecords()">CSV 저장</button><button type="button" class="report-action" onclick="openConsultReportDialog()">상담용 월간 PDF</button></div></div>
+      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강기록 리포트</h2><p>내가 입력하고 측정한 건강지표의 변화를 정리했어요.</p></div><div class="report-actions"><span class="report-period">최근 7일 · 30일</span><button type="button" class="report-action" onclick="exportPersonalRecords()">CSV 저장</button><button type="button" class="report-action" onclick="openConsultReportDialog()">월간 건강지표 PDF</button></div></div>
       <div class="report-metrics">
         <div class="report-metric"><div class="report-metric-label">7일 운동 시간</div><div class="report-metric-value">${report.recentMinutes.toLocaleString()}분</div><div class="report-metric-note">직전 7일 대비 ${changeText}</div></div>
         <div class="report-metric"><div class="report-metric-label">목표 달성률</div><div class="report-metric-value">${report.goalRate}%</div><div class="report-metric-note">기록한 날의 평균</div></div>
@@ -432,7 +431,7 @@ function renderPersonalReport(report) {
       <div class="report-insights">${report.insights.map(text => `<div class="report-insight">${escapeHtml(text)}</div>`).join('')}</div>
       <div class="achievement-badges" aria-label="나의 성취 배지">${badges.map(badge => `<span class="achievement-badge ${badge.earned ? 'earned' : ''}" aria-label="${badge.label} ${badge.earned ? '달성' : '미달성'}"><span aria-hidden="true">${badge.earned ? badge.icon : '○'}</span>${badge.label}</span>`).join('')}</div>
       <div class="inbody-report" id="inbodyReport" role="status">체성분 변화 기록을 확인하는 중입니다.</div>
-      <p class="report-disclaimer">이 리포트는 입력 기록의 변화와 생활 습관을 요약하며 의료적 진단이나 치료 판단을 제공하지 않습니다.</p>
+      <p class="report-disclaimer">이 리포트는 사용자가 입력하거나 측정한 건강 관련 기록의 변화를 확인하기 위한 자료이며, 의료적 진단·운동 처방·치료 지침을 제공하지 않습니다.</p>
     </section>`;
 }
 
@@ -502,7 +501,7 @@ function buildExerciseTrendSvg(monthRecords, month) {
 function buildSparklineSvg(records, key, color) {
   const values = records.map(record => Number(record[key])).filter(Number.isFinite);
   const width = 300, height = 38, pad = 4;
-  if (values.length < 2) return '<div style="padding:8px 0;color:#8898a8;font-size:8px;">비교할 측정 기록이 부족합니다.</div>';
+  if (values.length < 2) return '<div style="padding:8px 0;color:#8898a8;font-size:8px;">비교 가능한 측정 기록이 아직 없습니다.</div>';
   const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
   const points = values.map((value, index) => `${pad + index / (values.length - 1) * (width - pad * 2)},${pad + (max - value) / range * (height - pad * 2)}`).join(' ');
   return `<svg class="consult-chart-svg" viewBox="0 0 ${width} ${height}" aria-hidden="true"><line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#e4ebf1"/><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -556,14 +555,14 @@ async function createConsultReport() {
 
   const latestRecords = [...monthRecords].sort((a,b) => String(b.date).localeCompare(String(a.date))).slice(0, 7);
   const insight = monthRecords.length
-    ? `${month.replace('-', '년 ')}월에는 ${activeDays}일 동안 총 ${totalMinutes.toLocaleString()}분의 운동을 기록했고, 기록일 평균 목표 달성률은 ${goalRate}%입니다.${monthChange == null ? ' 지난달 비교를 위해 기록을 이어가 보세요.' : ` 지난달보다 운동 시간이 ${Math.abs(monthChange)}% ${monthChange >= 0 ? '증가' : '감소'}했습니다.`}`
-    : `${month.replace('-', '년 ')}월에 입력된 운동 기록이 없습니다. 상담 시 실제 활동 여부와 기록 습관을 함께 확인해 주세요.`;
+    ? `${month.replace('-', '년 ')}월에는 ${activeDays}일 동안 총 ${totalMinutes.toLocaleString()}분의 운동을 기록했고, 기록일 평균 목표 달성률은 ${goalRate}%입니다.${monthChange == null ? ' 지난달에 비교 가능한 활동 기록이 없습니다.' : ` 지난달보다 운동 시간이 ${Math.abs(monthChange)}% ${monthChange >= 0 ? '증가' : '감소'}했습니다.`}`
+    : `${month.replace('-', '년 ')}월에 입력된 활동 기록이 없습니다.`;
 
   const sheet = document.getElementById('consultReportSheet');
   sheet.innerHTML = `
     <header class="consult-report-header">
       <img class="consult-report-logo" src="images/ongil-hospital.png" alt="의료법인 온길의료재단 해운대 나눔과행복병원">
-      <div class="consult-report-title"><h1>월간 건강 상담 리포트</h1><p>건강지킴이 운동 및 체성분 기록 요약</p></div>
+      <div class="consult-report-title"><h1>나의 월간 건강지표</h1><p>건강지킴이 활동 및 체성분 기록 요약</p></div>
     </header>
     <section class="consult-report-meta">${meta.map(([label,value]) => `<div class="consult-meta-item"><div class="consult-meta-label">${label}</div><div class="consult-meta-value">${value}</div></div>`).join('')}</section>
     <section class="consult-report-section"><h2 class="consult-section-title">월간 핵심 지표</h2><div class="consult-summary-grid">
@@ -580,15 +579,15 @@ async function createConsultReport() {
         ${inbodyMetricBlock(inbodyForReport,'body_fat_percent','체지방률','%','#e08a1e')}
       </div>
     </div></section>
-    <section class="consult-report-section"><h2 class="consult-section-title">상담 참고 요약</h2><div class="consult-report-insight">${escapeHtml(insight)}</div></section>
+    <section class="consult-report-section"><h2 class="consult-section-title">기록 변화 요약</h2><div class="consult-report-insight">${escapeHtml(insight)}</div></section>
     <section class="consult-report-section"><h2 class="consult-section-title">최근 기록</h2><table class="consult-report-table"><thead><tr><th>날짜</th><th>운동 시간</th><th>걷기</th><th>러닝</th><th>수분</th><th>컨디션</th></tr></thead><tbody>${latestRecords.length ? latestRecords.map(record => `<tr><td>${escapeHtml(record.date)}</td><td>${recordExerciseMinutes(record)}분</td><td>${Number(record.walking)||0}분</td><td>${Number(record.running)||0}분</td><td>${Number(record.water)||0}ml</td><td>${Number(record.condition)||3}/5</td></tr>`).join('') : '<tr><td colspan="6">선택한 달의 기록이 없습니다.</td></tr>'}</tbody></table></section>
-    <footer class="consult-report-footer"><span>본 자료는 사용자가 입력한 생활 습관과 측정 기록의 변화를 요약한 상담 참고 자료입니다. 의료적 진단이나 치료 판단을 대신하지 않습니다.</span><span>출력일 ${escapeHtml(today())}</span></footer>`;
+    <footer class="consult-report-footer"><span>이 리포트는 사용자가 입력하거나 측정한 건강 관련 기록의 변화를 확인하기 위한 자료입니다. 의료적 진단·운동 처방·치료 지침을 제공하지 않습니다.</span><span>출력일 ${escapeHtml(today())}</span></footer>`;
 
   await Promise.all([...sheet.querySelectorAll('img')].map(image => image.complete
     ? Promise.resolve()
     : new Promise(resolve => { image.addEventListener('load', resolve, { once:true }); image.addEventListener('error', resolve, { once:true }); })));
   const previousTitle = document.title;
-  document.title = `월간_건강상담리포트_${month}${showName && currentUser.name ? `_${currentUser.name}` : ''}`;
+  document.title = `월간_건강지표리포트_${month}${showName && currentUser.name ? `_${currentUser.name}` : ''}`;
   closeConsultReportDialog();
   document.body.classList.add('print-consult-report');
   window.print();

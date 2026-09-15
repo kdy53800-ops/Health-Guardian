@@ -2,6 +2,7 @@ const { randomUUID } = require('crypto');
 const { fetchSupabase } = require('./_lib/supabase');
 const { getOrigin } = require('./_lib/naver');
 const { requireAuthSession } = require('./_lib/admin-auth');
+const { buildTestAdminData } = require('./_lib/test-fixtures');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -237,6 +238,16 @@ module.exports = async function handler(req, res) {
       return;
     }
     const userId = auth.id;
+
+    if (auth.isTest) {
+      if (req.method === 'GET') {
+        const records = buildTestAdminData().records.filter(record => record.userId === userId);
+        sendJson(res, 200, { ok:true, records, demo:true });
+        return;
+      }
+      sendJson(res, 403, { ok:false, message:'테스트 계정의 가상 기록은 서버에 저장되지 않습니다.' });
+      return;
+    }
 
     if (req.method === 'GET') {
       const records = await getRecords(userId);

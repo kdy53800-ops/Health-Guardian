@@ -49,6 +49,11 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (auth.session.provider === 'test') {
+      sendJson(res, 403, { ok:false, message:'테스트 계정에서는 가상 사용자 정보를 변경할 수 없습니다.' });
+      return;
+    }
+
     const body = await readBody(req);
     const userId = body && body.userId ? String(body.userId).trim() : '';
     if (!userId) {

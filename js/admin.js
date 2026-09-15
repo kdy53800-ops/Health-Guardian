@@ -172,6 +172,7 @@ async function enterAdmin() {
   }
 
   const payload = await fetchAdminData();
+  renderDemoDataNotice(!!(payload && payload.demo));
   fetchedUsers = (payload && Array.isArray(payload.users)) ? payload.users : [];
   fetchedRecords = (payload && Array.isArray(payload.records)) ? payload.records : [];
   adminInbodyLatest = (payload && payload.inbodyLatest && typeof payload.inbodyLatest === 'object') ? payload.inbodyLatest : {};
@@ -182,6 +183,23 @@ async function enterAdmin() {
   if ((location.pathname.split('/').pop() || 'admin.html') === 'admin.html') loadAuditLogs();
   
   // renderAll is already called by applyFilter()
+}
+
+function renderDemoDataNotice(isDemo) {
+  const main = document.querySelector('main.page-content');
+  if (!main) return;
+  const existing = document.getElementById('demoDataNotice');
+  if (!isDemo) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return;
+  const notice = document.createElement('div');
+  notice.id = 'demoDataNotice';
+  notice.className = 'demo-data-notice';
+  notice.setAttribute('role', 'status');
+  notice.innerHTML = '<strong>테스트 관리자 모드</strong><span>이 화면의 사용자·건강기록·인바디·작업 이력은 모두 가상 데이터이며 실제 이용자 정보가 아닙니다.</span>';
+  main.prepend(notice);
 }
 
 const AUDIT_ACTION_LABELS = {

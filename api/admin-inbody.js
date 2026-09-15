@@ -3,6 +3,7 @@ const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
 const { BUCKET, extractObjectPath, privateImageUrl } = require('./_lib/inbody-storage');
 const { writeAdminAudit } = require('./_lib/audit');
+const { buildTestInbodyRecords } = require('./_lib/test-fixtures');
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -40,6 +41,17 @@ module.exports = async function handler(req, res) {
     const auth = await requireAdminSession(req);
     if (!auth.ok) {
       sendJson(res, auth.statusCode, { ok: false, message: auth.message });
+      return;
+    }
+
+    if (auth.session.provider === 'test') {
+      if (req.method === 'GET') {
+        const userId = requestUrl.searchParams.get('userId');
+        if (!userId) { sendJson(res, 400, { ok:false, message:'Missing userId' }); return; }
+        sendJson(res, 200, { ok:true, records:buildTestInbodyRecords(userId), demo:true });
+        return;
+      }
+      sendJson(res, 403, { ok:false, message:'테스트 계정에서는 가상 데이터를 변경할 수 없습니다.' });
       return;
     }
 
