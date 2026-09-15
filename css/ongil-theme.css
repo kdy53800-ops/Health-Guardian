@@ -46,7 +46,10 @@ body { background: var(--bg); color: var(--text); }
 .drawer-header { background: #F5F6F8; border-bottom: 1px solid var(--border); }
 .drawer-nav-item.active { background: #E7F3FF; color: var(--primary); }
 .sub-nav-tabs a.active { background: #EFF5FC; color: var(--primary); box-shadow: inset 0 -2px var(--primary); }
-.app-footer { background: #fff; border-top: 1px solid var(--border); padding: 36px 24px; }
+.app-footer { background: #fff; border-top: 1px solid var(--border); padding: 16px 24px; }
+.footer-compact { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 24px; }
+.footer-compact .footer-links { margin:0; padding:0; border:0; gap:18px; }
+.footer-compact .footer-link { display:inline-flex; align-items:center; min-height:44px; font-size:.8rem; }
 .footer-hospital-wordmark { width: 340px; padding: 12px; box-sizing: content-box; max-width: calc(100% - 24px); }
 .footer-info-label, .footer-copyright { color: var(--text-muted); }
 .policy-container { box-shadow: var(--shadow-sm); }

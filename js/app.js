@@ -1152,36 +1152,11 @@ function renderFooter() {
   const footer = document.createElement('footer');
   footer.className = 'app-footer';
   footer.innerHTML = `
-    <div class="footer-content">
-      <img class="hospital-wordmark footer-hospital-wordmark" src="images/ongil-hospital.png" alt="의료법인 온길의료재단 해운대 나눔과행복병원" width="1942" height="274" loading="lazy">
+    <div class="footer-content footer-compact">
+      <span>운영 · 의료법인 온길의료재단</span>
       <div class="footer-links">
         <a href="terms.html" class="footer-link">이용약관</a>
         <a href="privacy.html" class="footer-link privacy">개인정보처리방침</a>
-      </div>
-      <div class="footer-info-grid">
-        <div class="footer-info-item">
-          <span class="footer-info-label">등록번호</span>
-          <span class="footer-info-val">580-82-00671</span>
-        </div>
-        <div class="footer-info-item">
-          <span class="footer-info-label">법인명</span>
-          <span class="footer-info-val">의료법인 온길의료재단</span>
-        </div>
-        <div class="footer-info-item">
-          <span class="footer-info-label">대표자</span>
-          <span class="footer-info-val">백선미</span>
-        </div>
-        <div class="footer-info-item">
-          <span class="footer-info-label">주소</span>
-          <span class="footer-info-val">부산광역시 해운대구 좌동순환로 502, 3~9층(중동)</span>
-        </div>
-        <div class="footer-info-item">
-          <span class="footer-info-label">업태/종목</span>
-          <span class="footer-info-val">보건업 / 일반병원</span>
-        </div>
-      </div>
-      <div class="footer-copyright">
-        &copy; 2026 의료법인 온길의료재단. All rights reserved.
       </div>
     </div>
   `;
@@ -1361,6 +1336,10 @@ function renderMobileNav() {
       <div class="drawer-section-label">메뉴</div>
       ${navHTML}
       ${adminHTML}
+      <div class="drawer-divider"></div>
+      <div class="drawer-section-label">운영 · 의료법인 온길의료재단</div>
+      <a href="terms.html" class="drawer-nav-item">이용약관</a>
+      <a href="privacy.html" class="drawer-nav-item">개인정보처리방침</a>
 
       <div class="drawer-divider"></div>
       <div class="drawer-section-label">계정</div>
