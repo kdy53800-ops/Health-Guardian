@@ -8,6 +8,7 @@ let userRecords = [];
 let userGoals   = null;
 let chartFilter = '7'; // '7' or '30'
 let charts = {};
+let personalInbodyRecords = [];
 
 const CHART_COLORS = {
   primary:    '#004DBF',
@@ -39,7 +40,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   renderDashboard();
+  initializeConsultReportDialog();
 });
+
+function initializeConsultReportDialog() {
+  const dialog = document.getElementById('consultReportDialog');
+  if (!dialog) return;
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog) closeConsultReportDialog();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && dialog.classList.contains('open')) closeConsultReportDialog();
+  });
+}
 
 function renderDashboard() {
   const main = document.getElementById('mainContent');
@@ -409,7 +422,7 @@ function renderPersonalReport(report) {
   ];
   return `
     <section class="personal-report" aria-labelledby="personalReportTitle">
-      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강 리포트</h2><p>최근 기록을 생활 습관 관점에서 정리했어요.</p></div><div class="report-actions"><span class="report-period">최근 7일 · 30일</span><button type="button" class="report-action" onclick="exportPersonalRecords()">CSV 저장</button><button type="button" class="report-action" onclick="printPersonalReport()">PDF·인쇄</button></div></div>
+      <div class="report-heading"><div><h2 id="personalReportTitle">📋 나의 건강 리포트</h2><p>최근 기록을 생활 습관 관점에서 정리했어요.</p></div><div class="report-actions"><span class="report-period">최근 7일 · 30일</span><button type="button" class="report-action" onclick="exportPersonalRecords()">CSV 저장</button><button type="button" class="report-action" onclick="openConsultReportDialog()">상담용 월간 PDF</button></div></div>
       <div class="report-metrics">
         <div class="report-metric"><div class="report-metric-label">7일 운동 시간</div><div class="report-metric-value">${report.recentMinutes.toLocaleString()}분</div><div class="report-metric-note">직전 7일 대비 ${changeText}</div></div>
         <div class="report-metric"><div class="report-metric-label">목표 달성률</div><div class="report-metric-value">${report.goalRate}%</div><div class="report-metric-note">기록한 날의 평균</div></div>
@@ -441,12 +454,159 @@ function printPersonalReport() {
   setTimeout(() => document.body.classList.remove('print-personal-report'), 500);
 }
 
+function openConsultReportDialog() {
+  const dialog = document.getElementById('consultReportDialog');
+  const monthInput = document.getElementById('consultReportMonth');
+  if (!dialog || !monthInput) return;
+  const latestMonth = userRecords.length ? userRecords[userRecords.length - 1].date.slice(0, 7) : today().slice(0, 7);
+  monthInput.value = latestMonth;
+  monthInput.max = today().slice(0, 7);
+  dialog.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  monthInput.focus();
+}
+
+function closeConsultReportDialog() {
+  const dialog = document.getElementById('consultReportDialog');
+  if (dialog) dialog.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function reportDaysForMonth(month) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const count = new Date(year, monthNumber, 0).getDate();
+  return Array.from({ length: count }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`);
+}
+
+function buildExerciseTrendSvg(monthRecords, month) {
+  const valuesByDate = Object.fromEntries(monthRecords.map(record => [record.date, recordExerciseMinutes(record)]));
+  const days = reportDaysForMonth(month);
+  const values = days.map(date => valuesByDate[date] || 0);
+  const width = 500, height = 150, left = 30, right = 10, top = 12, bottom = 25;
+  const chartWidth = width - left - right, chartHeight = height - top - bottom;
+  const max = Math.max(30, ...values);
+  const points = values.map((value, index) => {
+    const x = left + (index / Math.max(values.length - 1, 1)) * chartWidth;
+    const y = top + chartHeight - (value / max) * chartHeight;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const area = `${left},${top + chartHeight} ${points} ${left + chartWidth},${top + chartHeight}`;
+  const grid = [0, .5, 1].map(ratio => {
+    const y = top + chartHeight * ratio;
+    const label = Math.round(max * (1 - ratio));
+    return `<line x1="${left}" y1="${y}" x2="${left + chartWidth}" y2="${y}" stroke="#e4ebf1" stroke-width="1"/><text x="${left - 5}" y="${y + 3}" text-anchor="end" fill="#7a8c9d" font-size="8">${label}</text>`;
+  }).join('');
+  return `<svg class="consult-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(month)} 일별 운동 시간 추세">${grid}<polygon points="${area}" fill="rgba(11,87,151,.09)"/><polyline points="${points}" fill="none" stroke="#0b5797" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="${left}" y="${height - 6}" fill="#7a8c9d" font-size="8">1일</text><text x="${left + chartWidth / 2}" y="${height - 6}" text-anchor="middle" fill="#7a8c9d" font-size="8">${Math.ceil(days.length / 2)}일</text><text x="${left + chartWidth}" y="${height - 6}" text-anchor="end" fill="#7a8c9d" font-size="8">${days.length}일</text></svg>`;
+}
+
+function buildSparklineSvg(records, key, color) {
+  const values = records.map(record => Number(record[key])).filter(Number.isFinite);
+  const width = 300, height = 38, pad = 4;
+  if (values.length < 2) return '<div style="padding:8px 0;color:#8898a8;font-size:8px;">비교할 측정 기록이 부족합니다.</div>';
+  const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
+  const points = values.map((value, index) => `${pad + index / (values.length - 1) * (width - pad * 2)},${pad + (max - value) / range * (height - pad * 2)}`).join(' ');
+  return `<svg class="consult-chart-svg" viewBox="0 0 ${width} ${height}" aria-hidden="true"><line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#e4ebf1"/><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function inbodyMetricBlock(records, key, label, unit, color) {
+  const valid = records.filter(record => Number.isFinite(Number(record[key])));
+  if (!valid.length) return `<div class="consult-inbody-metric"><div class="consult-inbody-heading"><span>${label}</span><strong>기록 없음</strong></div></div>`;
+  const first = Number(valid[0][key]), latest = Number(valid[valid.length - 1][key]);
+  const change = latest - first;
+  const changeText = valid.length > 1 ? `${change > 0 ? '+' : ''}${change.toFixed(1)}${unit}` : '비교 기록 필요';
+  return `<div class="consult-inbody-metric"><div class="consult-inbody-heading"><span>${label} ${latest.toFixed(1)}${unit}</span><strong>기간 변화 ${changeText}</strong></div>${buildSparklineSvg(valid, key, color)}</div>`;
+}
+
+function maskedReportValue(enabled, value, fallback = '미등록') {
+  return enabled ? escapeHtml(value || fallback) : '';
+}
+
+async function createConsultReport() {
+  const month = document.getElementById('consultReportMonth').value;
+  if (!/^\d{4}-\d{2}$/.test(month)) { showToast('보고서 월을 선택해 주세요.', 'error'); return; }
+  const button = document.getElementById('createConsultReportBtn');
+  button.disabled = true;
+  button.textContent = '보고서 준비 중…';
+  if (!personalInbodyRecords.length) await loadInbodyReport();
+
+  const monthRecords = userRecords.filter(record => record.date.startsWith(month));
+  const totalMinutes = monthRecords.reduce((sum, record) => sum + recordExerciseMinutes(record), 0);
+  const averageMinutes = monthRecords.length ? Math.round(totalMinutes / monthRecords.length) : 0;
+  const goalRate = monthRecords.length ? Math.round(monthRecords.reduce((sum, record) => sum + goalAchievement(record), 0) / monthRecords.length) : 0;
+  const activeDays = monthRecords.filter(record => recordExerciseMinutes(record) > 0).length;
+  const previous = new Date(`${month}-01T00:00:00`);
+  previous.setMonth(previous.getMonth() - 1);
+  const previousMonth = localDateStr(previous).slice(0, 7);
+  const previousMinutes = userRecords.filter(record => record.date.startsWith(previousMonth)).reduce((sum, record) => sum + recordExerciseMinutes(record), 0);
+  const monthChange = previousMinutes ? Math.round((totalMinutes - previousMinutes) / previousMinutes * 100) : null;
+  const monthEnd = `${month}-${String(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()).padStart(2, '0')}`;
+  const inbodyForReport = personalInbodyRecords.filter(record => record.record_date <= monthEnd).sort((a,b) => String(a.record_date).localeCompare(String(b.record_date))).slice(-6);
+
+  const showName = document.getElementById('consultShowName').checked;
+  const showBirth = document.getElementById('consultShowBirth').checked;
+  const showContact = document.getElementById('consultShowContact').checked;
+  const showAccount = document.getElementById('consultShowAccount').checked;
+  const meta = [];
+  if (showName) meta.push(['이름', maskedReportValue(true, currentUser.name)]);
+  if (showBirth) meta.push(['생년·성별', maskedReportValue(true, [currentUser.birthday || currentUser.birthyear, currentUser.gender].filter(Boolean).join(' · '))]);
+  if (showContact) meta.push(['연락처', maskedReportValue(true, [currentUser.phone, currentUser.email].filter(Boolean).join(' · '))]);
+  if (showAccount) meta.push(['계정 식별자', maskedReportValue(true, currentUser.username || currentUser.id)]);
+  if (!meta.length) meta.push(['개인정보 표시', '선택하지 않음']);
+  meta.push(['보고서 기간', `${escapeHtml(month)}-01 ~ ${escapeHtml(monthEnd)}`]);
+
+  const latestRecords = [...monthRecords].sort((a,b) => String(b.date).localeCompare(String(a.date))).slice(0, 7);
+  const insight = monthRecords.length
+    ? `${month.replace('-', '년 ')}월에는 ${activeDays}일 동안 총 ${totalMinutes.toLocaleString()}분의 운동을 기록했고, 기록일 평균 목표 달성률은 ${goalRate}%입니다.${monthChange == null ? ' 지난달 비교를 위해 기록을 이어가 보세요.' : ` 지난달보다 운동 시간이 ${Math.abs(monthChange)}% ${monthChange >= 0 ? '증가' : '감소'}했습니다.`}`
+    : `${month.replace('-', '년 ')}월에 입력된 운동 기록이 없습니다. 상담 시 실제 활동 여부와 기록 습관을 함께 확인해 주세요.`;
+
+  const sheet = document.getElementById('consultReportSheet');
+  sheet.innerHTML = `
+    <header class="consult-report-header">
+      <img class="consult-report-logo" src="images/ongil-hospital.png" alt="의료법인 온길의료재단 해운대 나눔과행복병원">
+      <div class="consult-report-title"><h1>월간 건강 상담 리포트</h1><p>건강지킴이 운동 및 체성분 기록 요약</p></div>
+    </header>
+    <section class="consult-report-meta">${meta.map(([label,value]) => `<div class="consult-meta-item"><div class="consult-meta-label">${label}</div><div class="consult-meta-value">${value}</div></div>`).join('')}</section>
+    <section class="consult-report-section"><h2 class="consult-section-title">월간 핵심 지표</h2><div class="consult-summary-grid">
+      <div class="consult-summary-card"><span>기록일</span><strong>${monthRecords.length}일</strong><small>건강 기록을 남긴 날짜</small></div>
+      <div class="consult-summary-card"><span>총 운동 시간</span><strong>${totalMinutes.toLocaleString()}분</strong><small>걷기·러닝·개인운동 합계</small></div>
+      <div class="consult-summary-card"><span>활동일 평균</span><strong>${averageMinutes}분</strong><small>기록일 기준 평균</small></div>
+      <div class="consult-summary-card"><span>평균 목표 달성률</span><strong>${goalRate}%</strong><small>사용자 설정 목표 기준</small></div>
+    </div></section>
+    <section class="consult-report-section"><h2 class="consult-section-title">운동 추세와 인바디 변화</h2><div class="consult-chart-grid">
+      <div class="consult-chart-card"><h3>${escapeHtml(month)} 일별 운동 시간(분)</h3>${buildExerciseTrendSvg(monthRecords, month)}</div>
+      <div class="consult-chart-card"><h3>최근 인바디 측정 변화 (최대 6회)</h3>
+        ${inbodyMetricBlock(inbodyForReport,'weight','체중','kg','#0b5797')}
+        ${inbodyMetricBlock(inbodyForReport,'skeletal_muscle','골격근량','kg','#0f9f78')}
+        ${inbodyMetricBlock(inbodyForReport,'body_fat_percent','체지방률','%','#e08a1e')}
+      </div>
+    </div></section>
+    <section class="consult-report-section"><h2 class="consult-section-title">상담 참고 요약</h2><div class="consult-report-insight">${escapeHtml(insight)}</div></section>
+    <section class="consult-report-section"><h2 class="consult-section-title">최근 기록</h2><table class="consult-report-table"><thead><tr><th>날짜</th><th>운동 시간</th><th>걷기</th><th>러닝</th><th>수분</th><th>컨디션</th></tr></thead><tbody>${latestRecords.length ? latestRecords.map(record => `<tr><td>${escapeHtml(record.date)}</td><td>${recordExerciseMinutes(record)}분</td><td>${Number(record.walking)||0}분</td><td>${Number(record.running)||0}분</td><td>${Number(record.water)||0}ml</td><td>${Number(record.condition)||3}/5</td></tr>`).join('') : '<tr><td colspan="6">선택한 달의 기록이 없습니다.</td></tr>'}</tbody></table></section>
+    <footer class="consult-report-footer"><span>본 자료는 사용자가 입력한 생활 습관과 측정 기록의 변화를 요약한 상담 참고 자료입니다. 의료적 진단이나 치료 판단을 대신하지 않습니다.</span><span>출력일 ${escapeHtml(today())}</span></footer>`;
+
+  await Promise.all([...sheet.querySelectorAll('img')].map(image => image.complete
+    ? Promise.resolve()
+    : new Promise(resolve => { image.addEventListener('load', resolve, { once:true }); image.addEventListener('error', resolve, { once:true }); })));
+  const previousTitle = document.title;
+  document.title = `월간_건강상담리포트_${month}${showName && currentUser.name ? `_${currentUser.name}` : ''}`;
+  closeConsultReportDialog();
+  document.body.classList.add('print-consult-report');
+  window.print();
+  window.setTimeout(() => {
+    document.body.classList.remove('print-consult-report');
+    document.title = previousTitle;
+    button.disabled = false;
+    button.textContent = 'PDF 미리보기·출력';
+  }, 700);
+}
+
 async function loadInbodyReport() {
   const target = document.getElementById('inbodyReport');
   if (!target) return;
   try {
     const response = await fetch(new URL('api/inbody-data', window.location.href).toString(), { credentials:'include', headers:{Accept:'application/json'} });
     const payload = await response.json();
+    personalInbodyRecords = response.ok && payload.ok && Array.isArray(payload.records) ? payload.records : [];
     if (!response.ok || !payload.ok || !Array.isArray(payload.records) || payload.records.length < 2) {
       target.textContent = '체성분 변화 비교는 인바디 측정 기록이 2회 이상일 때 표시됩니다.';
       return;
