@@ -98,6 +98,7 @@ function buildRecordCard(r) {
         <span class="chip-icon">${catIcon}</span>
         <span class="chip-val" style="color:#7c3aed">${escapeHtml(ex.name || ex.category)}</span>
         <span style="color:var(--text-muted); font-weight:400; font-size:0.72rem">${escapeHtml(ex.duration)}분</span>
+        ${ex.category === '근력' && ex.sets && ex.reps ? `<span style="color:var(--text-muted); font-weight:600; font-size:0.68rem">· ${escapeHtml(ex.sets)}세트×${escapeHtml(ex.reps)}회</span>` : ''}
         <span style="font-size:0.65rem; font-weight:700; color:${intensityColor}; margin-left:1px">[${escapeHtml(ex.intensity)}]</span>
       </div>
     `;

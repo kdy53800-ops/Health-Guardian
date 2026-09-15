@@ -12,6 +12,7 @@ let isSaving = false;
 let draftTimer = null;
 
 const RECORD_DRAFT_PREFIX = 'HealthGuardian_recordDraft_v1';
+const EXERCISE_FAVORITES_PREFIX = 'HealthGuardian_exerciseFavorites_v1';
 const RECORD_FIELD_IDS = [
   'fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fRunning',
   'fWalkingKm', 'fRunningKm', 'fWater', 'fFasting', 'fMemo'
@@ -19,7 +20,16 @@ const RECORD_FIELD_IDS = [
 
 // 개인 운동 상태
 let currentExCat = '유산소'; // 현재 선택된 카테고리
-let customExercises = [];     // [{ id, category, name, duration, intensity }]
+let customExercises = [];     // [{ id, category, name, duration, intensity, sets, reps }]
+let favoriteExercises = [];
+let recentExerciseTemplates = [];
+let activeStrengthTemplate = 1;
+
+const STRENGTH_TEMPLATES = [
+  { label: '가볍게 2세트 × 12회', sets: 2, reps: 12, duration: 20 },
+  { label: '기본 3세트 × 10회', sets: 3, reps: 10, duration: 30 },
+  { label: '집중 4세트 × 8회', sets: 4, reps: 8, duration: 40 },
+];
 
 // 카테고리별 정보
 const EX_CAT_CFG = {
@@ -77,6 +87,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   userGoals = Goals.get(currentUser.id);
   userRecords = await Records.getUserRecordsAsync(currentUser.id);
+  favoriteExercises = loadFavoriteExercises();
+  recentExerciseTemplates = buildRecentExerciseTemplates();
 
   // ?edit=ID 파라미터가 있으면 수정 모드
   const params = new URLSearchParams(window.location.search);
@@ -119,11 +131,166 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 개인 운동 초기화: 탭 기본값 렌더
   switchExCat(document.querySelector('.custom-ex-tab'), '유산소');
+  renderExerciseShortcuts();
+  updateSyncStatus();
 
   restoreRecordDraft();
   initDraftAutosave();
   updateRecentRecordButton();
+
+  window.addEventListener('online', () => {
+    updateSyncStatus('syncing');
+    window.setTimeout(updateSyncStatus, 900);
+  });
+  window.addEventListener('offline', updateSyncStatus);
+  window.addEventListener('records-outbox-change', updateSyncStatus);
+  window.addEventListener('records-sync-start', () => updateSyncStatus('syncing'));
+  window.addEventListener('records-sync-complete', updateSyncStatus);
 });
+
+function favoriteStorageKey() {
+  return `${EXERCISE_FAVORITES_PREFIX}_${currentUser.id}`;
+}
+
+function normalizeExerciseTemplate(item) {
+  const duration = Number(item && item.duration);
+  const sets = Number(item && item.sets);
+  const reps = Number(item && item.reps);
+  return {
+    category: EX_CAT_CFG[item && item.category] ? item.category : '유산소',
+    name: String((item && item.name) || '').slice(0, 80),
+    duration: Number.isFinite(duration) && duration > 0 ? clamp(duration, 1, 999) : 30,
+    intensity: ['하', '중', '상'].includes(item && item.intensity) ? item.intensity : '중',
+    sets: Number.isFinite(sets) && sets > 0 ? clamp(sets, 1, 99) : 3,
+    reps: Number.isFinite(reps) && reps > 0 ? clamp(reps, 1, 999) : 10,
+  };
+}
+
+function exerciseTemplateKey(item) {
+  return `${item.category}::${String(item.name || '').trim().toLowerCase()}`;
+}
+
+function loadFavoriteExercises() {
+  try {
+    const value = JSON.parse(localStorage.getItem(favoriteStorageKey()) || '[]');
+    return Array.isArray(value) ? value.map(normalizeExerciseTemplate).filter(item => item.name).slice(0, 20) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveFavoriteExercises() {
+  localStorage.setItem(favoriteStorageKey(), JSON.stringify(favoriteExercises.slice(0, 20)));
+}
+
+function buildRecentExerciseTemplates() {
+  const seen = new Set();
+  const recent = [];
+  [...userRecords].sort((a, b) => String(b.date).localeCompare(String(a.date))).forEach(record => {
+    (record.customExercises || []).forEach(exercise => {
+      const item = normalizeExerciseTemplate(exercise);
+      const key = exerciseTemplateKey(item);
+      if (item.name && !seen.has(key) && recent.length < 8) {
+        seen.add(key);
+        recent.push(item);
+      }
+    });
+  });
+  return recent;
+}
+
+function isFavoriteExercise(item) {
+  const key = exerciseTemplateKey(item);
+  return favoriteExercises.some(favorite => exerciseTemplateKey(favorite) === key);
+}
+
+function toggleFavoriteExercise(category, name, exerciseId = '') {
+  const current = customExercises.find(item => item.id === exerciseId);
+  const template = normalizeExerciseTemplate(current || { category, name, duration: 30, intensity: '중' });
+  const key = exerciseTemplateKey(template);
+  const index = favoriteExercises.findIndex(item => exerciseTemplateKey(item) === key);
+  if (index >= 0) {
+    favoriteExercises.splice(index, 1);
+    showToast(`${template.name} 즐겨찾기를 해제했습니다.`, 'default');
+  } else {
+    favoriteExercises.unshift(template);
+    showToast(`${template.name}을(를) 즐겨찾기에 추가했습니다.`, 'success');
+  }
+  saveFavoriteExercises();
+  renderExerciseShortcuts();
+  renderExPresets(currentExCat);
+  renderCustomExList();
+}
+
+function addExerciseTemplate(item) {
+  const template = normalizeExerciseTemplate(item);
+  customExercises.push({ id: genId(), ...template });
+  renderCustomExList();
+  updateSummary();
+  scheduleDraftSave();
+  showToast(`${template.name}을(를) 추가했습니다.`, 'success');
+}
+
+function addFavoriteExercise(index) {
+  if (favoriteExercises[index]) addExerciseTemplate(favoriteExercises[index]);
+}
+
+function addRecentExercise(index) {
+  if (recentExerciseTemplates[index]) addExerciseTemplate(recentExerciseTemplates[index]);
+}
+
+function selectStrengthTemplate(index) {
+  if (!STRENGTH_TEMPLATES[index]) return;
+  activeStrengthTemplate = index;
+  renderExerciseShortcuts();
+}
+
+function renderExerciseShortcuts() {
+  const favorites = document.getElementById('favoriteExerciseList');
+  const recent = document.getElementById('recentExerciseList');
+  const templateGroup = document.getElementById('strengthTemplateGroup');
+  const templateList = document.getElementById('strengthTemplateList');
+  if (favorites) {
+    favorites.innerHTML = favoriteExercises.length
+      ? favoriteExercises.map((item, index) => `<button type="button" class="quick-exercise-chip" onclick="addFavoriteExercise(${index})">${EX_CAT_CFG[item.category].icon} ${escapeHtml(item.name)}</button>`).join('')
+      : '<span class="exercise-shortcut-empty">종목 옆 ☆를 눌러 추가해 보세요.</span>';
+  }
+  if (recent) {
+    recent.innerHTML = recentExerciseTemplates.length
+      ? recentExerciseTemplates.map((item, index) => `<button type="button" class="quick-exercise-chip" onclick="addRecentExercise(${index})">${EX_CAT_CFG[item.category].icon} ${escapeHtml(item.name)}</button>`).join('')
+      : '<span class="exercise-shortcut-empty">운동을 저장하면 최근 종목이 표시됩니다.</span>';
+  }
+  if (templateGroup) templateGroup.hidden = currentExCat !== '근력';
+  if (templateList) {
+    templateList.innerHTML = STRENGTH_TEMPLATES.map((item, index) => `<button type="button" class="set-template-chip ${index === activeStrengthTemplate ? 'active' : ''}" aria-pressed="${index === activeStrengthTemplate}" onclick="selectStrengthTemplate(${index})">${escapeHtml(item.label)}</button>`).join('');
+  }
+}
+
+function updateSyncStatus(mode = '') {
+  const status = document.getElementById('syncStatus');
+  if (!status || !currentUser) return;
+  const pending = typeof Records.getPendingCount === 'function' ? Records.getPendingCount(currentUser.id) : 0;
+  let state = '';
+  let icon = '☁️';
+  let message = '서버와 동기화됨';
+  let retry = false;
+  if (!navigator.onLine) {
+    state = 'offline'; icon = '📴'; message = pending ? `오프라인 · ${pending}건 동기화 대기` : '오프라인 · 입력 내용은 기기에 보관됩니다';
+  } else if (mode === 'syncing' || pending) {
+    state = mode === 'syncing' ? 'syncing' : 'waiting'; icon = '⏳'; message = mode === 'syncing' ? `${pending}건 동기화 중…` : `${pending}건 동기화 대기`;
+    retry = pending > 0 && mode !== 'syncing';
+  }
+  status.className = `sync-status ${state}`.trim();
+  status.innerHTML = `<span aria-hidden="true">${icon}</span><span>${message}</span>${retry ? '<button type="button" class="sync-retry-btn" onclick="retryPendingSync()">지금 동기화</button>' : ''}`;
+}
+
+async function retryPendingSync() {
+  if (!navigator.onLine) { updateSyncStatus(); return; }
+  updateSyncStatus('syncing');
+  const synced = await Records.syncPending(currentUser.id);
+  updateSyncStatus();
+  if (synced) showToast(`대기 중이던 ${synced}건을 동기화했습니다.`, 'success');
+}
 
 function getRecordDraftKey() {
   const mode = editingId ? `edit_${editingId}` : 'new';
@@ -209,10 +376,7 @@ function restoreRecordDraft() {
   if (Array.isArray(draft.customExercises)) {
     customExercises = draft.customExercises.slice(0, 30).map(item => ({
       id: item.id || genId(),
-      category: item.category || '유산소',
-      name: String(item.name || '').slice(0, 80),
-      duration: clamp(item.duration, 1, 999),
-      intensity: ['하', '중', '상'].includes(item.intensity) ? item.intensity : '중',
+      ...normalizeExerciseTemplate(item),
     })).filter(item => item.name);
     renderCustomExList();
   }
@@ -304,7 +468,10 @@ function populateForm(record) {
 
   // 개인 운동 로드
   if (record.customExercises && record.customExercises.length > 0) {
-    customExercises = record.customExercises.map(e => ({ ...e, id: e.id || genId() }));
+    customExercises = record.customExercises.map(item => ({
+      id: item.id || genId(),
+      ...normalizeExerciseTemplate(item),
+    }));
   } else {
     customExercises = [];
   }
@@ -551,6 +718,7 @@ function switchExCat(btn, cat) {
   if (btn) btn.classList.add('active');
   // 프리셋 렌더
   renderExPresets(cat);
+  renderExerciseShortcuts();
 }
 
 function renderExPresets(cat) {
@@ -560,19 +728,19 @@ function renderExPresets(cat) {
   if (!cfg) { el.innerHTML = ''; return; }
 
   el.innerHTML = cfg.presets.map(name => `
-    <button type="button" class="preset-chip"
-      onclick="addCustomExerciseWithName('${name}')">
-      ${cfg.icon} ${name}
-    </button>
+    <span class="preset-item">
+      <button type="button" class="preset-chip" onclick="addCustomExerciseWithName('${name}')">${cfg.icon} ${name}</button>
+      <button type="button" class="favorite-toggle ${isFavoriteExercise({ category: cat, name }) ? 'active' : ''}"
+        aria-label="${escapeAttribute(name)} 즐겨찾기 ${isFavoriteExercise({ category: cat, name }) ? '해제' : '추가'}"
+        aria-pressed="${isFavoriteExercise({ category: cat, name })}"
+        onclick="toggleFavoriteExercise('${cat}','${name}')">★</button>
+    </span>
   `).join('');
 }
 
 function addCustomExerciseWithName(name) {
-  const ex = { id: genId(), category: currentExCat, name, duration: 30, intensity: '중' };
-  customExercises.push(ex);
-  renderCustomExList();
-  updateSummary();
-  scheduleDraftSave();
+  const strength = currentExCat === '근력' ? STRENGTH_TEMPLATES[activeStrengthTemplate] : null;
+  addExerciseTemplate({ category: currentExCat, name, duration: strength ? strength.duration : 30, intensity: '중', sets: strength ? strength.sets : 3, reps: strength ? strength.reps : 10 });
 }
 
 function addCustomExercise() {
@@ -608,6 +776,7 @@ function renderCustomExList() {
           <span class="ex-cat-tag">${escapeHtml(ex.category)}</span>
           <strong>${escapeHtml(ex.name)}</strong>
         </div>
+        <div class="ex-controls">
         <div class="ex-dur-wrap">
           <input
             type="number"
@@ -619,6 +788,10 @@ function renderCustomExList() {
           >
           <span>분</span>
         </div>
+        ${ex.category === '근력' ? `<div class="set-rep-wrap">
+          <input type="number" min="1" max="99" value="${escapeAttribute(ex.sets || 3)}" aria-label="${escapeAttribute(ex.name)} 세트" data-exercise-id="${escapeAttribute(ex.id)}" oninput="updateExercise(this.dataset.exerciseId,'sets',this.value)"><span>세트</span>
+          <input type="number" min="1" max="999" value="${escapeAttribute(ex.reps || 10)}" aria-label="${escapeAttribute(ex.name)} 횟수" data-exercise-id="${escapeAttribute(ex.id)}" oninput="updateExercise(this.dataset.exerciseId,'reps',this.value)"><span>회</span>
+        </div>` : ''}
         <select class="ex-intensity-select"
           aria-label="${escapeAttribute(ex.name)} 운동 강도"
           data-exercise-id="${escapeAttribute(ex.id)}"
@@ -627,10 +800,16 @@ function renderCustomExList() {
           <option value="중" ${ex.intensity === '중' ? 'selected' : ''}>중</option>
           <option value="상" ${ex.intensity === '상' ? 'selected' : ''}>상</option>
         </select>
+        <button type="button" class="favorite-toggle ${isFavoriteExercise(ex) ? 'active' : ''}"
+          aria-label="${escapeAttribute(ex.name)} 즐겨찾기 ${isFavoriteExercise(ex) ? '해제' : '추가'}"
+          aria-pressed="${isFavoriteExercise(ex)}"
+          data-exercise-id="${escapeAttribute(ex.id)}"
+          onclick="toggleFavoriteExercise('','',this.dataset.exerciseId)">★</button>
         <button type="button" class="ex-remove-btn"
           aria-label="${escapeAttribute(ex.name)} 운동 삭제"
           data-exercise-id="${escapeAttribute(ex.id)}"
           onclick="removeExercise(this.dataset.exerciseId)">✕</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -639,6 +818,12 @@ function renderCustomExList() {
 function updateExercise(id, field, value) {
   const ex = customExercises.find(e => e.id === id);
   if (!ex) return;
-  ex[field] = field === 'duration' ? (parseFloat(value) || 0) : value;
+  ex[field] = ['duration', 'sets', 'reps'].includes(field) ? (parseFloat(value) || 0) : value;
+  const favoriteIndex = favoriteExercises.findIndex(item => exerciseTemplateKey(item) === exerciseTemplateKey(ex));
+  if (favoriteIndex >= 0) {
+    favoriteExercises[favoriteIndex] = normalizeExerciseTemplate(ex);
+    saveFavoriteExercises();
+    renderExerciseShortcuts();
+  }
   scheduleDraftSave();
 }

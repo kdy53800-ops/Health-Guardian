@@ -183,6 +183,37 @@
     .draft-status.saved { color: #15803d; }
     .draft-status.restored { color: var(--primary); }
 
+    .record-status-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      color: #15803d;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .sync-status.waiting { color: #a16207; }
+    .sync-status.offline { color: #b45309; }
+    .sync-status.syncing { color: var(--primary); }
+
+    .sync-retry-btn {
+      border: 0;
+      border-bottom: 1px solid currentColor;
+      background: none;
+      color: inherit;
+      padding: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+
     .quick-water-buttons {
       display: flex;
       gap: 6px;
@@ -411,7 +442,7 @@
     }
     .custom-ex-row {
       display: grid;
-      grid-template-columns: auto 1fr auto auto auto;
+      grid-template-columns: auto minmax(0, 1fr) minmax(0, auto);
       gap: 8px;
       align-items: center;
       background: var(--surface-2);
@@ -533,6 +564,134 @@
       gap: 6px;
       margin-bottom: 14px;
     }
+
+    .exercise-shortcuts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .exercise-shortcut-group {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      min-width: 0;
+    }
+
+    .exercise-shortcut-group.template-group { grid-column: 1 / -1; }
+
+    .exercise-shortcut-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .exercise-shortcut-title small {
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 500;
+    }
+
+    .exercise-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 30px;
+    }
+
+    .quick-exercise-chip,
+    .set-template-chip {
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--white);
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color .16s, color .16s, background .16s;
+    }
+
+    .quick-exercise-chip:hover,
+    .quick-exercise-chip:focus-visible,
+    .set-template-chip:hover,
+    .set-template-chip:focus-visible,
+    .set-template-chip.active {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #eff5fc;
+      outline: none;
+    }
+
+    .exercise-shortcut-empty {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      line-height: 1.5;
+    }
+
+    .preset-item {
+      display: inline-flex;
+      align-items: center;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      background: var(--white);
+      overflow: hidden;
+    }
+
+    .preset-item .preset-chip {
+      border: 0;
+      border-radius: 0;
+    }
+
+    .favorite-toggle {
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-left: 1px solid var(--border);
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: .9rem;
+    }
+
+    .favorite-toggle.active { color: #d97706; background: #fff8e6; }
+
+    .ex-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .set-rep-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: .7rem;
+      white-space: nowrap;
+    }
+
+    .set-rep-wrap input {
+      width: 44px;
+      height: 36px;
+      padding: 4px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--white);
+      text-align: center;
+      font: inherit;
+      color: var(--text);
+    }
     .preset-chip {
       padding: 5px 10px;
       border: 1.5px solid var(--border);
@@ -575,15 +734,15 @@
     }
 
     @media (max-width: 600px) {
+      .record-status-stack { align-items: flex-start; width: 100%; }
+      .exercise-shortcuts { grid-template-columns: 1fr; }
+      .exercise-shortcut-group.template-group { grid-column: auto; }
       .custom-ex-row {
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr;
         grid-template-rows: auto auto;
       }
       .custom-ex-row .cat-badge { grid-row: 1; }
-      .custom-ex-row .ex-name-input { grid-column: 2 / -1; }
-      .ex-dur-wrap { grid-column: 2; }
-      .ex-intensity-select { grid-column: 3; }
-      .ex-remove-btn { grid-row: 1; grid-column: 3; }
+      .ex-controls { grid-column: 1 / -1; justify-content: flex-start; }
     }
   </style>
   <link rel="stylesheet" href="css/ongil-theme.css">
@@ -647,8 +806,13 @@
         <button type="button" class="btn btn-outline btn-sm" id="loadRecentBtn" onclick="loadRecentRecord()">
           🕒 최근 기록 불러오기
         </button>
-        <div class="draft-status" id="draftStatus" role="status" aria-live="polite">
-          <span aria-hidden="true">💾</span><span>입력 내용은 이 기기에 자동 임시 저장됩니다.</span>
+        <div class="record-status-stack">
+          <div class="draft-status" id="draftStatus" role="status" aria-live="polite">
+            <span aria-hidden="true">💾</span><span>입력 내용은 이 기기에 자동 임시 저장됩니다.</span>
+          </div>
+          <div class="sync-status" id="syncStatus" role="status" aria-live="polite">
+            <span aria-hidden="true">☁️</span><span>동기화 상태 확인 중…</span>
+          </div>
         </div>
       </div>
 
@@ -744,6 +908,21 @@
             <div>
               <h3>개인 운동 기록</h3>
               <p>카테고리별 자유롭게 운동을 추가하세요</p>
+            </div>
+          </div>
+
+          <div class="exercise-shortcuts" aria-label="운동 빠른 추가">
+            <div class="exercise-shortcut-group">
+              <div class="exercise-shortcut-title"><span>⭐ 즐겨찾기</span><small>자주 쓰는 운동</small></div>
+              <div class="exercise-chip-list" id="favoriteExerciseList"></div>
+            </div>
+            <div class="exercise-shortcut-group">
+              <div class="exercise-shortcut-title"><span>🕒 최근 운동</span><small>종목만 빠르게 추가</small></div>
+              <div class="exercise-chip-list" id="recentExerciseList"></div>
+            </div>
+            <div class="exercise-shortcut-group template-group" id="strengthTemplateGroup" hidden>
+              <div class="exercise-shortcut-title"><span>🏋️ 근력 세트 템플릿</span><small>선택 후 종목을 추가하세요</small></div>
+              <div class="exercise-chip-list" id="strengthTemplateList"></div>
             </div>
           </div>
 

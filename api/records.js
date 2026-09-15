@@ -52,6 +52,8 @@ function sanitizeCustomExercises(value) {
       name: sanitizeText(item && item.name, '').trim().slice(0, 80),
       duration: numberInRange(item && item.duration, '개인 운동 시간', 1, 999),
       intensity: intensities.has(item && item.intensity) ? item.intensity : '중',
+      sets: numberInRange(item && item.sets, '운동 세트', 1, 99) || 3,
+      reps: numberInRange(item && item.reps, '세트당 횟수', 1, 999) || 10,
     }))
     .filter(item => item.name);
 }

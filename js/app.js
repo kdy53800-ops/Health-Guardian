@@ -251,6 +251,13 @@ const Records = {
 
   setOutbox(items) {
     localStorage.setItem(KEYS.RECORD_OUTBOX, JSON.stringify(items));
+    window.dispatchEvent(new CustomEvent('records-outbox-change', {
+      detail: { pending: Array.isArray(items) ? items.length : 0 },
+    }));
+  },
+
+  getPendingCount(userId) {
+    return this.getOutbox().filter(item => String(item.userId || '') === String(userId || '')).length;
   },
 
   queueForSync(record, userId) {
@@ -263,6 +270,9 @@ const Records = {
     const remoteUser = getCurrentRemoteUser(userId);
     if (!remoteUser || !navigator.onLine) return 0;
     const pending = this.getOutbox().filter(item => item.userId === userId);
+    if (pending.length) {
+      window.dispatchEvent(new CustomEvent('records-sync-start', { detail: { pending: pending.length } }));
+    }
     let synced = 0;
     for (const item of pending) {
       try {
@@ -280,6 +290,9 @@ const Records = {
         break;
       }
     }
+    window.dispatchEvent(new CustomEvent('records-sync-complete', {
+      detail: { synced, pending: this.getPendingCount(userId) },
+    }));
     return synced;
   },
 
