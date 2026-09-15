@@ -1,11 +1,13 @@
 {
   "name": "건강지킴이",
   "short_name": "건강지킴이",
+  "id": "/",
   "description": "해운대 나눔과행복병원 건강 기록 서비스",
   "lang": "ko-KR",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#f7f8fa",
   "theme_color": "#ffffff",
   "icons": [
