@@ -1,5 +1,6 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
+const { writeAdminAudit } = require('./_lib/audit');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -95,6 +96,11 @@ module.exports = async function handler(req, res) {
         if (record.user_id && !inbodyLatest[record.user_id]) inbodyLatest[record.user_id] = record.record_date;
       });
     }
+
+    await writeAdminAudit(auth, 'view_admin_dashboard', {
+      targetType: 'health_records',
+      details: { userCount: Array.isArray(profiles) ? profiles.length : 0, recordCount: allRecords.length },
+    });
 
     sendJson(res, 200, {
       ok: true,

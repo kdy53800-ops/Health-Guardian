@@ -1,10 +1,12 @@
 const { requireAdminSession, requireAuthSession } = require('./_lib/admin-auth');
 const { extractObjectPath } = require('./_lib/inbody-storage');
 const { fetchSupabase, getSupabaseEnv } = require('./_lib/supabase');
+const { writeAdminAudit } = require('./_lib/audit');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(payload));
 }
 
@@ -36,9 +38,10 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    let adminAuth = null;
     if (record.user_id !== auth.id) {
-      const admin = await requireAdminSession(req);
-      if (!admin.ok) {
+      adminAuth = await requireAdminSession(req);
+      if (!adminAuth.ok) {
         sendJson(res, 403, { ok: false, message: 'Access denied.' });
         return;
       }
@@ -60,6 +63,9 @@ module.exports = async function handler(req, res) {
     }
 
     const bytes = Buffer.from(await response.arrayBuffer());
+    if (adminAuth) {
+      await writeAdminAudit(adminAuth, 'view_inbody_image', { targetType: 'inbody_record', targetId: id, details: { userId: record.user_id } });
+    }
     res.statusCode = 200;
     res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
     res.setHeader('Content-Length', String(bytes.length));

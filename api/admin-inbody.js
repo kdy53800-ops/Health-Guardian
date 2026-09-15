@@ -2,6 +2,7 @@ const { randomUUID } = require('crypto');
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
 const { BUCKET, extractObjectPath, privateImageUrl } = require('./_lib/inbody-storage');
+const { writeAdminAudit } = require('./_lib/audit');
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -57,6 +58,7 @@ module.exports = async function handler(req, res) {
       const safeRecords = Array.isArray(records)
         ? records.map(record => ({ ...record, image_url: record.image_url ? privateImageUrl(record.id) : null }))
         : [];
+      await writeAdminAudit(auth, 'view_inbody_records', { targetType: 'user', targetId: userId, details: { recordCount: safeRecords.length } });
       sendJson(res, 200, { ok: true, records: safeRecords });
       return;
     }
@@ -128,6 +130,7 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify(payload)
       });
+      await writeAdminAudit(auth, 'upsert_inbody_record', { targetType: 'user', targetId: userId, details: { recordDate: date, hasImage: !!imageUrl } });
       sendJson(res, 200, { ok: true, data: dbRes });
       return;
     }
@@ -175,6 +178,7 @@ module.exports = async function handler(req, res) {
         return;
       }
 
+      await writeAdminAudit(auth, 'delete_inbody_record', { targetType: 'inbody_record', targetId: id, details: { hadImage: !!(record && record.image_url) } });
       sendJson(res, 200, { ok: true });
       return;
     }

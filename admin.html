@@ -75,6 +75,12 @@
     .attention-name { color:var(--text); font-size:.82rem; font-weight:800; }
     .attention-reason { margin-top:2px; color:var(--text-secondary); font-size:.72rem; line-height:1.35; }
     .attention-empty { padding:22px; text-align:center; color:var(--text-muted); font-size:.82rem; border:1px dashed var(--border); border-radius:var(--radius-md); }
+    .audit-list { display:grid; gap:7px; }
+    .audit-row { display:grid; grid-template-columns:150px minmax(140px,.8fr) minmax(180px,1.3fr) 1fr; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:#fff; font-size:.74rem; }
+    .audit-time { color:var(--text-muted); }
+    .audit-actor { color:var(--text); font-weight:800; }
+    .audit-action { color:var(--primary); font-weight:750; }
+    .audit-target { color:var(--text-secondary); overflow-wrap:anywhere; }
 
     @media(max-width:900px){
       .platform-stats{grid-template-columns:repeat(2,1fr);}
@@ -87,6 +93,7 @@
       .p-stat-value { font-size: 1.6rem; }
       .attention-summary { grid-template-columns:repeat(2,1fr); }
       .attention-list { grid-template-columns:1fr; }
+      .audit-row { grid-template-columns:1fr 1fr; gap:5px 10px; }
     }
   </style>
   <link rel="stylesheet" href="css/ongil-theme.css">
@@ -192,6 +199,10 @@
         <div class="attention-header"><div><h2 id="attentionTitle">🔎 오늘 확인할 사용자</h2><p>최근 기록 변화를 기준으로 확인이 필요한 대상을 자동 정리합니다.</p></div><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn btn-outline btn-sm" onclick="exportAdminRecords()">CSV 내보내기</button><span class="attention-total" id="attentionTotal">0명</span></div></div>
         <div class="attention-summary" id="attentionSummary"></div>
         <div class="attention-list" id="attentionList"><div class="attention-empty">대상자를 계산하고 있습니다.</div></div>
+      </section>
+      <section class="attention-board" id="auditPanel" aria-labelledby="auditTitle">
+        <div class="attention-header"><div><h2 id="auditTitle">🔐 최근 관리자 작업 이력</h2><p>건강정보 조회·등록·삭제 등 최근 50건을 확인합니다.</p></div></div>
+        <div class="audit-list" id="auditList"><div class="attention-empty">작업 이력을 불러오고 있습니다.</div></div>
       </section>
       <div class="admin-charts">
         <div class="chart-card">

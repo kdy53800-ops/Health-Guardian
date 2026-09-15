@@ -179,8 +179,46 @@ async function enterAdmin() {
   applyFilter();
   syncFilterUI();
   hideAdminAccessOverlay();
+  if ((location.pathname.split('/').pop() || 'admin.html') === 'admin.html') loadAuditLogs();
   
   // renderAll is already called by applyFilter()
+}
+
+const AUDIT_ACTION_LABELS = {
+  view_admin_dashboard: '전체 건강 기록 조회',
+  view_inbody_records: '인바디 기록 조회',
+  view_inbody_image: '인바디 이미지 조회',
+  upsert_inbody_record: '인바디 기록 등록·수정',
+  delete_inbody_record: '인바디 기록 삭제',
+  enable_special_care: '특별관리 대상 지정',
+  disable_special_care: '특별관리 대상 해제',
+  delete_user: '사용자 계정 삭제',
+};
+
+async function loadAuditLogs() {
+  const panel = document.getElementById('auditPanel');
+  const list = document.getElementById('auditList');
+  if (!panel || !list) return;
+  try {
+    const response = await fetch(new URL('api/admin-audit', window.location.href).toString(), {
+      credentials: 'include', headers: { Accept: 'application/json' },
+    });
+    const payload = await readApiJson(response);
+    if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || '작업 이력을 불러오지 못했습니다.');
+    const logs = Array.isArray(payload.logs) ? payload.logs : [];
+    if (!logs.length) {
+      list.innerHTML = '<div class="attention-empty">아직 기록된 관리자 작업이 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = logs.map(log => {
+      const time = log.created_at ? new Date(log.created_at).toLocaleString('ko-KR') : '-';
+      const target = [log.target_type, log.target_id].filter(Boolean).join(' · ') || '-';
+      return `<div class="audit-row"><span class="audit-time">${escapeHtml(time)}</span><span class="audit-actor">${escapeHtml(log.actor_name || '관리자')}</span><span class="audit-action">${escapeHtml(AUDIT_ACTION_LABELS[log.action] || log.action || '-')}</span><span class="audit-target">${escapeHtml(target)}</span></div>`;
+    }).join('');
+  } catch (error) {
+    console.warn('[AdminAudit]', error);
+    panel.hidden = true;
+  }
 }
 
 

@@ -1,5 +1,6 @@
 const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
+const { writeAdminAudit } = require('./_lib/audit');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -66,6 +67,7 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({ is_special: isSpecial }),
       });
+      await writeAdminAudit(auth, isSpecial ? 'enable_special_care' : 'disable_special_care', { targetType: 'user', targetId: userId });
       sendJson(res, 200, { ok: true });
       return;
     }
@@ -95,6 +97,7 @@ module.exports = async function handler(req, res) {
       headers: { Prefer: 'return=minimal' },
     });
 
+    await writeAdminAudit(auth, 'delete_user', { targetType: 'user', targetId: userId });
     sendJson(res, 200, { ok: true });
   } catch (error) {
     sendJson(res, 500, {

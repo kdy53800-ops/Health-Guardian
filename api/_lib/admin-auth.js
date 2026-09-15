@@ -21,7 +21,7 @@ async function requireAdminSession(req) {
   }
 
   const rows = await fetchSupabase(
-    `/rest/v1/profiles?select=id,is_admin&id=eq.${encodeEq(session.uid)}&limit=1`,
+    `/rest/v1/profiles?select=id,is_admin,name&id=eq.${encodeEq(session.uid)}&limit=1`,
     { headers: { Accept: 'application/json' } }
   );
   const profile = Array.isArray(rows) && rows[0] ? rows[0] : null;
