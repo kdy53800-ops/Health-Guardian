@@ -84,6 +84,7 @@ function buildRecordCard(r) {
   const metricChips = metrics.map(m => `
     <div class="metric-chip ${m.cls}">
       <span class="chip-icon">${m.icon}</span>
+      <span class="chip-label">${m.label}</span>
       <span class="chip-val">${m.val}</span>
       <span style="color:var(--text-muted); font-weight:400; font-size:0.72rem">${m.unit}</span>
     </div>
@@ -93,13 +94,15 @@ function buildRecordCard(r) {
   const customChips = (r.customExercises || []).map(ex => {
     const catIcon = { '유산소': '🏊', '근력': '🏋️', '유연성': '🧘', '스포츠': '⚽' }[ex.category] || '🏅';
     const intensityColor = { '하': '#22c55e', '중': '#f59e0b', '상': '#ef4444' }[ex.intensity] || '#5a7a9a';
+    const strengthDetail = ex.category === '근력' && ex.sets && ex.reps
+      ? ` · ${escapeHtml(ex.sets)}세트 × ${escapeHtml(ex.reps)}회`
+      : '';
     return `
-      <div class="metric-chip" style="background:rgba(139,92,246,0.07); border-color:rgba(139,92,246,0.18);">
+      <div class="metric-chip custom-exercise-chip">
         <span class="chip-icon">${catIcon}</span>
-        <span class="chip-val" style="color:#7c3aed">${escapeHtml(ex.name || ex.category)}</span>
-        <span style="color:var(--text-muted); font-weight:400; font-size:0.72rem">${escapeHtml(ex.duration)}분</span>
-        ${ex.category === '근력' && ex.sets && ex.reps ? `<span style="color:var(--text-muted); font-weight:600; font-size:0.68rem">· ${escapeHtml(ex.sets)}세트×${escapeHtml(ex.reps)}회</span>` : ''}
-        <span style="font-size:0.65rem; font-weight:700; color:${intensityColor}; margin-left:1px">[${escapeHtml(ex.intensity)}]</span>
+        <span class="chip-val">${escapeHtml(ex.name || ex.category)}</span>
+        <span class="custom-exercise-meta">${escapeHtml(ex.duration)}분${strengthDetail}</span>
+        <span style="font-size:0.68rem; font-weight:700; color:${intensityColor};">강도 ${escapeHtml(ex.intensity)}</span>
       </div>
     `;
   }).join('');
@@ -125,7 +128,8 @@ function buildRecordCard(r) {
         </div>
       </div>
 
-      ${(metrics.length > 0 || customChips) ? `<div class="metrics-grid">${metricChips}${customChips}</div>` : ''}
+      ${metrics.length > 0 ? `<div class="metrics-grid">${metricChips}</div>` : ''}
+      ${customChips ? `<div class="custom-exercise-section"><div class="custom-exercise-label">🏅 개인 운동</div><div class="custom-exercise-list">${customChips}</div></div>` : ''}
 
       <div class="record-footer">
         <div class="record-condition">

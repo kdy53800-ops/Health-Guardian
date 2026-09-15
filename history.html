@@ -136,7 +136,7 @@
 
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
       gap: 8px;
       margin-bottom: 12px;
     }
@@ -152,9 +152,16 @@
       font-weight: 600;
       color: var(--text);
       border: 1px solid var(--border);
+      min-width: 0;
     }
 
     .metric-chip .chip-icon { font-size: 0.85rem; }
+    .metric-chip .chip-label {
+      color: var(--text-secondary);
+      font-size: 0.72rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
     .metric-chip .chip-val { color: var(--primary); }
 
     .metric-chip.highlight {
@@ -168,6 +175,50 @@
     }
 
     .metric-chip.gold-chip .chip-val { color: var(--gold-dark); }
+
+    .custom-exercise-section {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      align-items: start;
+      gap: 8px 12px;
+      margin: 0 0 12px;
+    }
+
+    .custom-exercise-label {
+      padding-top: 8px;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .custom-exercise-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .custom-exercise-chip {
+      flex: 0 1 auto;
+      max-width: 100%;
+      background: rgba(139,92,246,0.07);
+      border-color: rgba(139,92,246,0.18);
+      flex-wrap: wrap;
+      line-height: 1.45;
+    }
+
+    .custom-exercise-chip .chip-val {
+      color: #7c3aed;
+      word-break: keep-all;
+    }
+
+    .custom-exercise-meta {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
 
     .record-footer {
       display: flex;
@@ -257,6 +308,11 @@
       .record-count-badge { margin-left: 0; text-align: center; }
       .record-card { padding: 14px 14px; }
       .record-card-top { flex-wrap: wrap; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric-chip { padding: 8px; }
+      .custom-exercise-section { grid-template-columns: 1fr; gap: 6px; }
+      .custom-exercise-label { padding-top: 0; }
+      .custom-exercise-chip { width: 100%; }
       .record-memo { max-width: 100%; white-space: normal; }
       .record-footer { flex-direction: column; gap: 8px; align-items: flex-start; }
     }
