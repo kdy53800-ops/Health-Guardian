@@ -24,8 +24,9 @@ const KEYS = {
   RECORDS_MIGRATED: `${APP_NAME}_recordsMigrated`,
   RECORD_OUTBOX: `${APP_NAME}_recordOutbox`,
   NOTIFICATION_PREFS: `${APP_NAME}_notificationPrefs`,
+  NOTIFICATION_TIME: `${APP_NAME}_notificationTime`,
   NOTIFICATION_SEEN: `${APP_NAME}_notificationSeen`,
-  NOTIFICATION_PROMPT_SEEN: `${APP_NAME}_notificationPromptSeen_v1`,
+  NOTIFICATION_PROMPT_SEEN: `${APP_NAME}_notificationPromptSeen_v2`,
 };
 
 // ─── Auth ─────────────────────────────────────────────
@@ -127,6 +128,7 @@ const Auth = {
     localStorage.removeItem(KEYS.GOALS + '_' + user.id);
     localStorage.removeItem(KEYS.RECORDS_MIGRATED + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id);
+    localStorage.removeItem(KEYS.NOTIFICATION_TIME + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_SEEN + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_PROMPT_SEEN + '_' + user.id);
     const users = this.getUsers();
@@ -674,6 +676,8 @@ function showToast(msg, type = 'default') {
 // ─── Consent-based health reminders ──────────────────
 const HealthNotifications = {
   alerts: [],
+  vapidPublicKey: '',
+  serverConfigured: false,
 
   preferenceKey(userId) {
     return `${KEYS.NOTIFICATION_PREFS}_${userId}`;
@@ -685,6 +689,74 @@ const HealthNotifications = {
 
   setEnabled(userId, enabled) {
     localStorage.setItem(this.preferenceKey(userId), enabled ? 'enabled' : 'disabled');
+  },
+
+  getReminderTime(userId) {
+    return localStorage.getItem(`${KEYS.NOTIFICATION_TIME}_${userId}`) || '20:00';
+  },
+
+  setReminderTime(userId, time) {
+    localStorage.setItem(`${KEYS.NOTIFICATION_TIME}_${userId}`, time);
+  },
+
+  async loadSchedule(user) {
+    if (!user || user.authProvider === 'test') return;
+    try {
+      const endpoint = new URL('api/check-session', window.location.href);
+      endpoint.searchParams.set('view', 'notification-settings');
+      const response = await fetch(endpoint.toString(), { credentials: 'include', headers: { Accept: 'application/json' } });
+      const payload = await response.json();
+      if (!response.ok || !payload || !payload.ok) return;
+      this.vapidPublicKey = payload.vapidPublicKey || '';
+      this.serverConfigured = !!payload.configured;
+      if (payload.configured && payload.settings) {
+        this.setEnabled(user.id, !!payload.settings.enabled);
+        this.setReminderTime(user.id, payload.settings.reminderTime || '20:00');
+      } else if (this.isEnabled(user.id)) {
+        localStorage.removeItem(this.preferenceKey(user.id));
+      }
+    } catch (error) {
+      console.warn('[HealthNotifications] Schedule unavailable:', error.message);
+    }
+  },
+
+  toApplicationServerKey(value) {
+    const padding = '='.repeat((4 - value.length % 4) % 4);
+    const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map(char => char.charCodeAt(0)));
+  },
+
+  async getPushSubscription() {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      if (!this.vapidPublicKey) throw new Error('예약 알림 서버 설정이 아직 준비되지 않았습니다.');
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: this.toApplicationServerKey(this.vapidPublicKey),
+      });
+    }
+    return subscription;
+  },
+
+  async saveSchedule(user, enabled, subscription = null) {
+    const timeInput = document.getElementById('healthNotificationTime');
+    const reminderTime = timeInput ? timeInput.value : this.getReminderTime(user.id);
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderTime)) throw new Error('알림 시각을 선택해 주세요.');
+    if (user.authProvider !== 'test') {
+      const endpoint = new URL('api/check-session', window.location.href);
+      endpoint.searchParams.set('view', 'notification-settings');
+      const response = await fetch(endpoint.toString(), {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ enabled, reminderTime, subscription: subscription ? subscription.toJSON() : null }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || '알림 설정을 저장하지 못했습니다.');
+      this.serverConfigured = true;
+    }
+    this.setReminderTime(user.id, reminderTime);
+    this.setEnabled(user.id, enabled);
   },
 
   shouldShowInitialPrompt(userId) {
@@ -768,29 +840,39 @@ const HealthNotifications = {
   updatePermissionUI(user) {
     const status = document.getElementById('healthNotificationStatus');
     const button = document.getElementById('healthNotificationToggle');
+    const timeInput = document.getElementById('healthNotificationTime');
+    const saveButton = document.getElementById('healthNotificationSaveTime');
     if (!status || !button) return;
     const supported = 'Notification' in window && 'serviceWorker' in navigator;
     const enabled = supported && this.isEnabled(user.id) && Notification.permission === 'granted';
+    if (timeInput) timeInput.value = this.getReminderTime(user.id);
     if (!supported) {
       status.textContent = '이 브라우저에서는 PWA 알림을 지원하지 않습니다.';
       button.hidden = true;
+      if (saveButton) saveButton.hidden = true;
       return;
     }
     button.hidden = false;
-    button.textContent = enabled ? 'PWA 알림 끄기' : 'PWA 알림 받기';
+    if (saveButton) saveButton.hidden = !enabled;
+    button.textContent = enabled ? '예약 알림 끄기' : '지정 시각 알림 받기';
     button.classList.toggle('enabled', enabled);
     status.textContent = Notification.permission === 'denied'
       ? '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용할 수 있습니다.'
-      : (enabled ? '이 기기에서 하루 한 번 필요한 알림만 알려드립니다.' : '버튼을 눌러 동의한 경우에만 알림을 보냅니다.');
+      : (enabled ? `매일 ${this.getReminderTime(user.id)}에 필요한 알림을 알려드립니다.` : '시각을 선택한 뒤 버튼을 눌러 동의한 경우에만 알림을 보냅니다.');
   },
 
   async toggle(user) {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
     const enabled = this.isEnabled(user.id) && Notification.permission === 'granted';
     if (enabled) {
-      this.setEnabled(user.id, false);
-      this.updatePermissionUI(user);
-      showToast('PWA 건강 알림을 껐습니다.', 'default');
+      try {
+        await this.saveSchedule(user, false);
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) await subscription.unsubscribe();
+        this.updatePermissionUI(user);
+        showToast('예약 건강 알림을 껐습니다.', 'default');
+      } catch (error) { showToast(error.message || '알림 설정을 변경하지 못했습니다.', 'error'); }
       return;
     }
     const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
@@ -800,10 +882,32 @@ const HealthNotifications = {
       showToast('알림 권한이 허용되지 않았습니다.', 'default');
       return;
     }
-    this.setEnabled(user.id, true);
-    this.updatePermissionUI(user);
-    await this.deliver(user, true);
-    showToast('PWA 건강 알림을 켰습니다.', 'success');
+    try {
+      const subscription = user.authProvider === 'test' ? null : await this.getPushSubscription();
+      await this.saveSchedule(user, true, subscription);
+      this.updatePermissionUI(user);
+      showToast(`${this.getReminderTime(user.id)} 예약 알림을 켰습니다.`, 'success');
+    } catch (error) {
+      this.setEnabled(user.id, false);
+      this.updatePermissionUI(user);
+      showToast(error.message || '예약 알림을 설정하지 못했습니다.', 'error');
+    }
+  },
+
+  async saveTime(user) {
+    try {
+      const subscription = user.authProvider === 'test' ? null : await this.getPushSubscription();
+      await this.saveSchedule(user, true, subscription);
+      this.updatePermissionUI(user);
+      showToast(`알림 시각을 ${this.getReminderTime(user.id)}로 변경했습니다.`, 'success');
+    } catch (error) { showToast(error.message || '알림 시각을 저장하지 못했습니다.', 'error'); }
+  },
+
+  matchesScheduleNow(user) {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date()).reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+    return this.getReminderTime(user.id) === `${parts.hour}:${parts.minute}`;
   },
 
   async deliver(user, force = false) {
@@ -836,13 +940,18 @@ function openNotificationCenter() {
       <section class="health-notification-panel" role="dialog" aria-modal="true" aria-labelledby="healthNotificationTitle">
         <div class="health-notification-header"><div><h2 id="healthNotificationTitle">건강 알림</h2><p>기록 변화를 바탕으로 생활 관리를 도와드려요.</p></div><button type="button" class="health-notification-close" aria-label="알림 닫기">×</button></div>
         <div id="healthNotificationList" class="health-notification-list"></div>
-        <div class="health-notification-consent"><div><strong>PWA 알림</strong><p id="healthNotificationStatus"></p></div><button type="button" id="healthNotificationToggle"></button></div>
+        <div class="health-notification-consent">
+          <div class="health-notification-setting"><label for="healthNotificationTime">매일 알림 시각</label><input type="time" id="healthNotificationTime" value="20:00" aria-label="매일 알림 시각"></div>
+          <div class="health-notification-consent-copy"><strong>예약 PWA 알림</strong><p id="healthNotificationStatus"></p></div>
+          <div class="health-notification-actions"><button type="button" id="healthNotificationSaveTime" hidden>시각 저장</button><button type="button" id="healthNotificationToggle"></button></div>
+        </div>
         <p class="health-notification-note">의료적 진단이 아닌 기록 및 재측정 시기 안내입니다.</p>
       </section>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', event => { if (event.target === overlay) closeNotificationCenter(); });
     overlay.querySelector('.health-notification-close').addEventListener('click', closeNotificationCenter);
     overlay.querySelector('#healthNotificationToggle').addEventListener('click', () => HealthNotifications.toggle(Auth.getUser()));
+    overlay.querySelector('#healthNotificationSaveTime').addEventListener('click', () => HealthNotifications.saveTime(Auth.getUser()));
   }
   overlay.classList.add('open');
   HealthNotifications.renderList();
@@ -859,15 +968,21 @@ function initializeHealthNotifications() {
   const user = Auth.getUser();
   if (!user || window.location.protocol === 'file:') return;
   setTimeout(async () => {
+    await HealthNotifications.loadSchedule(user);
     await HealthNotifications.evaluate(user);
     if (HealthNotifications.shouldShowInitialPrompt(user.id)) {
       HealthNotifications.markInitialPromptSeen(user.id);
       openNotificationCenter();
     }
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (!HealthNotifications.serverConfigured && 'Notification' in window && Notification.permission === 'granted' && HealthNotifications.matchesScheduleNow(user)) {
       HealthNotifications.deliver(user).catch(error => console.warn('[HealthNotifications]', error));
     }
   }, 1200);
+  setInterval(async () => {
+    if (HealthNotifications.serverConfigured || !HealthNotifications.isEnabled(user.id) || !HealthNotifications.matchesScheduleNow(user)) return;
+    await HealthNotifications.evaluate(user);
+    HealthNotifications.deliver(user).catch(error => console.warn('[HealthNotifications]', error));
+  }, 30000);
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') closeNotificationCenter();
   });

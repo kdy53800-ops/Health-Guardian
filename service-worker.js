@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-guardian-shell-v3';
+const CACHE_NAME = 'health-guardian-shell-v4';
 const APP_SHELL = [
   '/', '/index.html', '/dashboard.html', '/record.html', '/history.html', '/monthly.html', '/inbody.html',
   '/terms.html', '/privacy.html',
@@ -38,9 +38,24 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : '/dashboard.html';
   event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(openClients => {
-    const dashboard = openClients.find(client => new URL(client.url).pathname.endsWith('/dashboard.html'));
-    if (dashboard) return dashboard.focus();
-    return clients.openWindow('/dashboard.html');
+    const targetPath = new URL(targetUrl, self.location.origin).pathname;
+    const existing = openClients.find(client => new URL(client.url).pathname === targetPath);
+    if (existing) return existing.focus();
+    return clients.openWindow(targetUrl);
+  }));
+});
+
+self.addEventListener('push', event => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch (error) { payload = {}; }
+  const title = payload.title || '건강지킴이 알림';
+  event.waitUntil(self.registration.showNotification(title, {
+    body: payload.body || '오늘의 건강 기록을 확인해 보세요.',
+    icon: '/images/app-icon-192.png',
+    badge: '/images/app-icon-192.png',
+    tag: payload.tag || 'scheduled-health-reminder',
+    data: { url: payload.url || '/dashboard.html' },
   }));
 });
