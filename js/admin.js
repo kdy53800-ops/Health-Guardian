@@ -200,7 +200,9 @@ async function loadAuditLogs() {
   const list = document.getElementById('auditList');
   if (!panel || !list) return;
   try {
-    const response = await fetch(new URL('api/admin-audit', window.location.href).toString(), {
+    const endpoint = new URL('api/admin-data', window.location.href);
+    endpoint.searchParams.set('view', 'audit');
+    const response = await fetch(endpoint.toString(), {
       credentials: 'include', headers: { Accept: 'application/json' },
     });
     const payload = await readApiJson(response);

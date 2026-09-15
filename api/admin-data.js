@@ -62,6 +62,19 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    const requestUrl = new URL(req.url, 'http://localhost');
+    if (requestUrl.searchParams.get('view') === 'audit') {
+      if (auth.session.provider === 'test') {
+        sendJson(res, 200, { ok: true, logs: [] });
+        return;
+      }
+      const logs = await fetchSupabase('/rest/v1/admin_audit_logs?select=id,actor_name,action,target_type,target_id,details,created_at&order=created_at.desc&limit=50', {
+        headers: { Accept: 'application/json' },
+      });
+      sendJson(res, 200, { ok: true, logs: Array.isArray(logs) ? logs : [] });
+      return;
+    }
+
     // 1. 프로필과 인바디 최근 측정일을 함께 조회
     const [profiles, inbodyDates] = await Promise.all([
       fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
