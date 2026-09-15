@@ -12,3 +12,6 @@ node_modules/
 
 # 중복 하위 폴더 방지
 Health Guardian/
+
+.vercel
+.env*
