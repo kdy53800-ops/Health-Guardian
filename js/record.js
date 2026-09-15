@@ -211,10 +211,10 @@ function toggleFavoriteExercise(category, name, exerciseId = '') {
   const index = favoriteExercises.findIndex(item => exerciseTemplateKey(item) === key);
   if (index >= 0) {
     favoriteExercises.splice(index, 1);
-    showToast(`${template.name} 즐겨찾기를 해제했습니다.`, 'default');
+    showToast(`즐겨찾기에서 해제했습니다: ${template.name}`, 'default');
   } else {
     favoriteExercises.unshift(template);
-    showToast(`${template.name}을(를) 즐겨찾기에 추가했습니다.`, 'success');
+    showToast(`즐겨찾기에 추가했습니다: ${template.name}`, 'success');
   }
   saveFavoriteExercises();
   renderExerciseShortcuts();
@@ -228,7 +228,7 @@ function addExerciseTemplate(item) {
   renderCustomExList();
   updateSummary();
   scheduleDraftSave();
-  showToast(`${template.name}을(를) 추가했습니다.`, 'success');
+  showToast(`운동을 추가했습니다: ${template.name}`, 'success');
 }
 
 function addFavoriteExercise(index) {
@@ -781,7 +781,7 @@ function renderCustomExList() {
           <input
             type="number"
             min="1" max="999"
-            aria-label="${escapeAttribute(ex.name)} 운동 시간(분)"
+            aria-label="${escapeAttribute(ex.name)} 시간(분)"
             value="${escapeAttribute(ex.duration)}"
             data-exercise-id="${escapeAttribute(ex.id)}"
             oninput="updateExercise(this.dataset.exerciseId,'duration',this.value); updateSummary()"
@@ -793,7 +793,7 @@ function renderCustomExList() {
           <input type="number" min="1" max="999" value="${escapeAttribute(ex.reps || 10)}" aria-label="${escapeAttribute(ex.name)} 횟수" data-exercise-id="${escapeAttribute(ex.id)}" oninput="updateExercise(this.dataset.exerciseId,'reps',this.value)"><span>회</span>
         </div>` : ''}
         <select class="ex-intensity-select"
-          aria-label="${escapeAttribute(ex.name)} 운동 강도"
+          aria-label="${escapeAttribute(ex.name)} 강도"
           data-exercise-id="${escapeAttribute(ex.id)}"
           onchange="updateExercise(this.dataset.exerciseId,'intensity',this.value)">
           <option value="하" ${ex.intensity === '하' ? 'selected' : ''}>하</option>
@@ -806,7 +806,7 @@ function renderCustomExList() {
           data-exercise-id="${escapeAttribute(ex.id)}"
           onclick="toggleFavoriteExercise('','',this.dataset.exerciseId)">★</button>
         <button type="button" class="ex-remove-btn"
-          aria-label="${escapeAttribute(ex.name)} 운동 삭제"
+          aria-label="${escapeAttribute(ex.name)} 삭제"
           data-exercise-id="${escapeAttribute(ex.id)}"
           onclick="removeExercise(this.dataset.exerciseId)">✕</button>
         </div>
