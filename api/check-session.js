@@ -35,7 +35,9 @@ function getSeoulClock(now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   }).formatToParts(now).reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
-  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  const weekday = new Date(`${date}T12:00:00+09:00`).getUTCDay();
+  return { date, time: `${parts.hour}:${parts.minute}`, weekday, now: now.toISOString() };
 }
 
 function daysBetween(dateText, todayText) {
@@ -75,7 +77,7 @@ function buildReminder(records, latestInbody, clock) {
 async function sendDueReminders() {
   const clock = getSeoulClock();
   const due = await fetchSupabase(
-    `/rest/v1/notification_preferences?select=user_id,reminder_time,last_sent_on&enabled=eq.true&reminder_time=eq.${encodeEq(`${clock.time}:00`)}&or=(last_sent_on.is.null,last_sent_on.neq.${clock.date})&limit=500`,
+    '/rest/v1/notification_preferences?select=user_id,reminder_time,reminder_days,skip_if_recorded,last_sent_on,muted_on,snoozed_until&enabled=eq.true&limit=500',
     { headers: { Accept: 'application/json' } }
   );
   if (!Array.isArray(due) || !due.length) return { checked: 0, sent: 0 };
@@ -85,17 +87,30 @@ async function sendDueReminders() {
   for (const preference of due) {
     const userId = preference.user_id;
     try {
+      const reminderDays = Array.isArray(preference.reminder_days) ? preference.reminder_days.map(Number) : [0,1,2,3,4,5,6];
+      const snoozedUntil = preference.snoozed_until ? new Date(preference.snoozed_until) : null;
+      const snoozeDue = snoozedUntil && Number.isFinite(snoozedUntil.getTime()) && snoozedUntil <= new Date(clock.now);
+      const scheduledNow = String(preference.reminder_time || '').slice(0, 5) === clock.time;
+      if (!reminderDays.includes(clock.weekday) || preference.muted_on === clock.date) continue;
+      if (snoozedUntil && !snoozeDue) continue;
+      if (!snoozeDue && (!scheduledNow || preference.last_sent_on === clock.date)) continue;
       const [records, inbody, subscriptions] = await Promise.all([
         fetchSupabase(`/rest/v1/daily_records?select=record_date&user_id=eq.${encodeEq(userId)}&order=record_date.desc&limit=100`, { headers: { Accept: 'application/json' } }),
         fetchSupabase(`/rest/v1/inbody_records?select=record_date&user_id=eq.${encodeEq(userId)}&order=record_date.desc&limit=1`, { headers: { Accept: 'application/json' } }),
         fetchSupabase(`/rest/v1/push_subscriptions?select=endpoint,subscription&user_id=eq.${encodeEq(userId)}&limit=20`, { headers: { Accept: 'application/json' } }),
       ]);
+      if (preference.skip_if_recorded !== false && Array.isArray(records) && records.some(record => record.record_date === clock.date)) {
+        if (snoozeDue) await fetchSupabase(`/rest/v1/notification_preferences?user_id=eq.${encodeEq(userId)}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ snoozed_until: null }),
+        });
+        continue;
+      }
       const reminder = buildReminder(records, Array.isArray(inbody) && inbody[0] ? inbody[0].record_date : '', clock);
       if (!reminder || !Array.isArray(subscriptions) || !subscriptions.length) continue;
       let delivered = false;
       for (const item of subscriptions) {
         try {
-          await webpush.sendNotification(item.subscription, JSON.stringify({ ...reminder, tag: `scheduled-health-${clock.date}` }), { TTL: 3600 });
+          await webpush.sendNotification(item.subscription, JSON.stringify({ ...reminder, tag: `scheduled-health-${clock.date}`, actions: true }), { TTL: 3600 });
           delivered = true;
         } catch (error) {
           if (error && (error.statusCode === 404 || error.statusCode === 410)) {
@@ -106,7 +121,7 @@ async function sendDueReminders() {
       if (delivered) {
         sent += 1;
         await fetchSupabase(`/rest/v1/notification_preferences?user_id=eq.${encodeEq(userId)}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ last_sent_on: clock.date }),
+          method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ last_sent_on: clock.date, snoozed_until: null }),
         });
       }
     } catch (error) { console.warn('[ScheduledReminder] User reminder failed:', error.message); }
@@ -117,8 +132,8 @@ async function sendDueReminders() {
 async function handleNotificationSettings(req, res, session, body) {
   if (session.provider === 'test') {
     sendJson(res, 200, req.method === 'GET'
-      ? { ok: true, configured: false, settings: { enabled: false, reminderTime: '20:00' }, vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '' }
-      : { ok: true, settings: { enabled: !!body.enabled, reminderTime: body.reminderTime || '20:00' } });
+      ? { ok: true, configured: false, settings: { enabled: false, reminderTime: '20:00', reminderDays: [0,1,2,3,4,5,6], skipIfRecorded: true }, vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '' }
+      : { ok: true, settings: { enabled: !!body.enabled, reminderTime: body.reminderTime || '20:00', reminderDays: body.reminderDays || [0,1,2,3,4,5,6], skipIfRecorded: body.skipIfRecorded !== false } });
     return;
   }
   const profiles = await fetchSupabase(`/rest/v1/profiles?select=id,is_blocked&id=eq.${encodeEq(session.uid)}&limit=1`, { headers: { Accept: 'application/json' } });
@@ -126,15 +141,18 @@ async function handleNotificationSettings(req, res, session, body) {
   if (!profile) { sendJson(res, 404, { ok: false, message: 'User profile not found.' }); return; }
   if (profile.is_blocked) { sendJson(res, 403, { ok: false, message: 'This account has been blocked.' }); return; }
   if (req.method === 'GET') {
-    const rows = await fetchSupabase(`/rest/v1/notification_preferences?select=enabled,reminder_time&user_id=eq.${encodeEq(session.uid)}&limit=1`, { headers: { Accept: 'application/json' } });
+    const rows = await fetchSupabase(`/rest/v1/notification_preferences?select=enabled,reminder_time,reminder_days,skip_if_recorded&user_id=eq.${encodeEq(session.uid)}&limit=1`, { headers: { Accept: 'application/json' } });
     const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
-    sendJson(res, 200, { ok: true, configured: !!row, settings: { enabled: !!(row && row.enabled), reminderTime: row && row.reminder_time ? String(row.reminder_time).slice(0, 5) : '20:00' }, vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '' });
+    sendJson(res, 200, { ok: true, configured: !!row, settings: { enabled: !!(row && row.enabled), reminderTime: row && row.reminder_time ? String(row.reminder_time).slice(0, 5) : '20:00', reminderDays: row && Array.isArray(row.reminder_days) ? row.reminder_days : [0,1,2,3,4,5,6], skipIfRecorded: !row || row.skip_if_recorded !== false }, vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '' });
     return;
   }
   if (!body || typeof body !== 'object') { sendJson(res, 400, { ok: false, message: 'JSON body is required.' }); return; }
   const enabled = body.enabled === true;
   const reminderTime = String(body.reminderTime || '20:00');
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderTime)) { sendJson(res, 400, { ok: false, message: '알림 시각을 올바르게 선택해 주세요.' }); return; }
+  const reminderDays = [...new Set((Array.isArray(body.reminderDays) ? body.reminderDays : [0,1,2,3,4,5,6]).map(Number))].filter(day => Number.isInteger(day) && day >= 0 && day <= 6).sort();
+  if (!reminderDays.length) { sendJson(res, 400, { ok: false, message: '알림을 받을 요일을 하나 이상 선택해 주세요.' }); return; }
+  const skipIfRecorded = body.skipIfRecorded !== false;
   const subscription = body.subscription;
   if (enabled) {
     const endpoint = subscription && String(subscription.endpoint || '');
@@ -151,9 +169,22 @@ async function handleNotificationSettings(req, res, session, body) {
   }
   await fetchSupabase('/rest/v1/notification_preferences?on_conflict=user_id', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ user_id: session.uid, enabled, reminder_time: `${reminderTime}:00`, timezone: 'Asia/Seoul', updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ user_id: session.uid, enabled, reminder_time: `${reminderTime}:00`, reminder_days: reminderDays, skip_if_recorded: skipIfRecorded, timezone: 'Asia/Seoul', updated_at: new Date().toISOString() }),
   });
-  sendJson(res, 200, { ok: true, settings: { enabled, reminderTime } });
+  sendJson(res, 200, { ok: true, settings: { enabled, reminderTime, reminderDays, skipIfRecorded } });
+}
+
+async function handleNotificationAction(res, session, body) {
+  const action = body && body.action;
+  if (!['dismiss-today', 'snooze-30'].includes(action)) { sendJson(res, 400, { ok: false, message: '알림 작업이 올바르지 않습니다.' }); return; }
+  if (session.provider === 'test') { sendJson(res, 200, { ok: true, action }); return; }
+  const patch = action === 'dismiss-today'
+    ? { muted_on: getSeoulClock().date, snoozed_until: null, updated_at: new Date().toISOString() }
+    : { muted_on: null, snoozed_until: new Date(Date.now() + 30 * 60000).toISOString(), updated_at: new Date().toISOString() };
+  await fetchSupabase(`/rest/v1/notification_preferences?user_id=eq.${encodeEq(session.uid)}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(patch),
+  });
+  sendJson(res, 200, { ok: true, action, snoozedUntil: patch.snoozed_until || null });
 }
 
 module.exports = async function handler(req, res) {
@@ -174,6 +205,11 @@ module.exports = async function handler(req, res) {
     if (!session || !session.uid) { sendJson(res, 401, { ok: false, message: 'Login session is required.' }); return; }
     if (requestUrl.searchParams.get('view') === 'notification-settings') {
       await handleNotificationSettings(req, res, session, req.method === 'POST' ? await readBody(req) : null);
+      return;
+    }
+    if (requestUrl.searchParams.get('view') === 'notification-action') {
+      if (req.method !== 'POST') { sendJson(res, 405, { ok: false, message: 'Method Not Allowed' }); return; }
+      await handleNotificationAction(res, session, await readBody(req));
       return;
     }
     if (req.method !== 'GET') { sendJson(res, 405, { ok: false, message: 'Method Not Allowed' }); return; }

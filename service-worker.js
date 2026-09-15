@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-guardian-shell-v12';
+const CACHE_NAME = 'health-guardian-shell-v13';
 const APP_SHELL = [
   '/', '/index.html', '/dashboard.html', '/record.html', '/history.html', '/monthly.html', '/inbody.html',
   '/terms.html', '/privacy.html',
@@ -38,6 +38,13 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  if (event.action === 'dismiss-today' || event.action === 'snooze-30') {
+    event.waitUntil(fetch('/api/check-session?view=notification-action', {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: event.action }),
+    }));
+    return;
+  }
   const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : '/dashboard.html';
   event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(openClients => {
     const targetPath = new URL(targetUrl, self.location.origin).pathname;
@@ -57,5 +64,9 @@ self.addEventListener('push', event => {
     badge: '/images/app-icon-192.png',
     tag: payload.tag || 'scheduled-health-reminder',
     data: { url: payload.url || '/dashboard.html' },
+    actions: payload.actions === false ? [] : [
+      { action: 'snooze-30', title: '30분 후' },
+      { action: 'dismiss-today', title: '오늘은 그만' },
+    ],
   }));
 });

@@ -133,6 +133,8 @@ const Auth = {
     localStorage.removeItem(KEYS.NOTIFICATION_TIME + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_SEEN + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_PROMPT_SEEN + '_' + user.id);
+    localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id + '_days');
+    localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id + '_skip');
     const users = this.getUsers();
     this.saveUsers(users.filter(u => String(u.id) !== String(user.id)));
     localStorage.removeItem(KEYS.CURRENT_USER);
@@ -714,6 +716,25 @@ const HealthNotifications = {
     localStorage.setItem(`${KEYS.NOTIFICATION_TIME}_${userId}`, time);
   },
 
+  getReminderDays(userId) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(`${KEYS.NOTIFICATION_PREFS}_${userId}_days`));
+      return Array.isArray(saved) && saved.length ? saved.map(Number).filter(day => day >= 0 && day <= 6) : [0,1,2,3,4,5,6];
+    } catch (error) { return [0,1,2,3,4,5,6]; }
+  },
+
+  setReminderDays(userId, days) {
+    localStorage.setItem(`${KEYS.NOTIFICATION_PREFS}_${userId}_days`, JSON.stringify(days));
+  },
+
+  getSkipIfRecorded(userId) {
+    return localStorage.getItem(`${KEYS.NOTIFICATION_PREFS}_${userId}_skip`) !== 'false';
+  },
+
+  setSkipIfRecorded(userId, enabled) {
+    localStorage.setItem(`${KEYS.NOTIFICATION_PREFS}_${userId}_skip`, enabled ? 'true' : 'false');
+  },
+
   async loadSchedule(user) {
     if (!user || user.authProvider === 'test') return;
     try {
@@ -727,6 +748,8 @@ const HealthNotifications = {
       if (payload.configured && payload.settings) {
         this.setEnabled(user.id, !!payload.settings.enabled);
         this.setReminderTime(user.id, payload.settings.reminderTime || '20:00');
+        this.setReminderDays(user.id, payload.settings.reminderDays || [0,1,2,3,4,5,6]);
+        this.setSkipIfRecorded(user.id, payload.settings.skipIfRecorded !== false);
       } else if (this.isEnabled(user.id)) {
         localStorage.removeItem(this.preferenceKey(user.id));
       }
@@ -759,18 +782,23 @@ const HealthNotifications = {
     const timeInput = document.getElementById('healthNotificationTime');
     const reminderTime = timeInput ? timeInput.value : this.getReminderTime(user.id);
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderTime)) throw new Error('알림 시각을 선택해 주세요.');
+    const reminderDays = [...document.querySelectorAll('[name="healthNotificationDay"]:checked')].map(input => Number(input.value));
+    if (!reminderDays.length) throw new Error('알림을 받을 요일을 하나 이상 선택해 주세요.');
+    const skipIfRecorded = document.getElementById('healthNotificationSkipRecorded')?.checked !== false;
     if (user.authProvider !== 'test') {
       const endpoint = new URL('api/check-session', window.location.href);
       endpoint.searchParams.set('view', 'notification-settings');
       const response = await fetch(endpoint.toString(), {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ enabled, reminderTime, subscription: subscription ? subscription.toJSON() : null }),
+        body: JSON.stringify({ enabled, reminderTime, reminderDays, skipIfRecorded, subscription: subscription ? subscription.toJSON() : null }),
       });
       const payload = await response.json();
       if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || '알림 설정을 저장하지 못했습니다.');
       this.serverConfigured = true;
     }
     this.setReminderTime(user.id, reminderTime);
+    this.setReminderDays(user.id, reminderDays);
+    this.setSkipIfRecorded(user.id, skipIfRecorded);
     this.setEnabled(user.id, enabled);
   },
 
@@ -857,10 +885,15 @@ const HealthNotifications = {
     const button = document.getElementById('healthNotificationToggle');
     const timeInput = document.getElementById('healthNotificationTime');
     const saveButton = document.getElementById('healthNotificationSaveTime');
+    const quickActions = document.getElementById('healthNotificationQuickActions');
     if (!status || !button) return;
     const supported = 'Notification' in window && 'serviceWorker' in navigator;
     const enabled = supported && this.isEnabled(user.id) && Notification.permission === 'granted';
     if (timeInput) timeInput.value = this.getReminderTime(user.id);
+    const reminderDays = this.getReminderDays(user.id);
+    document.querySelectorAll('[name="healthNotificationDay"]').forEach(input => { input.checked = reminderDays.includes(Number(input.value)); });
+    const skipInput = document.getElementById('healthNotificationSkipRecorded');
+    if (skipInput) skipInput.checked = this.getSkipIfRecorded(user.id);
     if (!supported) {
       status.textContent = '이 브라우저에서는 PWA 알림을 지원하지 않습니다.';
       button.hidden = true;
@@ -869,11 +902,45 @@ const HealthNotifications = {
     }
     button.hidden = false;
     if (saveButton) saveButton.hidden = !enabled;
+    if (quickActions) quickActions.hidden = !enabled;
     button.textContent = enabled ? '예약 알림 끄기' : '지정 시각 알림 받기';
     button.classList.toggle('enabled', enabled);
     status.textContent = Notification.permission === 'denied'
       ? '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용할 수 있습니다.'
-      : (enabled ? `매일 ${this.getReminderTime(user.id)}에 필요한 알림을 알려드립니다.` : '시각을 선택한 뒤 버튼을 눌러 동의한 경우에만 알림을 보냅니다.');
+      : (enabled ? `${this.formatReminderDays(reminderDays)} ${this.getReminderTime(user.id)}에 필요한 알림을 알려드립니다.` : '요일과 시각을 선택한 뒤 동의한 경우에만 알림을 보냅니다.');
+  },
+
+  formatReminderDays(days) {
+    const sorted = [...days].map(Number).sort();
+    if (sorted.length === 7) return '매일';
+    if (sorted.length === 5 && [1,2,3,4,5].every(day => sorted.includes(day))) return '평일';
+    return sorted.map(day => ['일','월','화','수','목','금','토'][day]).join('·') + '요일';
+  },
+
+  excludeWeekend(user) {
+    document.querySelectorAll('[name="healthNotificationDay"]').forEach(input => { input.checked = ![0,6].includes(Number(input.value)); });
+    this.updateWeekendButton();
+    if (user) document.getElementById('healthNotificationSaveTime').hidden = false;
+  },
+
+  updateWeekendButton() {
+    const button = document.getElementById('healthNotificationWeekdays');
+    if (!button) return;
+    const checked = [...document.querySelectorAll('[name="healthNotificationDay"]:checked')].map(input => Number(input.value));
+    button.classList.toggle('active', checked.length === 5 && [1,2,3,4,5].every(day => checked.includes(day)));
+  },
+
+  async action(user, action) {
+    if (!user || !['dismiss-today', 'snooze-30'].includes(action)) return;
+    if (user.authProvider !== 'test') {
+      const endpoint = new URL('api/check-session', window.location.href);
+      endpoint.searchParams.set('view', 'notification-action');
+      const response = await fetch(endpoint.toString(), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      if (!response.ok) throw new Error('알림 상태를 저장하지 못했습니다.');
+    }
+    if (action === 'dismiss-today') localStorage.setItem(`${KEYS.NOTIFICATION_SEEN}_${user.id}`, `${today()}:dismissed`);
+    closeNotificationCenter();
+    showToast(action === 'dismiss-today' ? '오늘은 건강 알림을 보내지 않습니다.' : '30분 후 다시 알려드릴게요.', 'success');
   },
 
   async toggle(user) {
@@ -914,7 +981,7 @@ const HealthNotifications = {
       const subscription = user.authProvider === 'test' ? null : await this.getPushSubscription();
       await this.saveSchedule(user, true, subscription);
       this.updatePermissionUI(user);
-      showToast(`알림 시각을 ${this.getReminderTime(user.id)}로 변경했습니다.`, 'success');
+      showToast('알림 설정을 저장했습니다.', 'success');
     } catch (error) { showToast(error.message || '알림 시각을 저장하지 못했습니다.', 'error'); }
   },
 
@@ -938,6 +1005,10 @@ const HealthNotifications = {
       tag: `health-reminder-${today()}`,
       renotify: false,
       data: { url: '/dashboard.html' },
+      actions: [
+        { action: 'snooze-30', title: '30분 후' },
+        { action: 'dismiss-today', title: '오늘은 그만' },
+      ],
     });
     localStorage.setItem(seenKey, signature);
   },
@@ -998,9 +1069,17 @@ function openNotificationCenter() {
         <div class="health-notification-header"><div><h2 id="healthNotificationTitle">건강 알림</h2><p>기록 변화를 바탕으로 생활 관리를 도와드려요.</p></div><button type="button" class="health-notification-close" aria-label="알림 닫기">×</button></div>
         <div id="healthNotificationList" class="health-notification-list"></div>
         <div class="health-notification-consent">
-          <div class="health-notification-setting"><label for="healthNotificationTime">매일 알림 시각</label><input type="time" id="healthNotificationTime" value="20:00" aria-label="매일 알림 시각"></div>
+          <div class="health-notification-setting"><label for="healthNotificationTime">알림 시각</label><input type="time" id="healthNotificationTime" value="20:00" aria-label="알림 시각"></div>
           <div class="health-notification-consent-copy"><strong>예약 PWA 알림</strong><p id="healthNotificationStatus"></p></div>
-          <div class="health-notification-actions"><button type="button" id="healthNotificationSaveTime" hidden>시각 저장</button><button type="button" id="healthNotificationToggle"></button></div>
+          <div class="health-notification-actions"><button type="button" id="healthNotificationSaveTime" hidden>설정 저장</button><button type="button" id="healthNotificationToggle"></button></div>
+          <div class="health-notification-schedule">
+            <div class="health-notification-schedule-title"><span>알림 요일</span><button type="button" id="healthNotificationWeekdays">주말 제외</button></div>
+            <div class="health-notification-days" aria-label="알림을 받을 요일">
+              ${['일','월','화','수','목','금','토'].map((label, day) => `<label><input type="checkbox" name="healthNotificationDay" value="${day}" checked><span>${label}</span></label>`).join('')}
+            </div>
+            <label class="health-notification-skip"><input type="checkbox" id="healthNotificationSkipRecorded" checked><span>오늘 기록을 완료했다면 알림 생략</span></label>
+          </div>
+          <div class="health-notification-quick-actions" id="healthNotificationQuickActions" hidden><button type="button" id="healthNotificationSnooze">30분 후 다시 알림</button><button type="button" id="healthNotificationDismiss">오늘은 그만 보기</button></div>
         </div>
         <p class="health-notification-note">의료적 진단이 아닌 기록 및 재측정 시기 안내입니다.</p>
       </section>`;
@@ -1009,10 +1088,16 @@ function openNotificationCenter() {
     overlay.querySelector('.health-notification-close').addEventListener('click', closeNotificationCenter);
     overlay.querySelector('#healthNotificationToggle').addEventListener('click', () => HealthNotifications.toggle(Auth.getUser()));
     overlay.querySelector('#healthNotificationSaveTime').addEventListener('click', () => HealthNotifications.saveTime(Auth.getUser()));
+    overlay.querySelector('#healthNotificationWeekdays').addEventListener('click', () => HealthNotifications.excludeWeekend(Auth.getUser()));
+    overlay.querySelectorAll('[name="healthNotificationDay"]').forEach(input => input.addEventListener('change', () => { HealthNotifications.updateWeekendButton(); overlay.querySelector('#healthNotificationSaveTime').hidden = false; }));
+    overlay.querySelector('#healthNotificationSkipRecorded').addEventListener('change', () => { overlay.querySelector('#healthNotificationSaveTime').hidden = false; });
+    overlay.querySelector('#healthNotificationSnooze').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'snooze-30').catch(error => showToast(error.message, 'error')));
+    overlay.querySelector('#healthNotificationDismiss').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'dismiss-today').catch(error => showToast(error.message, 'error')));
   }
   overlay.classList.add('open');
   HealthNotifications.renderList();
   HealthNotifications.updatePermissionUI(user);
+  HealthNotifications.updateWeekendButton();
   overlay.querySelector('.health-notification-close').focus();
 }
 

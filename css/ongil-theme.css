@@ -95,12 +95,26 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .health-notification-consent { display: grid; grid-template-columns:auto 1fr auto; align-items: center; gap: 12px; padding: 15px; border-radius: 14px; background: var(--surface-2); }
 .health-notification-setting { display: grid; gap: 5px; }
 .health-notification-setting label { color: var(--text-secondary); font-size: .65rem; font-weight: 750; }
-.health-notification-setting input { width: 108px; min-height: 38px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); font: inherit; font-size: .82rem; }
+.health-notification-setting input { width: 126px; min-height: 38px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); font: inherit; font-size: .82rem; }
 .health-notification-consent strong { color: var(--text); font-size: .8rem; }
 .health-notification-consent p { margin-top: 3px; color: var(--text-muted); font-size: .68rem; line-height: 1.4; }
 .health-notification-actions { display: grid; gap: 6px; justify-items: stretch; }
 .health-notification-consent button { padding: 8px 11px; border: 1px solid var(--primary); border-radius: 100px; background: #fff; color: var(--primary); font: inherit; font-size: .7rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
 .health-notification-consent button.enabled { border-color: var(--border); color: var(--text-secondary); }
+.health-notification-schedule { grid-column: 1 / -1; display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.health-notification-schedule-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: .72rem; font-weight: 800; }
+.health-notification-schedule-title button { padding: 5px 9px; border-color: var(--border); color: var(--text-secondary); }
+.health-notification-schedule-title button.active { border-color: var(--primary); background: #eff5fc; color: var(--primary); }
+.health-notification-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.health-notification-days label { cursor: pointer; }
+.health-notification-days input { position: absolute; opacity: 0; pointer-events: none; }
+.health-notification-days span { display: flex; min-height: 34px; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 9px; background: #fff; color: var(--text-secondary); font-size: .72rem; font-weight: 750; }
+.health-notification-days input:checked + span { border-color: var(--primary); background: #eff5fc; color: var(--primary); }
+.health-notification-days input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.health-notification-skip { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: .72rem; cursor: pointer; }
+.health-notification-skip input { width: 16px; height: 16px; accent-color: var(--primary); }
+.health-notification-quick-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 7px; }
+.health-notification-quick-actions button { border-color: var(--border); color: var(--text-secondary); }
 .health-notification-note { margin: 12px 3px 0; color: var(--text-muted); font-size: .65rem; line-height: 1.5; }
 
 @media (max-width: 600px) {
@@ -111,6 +125,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .health-notification-consent-copy { grid-column:1 / -1; grid-row:1; }
   .health-notification-setting { grid-column:1; grid-row:2; }
   .health-notification-actions { grid-column:2; grid-row:2; }
+  .health-notification-schedule, .health-notification-quick-actions { grid-column:1 / -1; }
 }
 
 /* Neutral surfaces with brand blue reserved for small accents. */
