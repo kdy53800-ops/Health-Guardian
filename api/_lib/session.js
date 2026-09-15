@@ -54,6 +54,7 @@ function createSessionToken(payload) {
 
 function createSessionCookie(payload, origin) {
   const token = createSessionToken(payload);
+  if (!token) return '';
   return buildCookie(SESSION_COOKIE, token, {
     maxAge: SESSION_TTL_SECONDS,
     path: '/',
