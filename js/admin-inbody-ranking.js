@@ -102,6 +102,7 @@ function filterInBodyTable() {
 
 function filterAndRender(data, unit) {
   const query = document.getElementById('userSearchInput').value.toLowerCase();
+  const valueLabel = document.getElementById('rankValueHead')?.textContent || '측정값';
   
   const filtered = data.filter(item => {
     const name = (item.user.name || '').toLowerCase();
@@ -144,7 +145,7 @@ function filterAndRender(data, unit) {
           </div>
         </div>
       </td>
-      <td data-label="${valueHead.textContent}" class="u-val">${valStr}<span style="font-size:0.8rem;font-weight:normal;color:var(--text-muted);margin-left:2px;">${unit}</span></td>
+      <td data-label="${valueLabel}" class="u-val">${valStr}<span style="font-size:0.8rem;font-weight:normal;color:var(--text-muted);margin-left:2px;">${unit}</span></td>
       <td data-label="측정일자" style="color:var(--text-muted); font-size:0.85rem;">${item.latest.date}</td>
       <td data-label="체중" style="color:var(--text-muted); font-size:0.85rem;">${item.latest.weight ? item.latest.weight + 'kg' : '-'}</td>
     `;
