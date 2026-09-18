@@ -205,6 +205,7 @@ function renderDemoDataNotice(isDemo) {
 const AUDIT_ACTION_LABELS = {
   view_admin_dashboard: '전체 건강 기록 조회',
   view_inbody_records: '인바디 기록 조회',
+  view_inbody_overview: '인바디 통계 조회',
   view_inbody_image: '인바디 이미지 조회',
   upsert_inbody_record: '인바디 기록 등록·수정',
   delete_inbody_record: '인바디 기록 삭제',

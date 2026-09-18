@@ -3,7 +3,7 @@ const { fetchSupabase } = require('./_lib/supabase');
 const { requireAdminSession } = require('./_lib/admin-auth');
 const { BUCKET, extractObjectPath, privateImageUrl } = require('./_lib/inbody-storage');
 const { writeAdminAudit } = require('./_lib/audit');
-const { buildTestInbodyRecords } = require('./_lib/test-fixtures');
+const { buildTestAdminData, buildTestInbodyRecords } = require('./_lib/test-fixtures');
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -33,6 +33,41 @@ async function readBody(req) {
   }
 }
 
+function mapOverviewUser(row) {
+  return {
+    id: row.id,
+    name: row.name || row.username || '사용자',
+    username: row.username || '',
+    isSpecial: row.isSpecial === true || row.is_special === true,
+  };
+}
+
+function mapOverviewRecord(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    date: row.record_date,
+    weight: Number(row.weight) || 0,
+    muscle: Number(row.skeletal_muscle) || 0,
+    fat: Number(row.body_fat_percent) || 0,
+    score: Number(row.inbody_score) || 0,
+  };
+}
+
+async function getAllInbodyRecords() {
+  const records = [];
+  for (let offset = 0; offset < 30000; offset += 1000) {
+    const page = await fetchSupabase(
+      `/rest/v1/inbody_records?select=id,user_id,record_date,weight,skeletal_muscle,body_fat_percent,inbody_score&order=record_date.desc&limit=1000&offset=${offset}`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (!Array.isArray(page) || !page.length) break;
+    records.push(...page);
+    if (page.length < 1000) break;
+  }
+  return records;
+}
+
 module.exports = async function handler(req, res) {
   const requestUrl = new URL(req.url, 'http://localhost');
 
@@ -47,7 +82,12 @@ module.exports = async function handler(req, res) {
     if (auth.session.provider === 'test') {
       if (req.method === 'GET') {
         const userId = requestUrl.searchParams.get('userId');
-        if (!userId) { sendJson(res, 400, { ok:false, message:'Missing userId' }); return; }
+        if (!userId) {
+          const users = buildTestAdminData().users;
+          const records = users.flatMap(user => buildTestInbodyRecords(user.id)).map(mapOverviewRecord);
+          sendJson(res, 200, { ok:true, users, records, demo:true });
+          return;
+        }
         sendJson(res, 200, { ok:true, records:buildTestInbodyRecords(userId), demo:true });
         return;
       }
@@ -59,7 +99,24 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET') {
       const userId = requestUrl.searchParams.get('userId');
       if (!userId) {
-        sendJson(res, 400, { ok: false, message: 'Missing userId' });
+        const [profiles, records] = await Promise.all([
+          fetchSupabase('/rest/v1/profiles?select=id,name,username,is_special&order=created_at.asc', {
+            headers: { Accept: 'application/json' },
+          }),
+          getAllInbodyRecords(),
+        ]);
+        await writeAdminAudit(auth, 'view_inbody_overview', {
+          targetType: 'inbody_records',
+          details: {
+            userCount: Array.isArray(profiles) ? profiles.length : 0,
+            recordCount: records.length,
+          },
+        });
+        sendJson(res, 200, {
+          ok: true,
+          users: Array.isArray(profiles) ? profiles.map(mapOverviewUser) : [],
+          records: records.map(mapOverviewRecord),
+        });
         return;
       }
 
