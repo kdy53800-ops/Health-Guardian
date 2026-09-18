@@ -116,6 +116,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .health-notification-skip input { width: 16px; height: 16px; accent-color: var(--primary); }
 .health-notification-quick-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 7px; }
 .health-notification-quick-actions button { border-color: var(--border); color: var(--text-secondary); }
+.health-notification-quick-actions button:first-child { border-color:#b8d6f3; background:#f7fbff; color:var(--primary); }
+.health-notification-quick-actions button:disabled { opacity:.55; cursor:wait; }
 .health-notification-note { margin: 12px 3px 0; color: var(--text-muted); font-size: .65rem; line-height: 1.5; }
 .health-time-overlay { position:fixed; inset:0; z-index:2300; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.52); backdrop-filter:blur(4px); }
 .health-time-overlay.open { display:flex; }

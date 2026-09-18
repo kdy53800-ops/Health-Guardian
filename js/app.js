@@ -944,6 +944,31 @@ const HealthNotifications = {
     showToast(action === 'dismiss-today' ? '오늘은 건강 알림을 보내지 않습니다.' : '30분 후 다시 알려드릴게요.', 'success');
   },
 
+  async testNotification() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      throw new Error('이 브라우저에서는 알림 테스트를 지원하지 않습니다.');
+    }
+    const env = getInstallEnvironment();
+    if (env.ios && !isPwaInstalled()) {
+      throw new Error('아이폰에서는 건강지킴이를 홈 화면에 설치한 뒤 알림을 테스트할 수 있습니다.');
+    }
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      throw new Error('브라우저 알림 권한을 허용해 주세요.');
+    }
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification('건강지킴이 테스트 알림', {
+      body: '알림이 정상적으로 표시되고 있습니다.',
+      icon: '/images/app-icon-192.png',
+      badge: '/images/app-icon-192.png',
+      tag: `health-reminder-test-${Date.now()}`,
+      renotify: false,
+      data: { url: '/dashboard.html' },
+      actions: [],
+    });
+    showToast('테스트 알림을 보냈습니다. 기기의 알림 영역을 확인해 주세요.', 'success');
+  },
+
   async toggle(user) {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
     const enabled = this.isEnabled(user.id) && Notification.permission === 'granted';
@@ -1080,7 +1105,7 @@ function openNotificationCenter() {
             </div>
             <label class="health-notification-skip"><input type="checkbox" id="healthNotificationSkipRecorded" checked><span>오늘 기록을 완료했다면 알림 생략</span></label>
           </div>
-          <div class="health-notification-quick-actions" id="healthNotificationQuickActions" hidden><button type="button" id="healthNotificationSnooze">30분 후 다시 알림</button><button type="button" id="healthNotificationDismiss">오늘은 그만 보기</button></div>
+          <div class="health-notification-quick-actions" id="healthNotificationQuickActions" hidden><button type="button" id="healthNotificationTest">🔔 테스트 알림 보내기</button><button type="button" id="healthNotificationSnooze">30분 후 다시 알림</button><button type="button" id="healthNotificationDismiss">오늘은 그만 보기</button></div>
         </div>
         <p class="health-notification-note">의료적 진단이 아닌 기록 및 재측정 시기 안내입니다.</p>
       </section>`;
@@ -1093,6 +1118,11 @@ function openNotificationCenter() {
     overlay.querySelector('#healthNotificationWeekdays').addEventListener('click', () => HealthNotifications.excludeWeekend(Auth.getUser()));
     overlay.querySelectorAll('[name="healthNotificationDay"]').forEach(input => input.addEventListener('change', () => { HealthNotifications.updateWeekendButton(); overlay.querySelector('#healthNotificationSaveTime').hidden = false; }));
     overlay.querySelector('#healthNotificationSkipRecorded').addEventListener('change', () => { overlay.querySelector('#healthNotificationSaveTime').hidden = false; });
+    overlay.querySelector('#healthNotificationTest').addEventListener('click', event => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      HealthNotifications.testNotification().catch(error => showToast(error.message || '테스트 알림을 보내지 못했습니다.', 'error')).finally(() => { button.disabled = false; });
+    });
     overlay.querySelector('#healthNotificationSnooze').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'snooze-30').catch(error => showToast(error.message, 'error')));
     overlay.querySelector('#healthNotificationDismiss').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'dismiss-today').catch(error => showToast(error.message, 'error')));
   }
