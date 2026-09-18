@@ -890,6 +890,7 @@ const HealthNotifications = {
     const supported = 'Notification' in window && 'serviceWorker' in navigator;
     const enabled = supported && this.isEnabled(user.id) && Notification.permission === 'granted';
     if (timeInput) timeInput.value = this.getReminderTime(user.id);
+    updateReminderTimeDisplay();
     const reminderDays = this.getReminderDays(user.id);
     document.querySelectorAll('[name="healthNotificationDay"]').forEach(input => { input.checked = reminderDays.includes(Number(input.value)); });
     const skipInput = document.getElementById('healthNotificationSkipRecorded');
@@ -1069,7 +1070,7 @@ function openNotificationCenter() {
         <div class="health-notification-header"><div><h2 id="healthNotificationTitle">건강 알림</h2><p>기록 변화를 바탕으로 생활 관리를 도와드려요.</p></div><button type="button" class="health-notification-close" aria-label="알림 닫기">×</button></div>
         <div id="healthNotificationList" class="health-notification-list"></div>
         <div class="health-notification-consent">
-          <div class="health-notification-setting"><label for="healthNotificationTime">알림 시각</label><input type="time" id="healthNotificationTime" value="20:00" aria-label="알림 시각"></div>
+          <div class="health-notification-setting"><label>알림 시각</label><input type="hidden" id="healthNotificationTime" value="20:00"><button type="button" id="healthNotificationTimeButton" class="health-time-button" aria-label="알림 시각 선택"><span aria-hidden="true">🕐</span><strong id="healthNotificationTimeText">오후 8:00</strong></button></div>
           <div class="health-notification-consent-copy"><strong>예약 PWA 알림</strong><p id="healthNotificationStatus"></p></div>
           <div class="health-notification-actions"><button type="button" id="healthNotificationSaveTime" hidden>설정 저장</button><button type="button" id="healthNotificationToggle"></button></div>
           <div class="health-notification-schedule">
@@ -1088,6 +1089,7 @@ function openNotificationCenter() {
     overlay.querySelector('.health-notification-close').addEventListener('click', closeNotificationCenter);
     overlay.querySelector('#healthNotificationToggle').addEventListener('click', () => HealthNotifications.toggle(Auth.getUser()));
     overlay.querySelector('#healthNotificationSaveTime').addEventListener('click', () => HealthNotifications.saveTime(Auth.getUser()));
+    overlay.querySelector('#healthNotificationTimeButton').addEventListener('click', openHealthTimePicker);
     overlay.querySelector('#healthNotificationWeekdays').addEventListener('click', () => HealthNotifications.excludeWeekend(Auth.getUser()));
     overlay.querySelectorAll('[name="healthNotificationDay"]').forEach(input => input.addEventListener('change', () => { HealthNotifications.updateWeekendButton(); overlay.querySelector('#healthNotificationSaveTime').hidden = false; }));
     overlay.querySelector('#healthNotificationSkipRecorded').addEventListener('change', () => { overlay.querySelector('#healthNotificationSaveTime').hidden = false; });
@@ -1102,8 +1104,112 @@ function openNotificationCenter() {
 }
 
 function closeNotificationCenter() {
+  closeHealthTimePicker();
   document.getElementById('healthNotificationOverlay')?.classList.remove('open');
   document.getElementById('notificationBell')?.focus();
+}
+
+let healthTimePickerState = null;
+
+function formatReminderClock(time) {
+  const [hourText, minuteText] = String(time || '20:00').split(':');
+  const hour24 = Math.min(23, Math.max(0, Number(hourText) || 0));
+  const minute = Math.min(59, Math.max(0, Number(minuteText) || 0));
+  const period = hour24 < 12 ? '오전' : '오후';
+  const hour12 = hour24 % 12 || 12;
+  return `${period} ${hour12}:${String(minute).padStart(2, '0')}`;
+}
+
+function updateReminderTimeDisplay() {
+  const input = document.getElementById('healthNotificationTime');
+  const text = document.getElementById('healthNotificationTimeText');
+  if (input && text) text.textContent = formatReminderClock(input.value);
+}
+
+function openHealthTimePicker() {
+  const input = document.getElementById('healthNotificationTime');
+  if (!input) return;
+  const [hour, minute] = String(input.value || '20:00').split(':').map(Number);
+  healthTimePickerState = { hour24: Number.isFinite(hour) ? hour : 20, minute: Number.isFinite(minute) ? minute : 0, mode: 'hour' };
+  let overlay = document.getElementById('healthTimePickerOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'healthTimePickerOverlay';
+    overlay.className = 'health-time-overlay';
+    overlay.innerHTML = `<section class="health-time-picker" role="dialog" aria-modal="true" aria-labelledby="healthTimePickerTitle">
+      <div class="health-time-heading"><div><h3 id="healthTimePickerTitle">알림 시각 선택</h3><p>시계판에서 시와 분을 선택하세요.</p></div><button type="button" class="health-time-close" aria-label="시각 선택 닫기">×</button></div>
+      <div class="health-time-display"><div class="health-time-period"><button type="button" data-period="am">오전</button><button type="button" data-period="pm">오후</button></div><div class="health-time-value"><button type="button" data-mode="hour">08</button><span>:</span><button type="button" data-mode="minute">00</button></div></div>
+      <div class="health-clock-face" id="healthClockFace"></div>
+      <div class="health-time-actions"><button type="button" class="health-time-cancel">취소</button><button type="button" class="health-time-confirm">설정</button></div>
+    </section>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', event => { if (event.target === overlay) closeHealthTimePicker(); });
+    overlay.querySelector('.health-time-close').addEventListener('click', closeHealthTimePicker);
+    overlay.querySelector('.health-time-cancel').addEventListener('click', closeHealthTimePicker);
+    overlay.querySelector('[data-period="am"]').addEventListener('click', () => setHealthTimePeriod('am'));
+    overlay.querySelector('[data-period="pm"]').addEventListener('click', () => setHealthTimePeriod('pm'));
+    overlay.querySelector('[data-mode="hour"]').addEventListener('click', () => { healthTimePickerState.mode = 'hour'; renderHealthClock(); });
+    overlay.querySelector('[data-mode="minute"]').addEventListener('click', () => { healthTimePickerState.mode = 'minute'; renderHealthClock(); });
+    overlay.querySelector('.health-time-confirm').addEventListener('click', confirmHealthTimePicker);
+  }
+  overlay.classList.add('open');
+  renderHealthClock();
+  overlay.querySelector('.health-time-close').focus();
+}
+
+function setHealthTimePeriod(period) {
+  if (!healthTimePickerState) return;
+  const hour12 = healthTimePickerState.hour24 % 12;
+  healthTimePickerState.hour24 = hour12 + (period === 'pm' ? 12 : 0);
+  renderHealthClock();
+}
+
+function renderHealthClock() {
+  const overlay = document.getElementById('healthTimePickerOverlay');
+  if (!overlay || !healthTimePickerState) return;
+  const state = healthTimePickerState;
+  const hour12 = state.hour24 % 12 || 12;
+  overlay.querySelector('[data-period="am"]').classList.toggle('active', state.hour24 < 12);
+  overlay.querySelector('[data-period="pm"]').classList.toggle('active', state.hour24 >= 12);
+  const hourButton = overlay.querySelector('[data-mode="hour"]');
+  const minuteButton = overlay.querySelector('[data-mode="minute"]');
+  hourButton.textContent = String(hour12).padStart(2, '0');
+  minuteButton.textContent = String(state.minute).padStart(2, '0');
+  hourButton.classList.toggle('active', state.mode === 'hour');
+  minuteButton.classList.toggle('active', state.mode === 'minute');
+  const values = state.mode === 'hour' ? Array.from({ length: 12 }, (_, index) => index + 1) : Array.from({ length: 12 }, (_, index) => index * 5);
+  const selected = state.mode === 'hour' ? hour12 : state.minute;
+  const handAngle = state.mode === 'hour' ? (hour12 % 12) * 30 : state.minute * 6;
+  const face = overlay.querySelector('#healthClockFace');
+  face.innerHTML = `<span class="health-clock-center"></span><span class="health-clock-hand" style="transform:rotate(${handAngle}deg)"></span>${values.map((value, index) => `<button type="button" class="health-clock-number ${value === selected ? 'active' : ''}" style="--clock-angle:${index * 30}deg" data-value="${value}" aria-label="${state.mode === 'hour' ? `${value}시` : `${value}분`}"><span>${state.mode === 'minute' ? String(value).padStart(2, '0') : value}</span></button>`).join('')}`;
+  face.querySelectorAll('.health-clock-number').forEach(button => button.addEventListener('click', () => selectHealthClockValue(Number(button.dataset.value))));
+}
+
+function selectHealthClockValue(value) {
+  if (!healthTimePickerState) return;
+  if (healthTimePickerState.mode === 'hour') {
+    const isPm = healthTimePickerState.hour24 >= 12;
+    healthTimePickerState.hour24 = (value % 12) + (isPm ? 12 : 0);
+    healthTimePickerState.mode = 'minute';
+  } else {
+    healthTimePickerState.minute = value;
+  }
+  renderHealthClock();
+}
+
+function confirmHealthTimePicker() {
+  if (!healthTimePickerState) return;
+  const input = document.getElementById('healthNotificationTime');
+  if (input) input.value = `${String(healthTimePickerState.hour24).padStart(2, '0')}:${String(healthTimePickerState.minute).padStart(2, '0')}`;
+  updateReminderTimeDisplay();
+  const saveButton = document.getElementById('healthNotificationSaveTime');
+  if (saveButton) saveButton.hidden = false;
+  closeHealthTimePicker();
+}
+
+function closeHealthTimePicker() {
+  document.getElementById('healthTimePickerOverlay')?.classList.remove('open');
+  healthTimePickerState = null;
 }
 
 function initializeHealthNotifications() {

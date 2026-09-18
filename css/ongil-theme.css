@@ -95,7 +95,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .health-notification-consent { display: grid; grid-template-columns:auto 1fr auto; align-items: center; gap: 12px; padding: 15px; border-radius: 14px; background: var(--surface-2); }
 .health-notification-setting { display: grid; gap: 5px; }
 .health-notification-setting label { color: var(--text-secondary); font-size: .65rem; font-weight: 750; }
-.health-notification-setting input { width: 126px; min-height: 38px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); font: inherit; font-size: .82rem; }
+.health-time-button { display:flex; align-items:center; justify-content:center; gap:7px; min-width:126px; min-height:40px; padding:7px 10px !important; border-radius:10px !important; border-color:var(--border) !important; color:var(--text) !important; }
+.health-time-button strong { color:var(--text); font-size:.82rem; }
 .health-notification-consent strong { color: var(--text); font-size: .8rem; }
 .health-notification-consent p { margin-top: 3px; color: var(--text-muted); font-size: .68rem; line-height: 1.4; }
 .health-notification-actions { display: grid; gap: 6px; justify-items: stretch; }
@@ -116,6 +117,30 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .health-notification-quick-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 7px; }
 .health-notification-quick-actions button { border-color: var(--border); color: var(--text-secondary); }
 .health-notification-note { margin: 12px 3px 0; color: var(--text-muted); font-size: .65rem; line-height: 1.5; }
+.health-time-overlay { position:fixed; inset:0; z-index:2300; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.52); backdrop-filter:blur(4px); }
+.health-time-overlay.open { display:flex; }
+.health-time-picker { width:min(350px,100%); padding:22px; border-radius:22px; background:#fff; box-shadow:0 24px 70px rgba(15,23,42,.28); }
+.health-time-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.health-time-heading h3 { color:var(--text); font-size:1.05rem; font-weight:900; }
+.health-time-heading p { margin-top:4px; color:var(--text-muted); font-size:.72rem; }
+.health-time-close { width:34px; height:34px; flex:none; border:0; border-radius:50%; background:var(--surface-2); color:var(--text-secondary); font-size:1.2rem; cursor:pointer; }
+.health-time-display { display:flex; align-items:center; justify-content:center; gap:14px; margin:18px 0 16px; }
+.health-time-period { display:grid; grid-template-columns:1fr 1fr; padding:3px; border-radius:10px; background:var(--surface-2); }
+.health-time-period button { min-width:44px; min-height:34px; border:0; border-radius:8px; background:transparent; color:var(--text-secondary); font:inherit; font-size:.72rem; font-weight:800; cursor:pointer; }
+.health-time-period button.active { background:#fff; color:var(--primary); box-shadow:var(--shadow-sm); }
+.health-time-value { display:flex; align-items:center; gap:4px; color:var(--text); font-size:1.35rem; font-weight:900; }
+.health-time-value button { min-width:48px; padding:6px 7px; border:0; border-radius:9px; background:var(--surface-2); color:var(--text-secondary); font:inherit; font-size:1.35rem; font-weight:900; cursor:pointer; }
+.health-time-value button.active { background:#eaf3fc; color:var(--primary); }
+.health-clock-face { position:relative; width:240px; height:240px; margin:0 auto; border-radius:50%; background:#f3f6f9; }
+.health-clock-center { position:absolute; z-index:3; left:50%; top:50%; width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%; background:var(--primary); }
+.health-clock-hand { position:absolute; z-index:1; left:50%; top:50%; width:3px; height:78px; margin:-78px 0 0 -1.5px; border-radius:3px; background:var(--primary); transform-origin:50% 100%; opacity:.55; }
+.health-clock-number { position:absolute; z-index:2; left:calc(50% - 17px); top:calc(50% - 17px); width:34px; height:34px; padding:0; border:0; border-radius:50%; background:transparent; color:var(--text-secondary); font:inherit; font-size:.76rem; font-weight:800; cursor:pointer; transform:rotate(var(--clock-angle)) translateY(-96px) rotate(calc(-1 * var(--clock-angle))); }
+.health-clock-number span { display:flex; width:100%; height:100%; align-items:center; justify-content:center; border-radius:50%; }
+.health-clock-number:hover span, .health-clock-number:focus-visible span { background:#dfeaf5; outline:none; }
+.health-clock-number.active span { background:var(--primary); color:#fff; }
+.health-time-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:18px; }
+.health-time-actions button { min-height:42px; border:1px solid var(--border); border-radius:11px; background:#fff; color:var(--text-secondary); font:inherit; font-size:.8rem; font-weight:800; cursor:pointer; }
+.health-time-actions .health-time-confirm { border-color:var(--primary); background:var(--primary); color:#fff; }
 .pwa-install-button { position:fixed; right:16px; bottom:max(16px, env(safe-area-inset-bottom)); z-index:1800; border:1px solid var(--border); border-radius:100px; background:#fff; color:var(--primary); padding:10px 14px; box-shadow:0 8px 24px rgba(0,0,0,.12); font-family:inherit; font-size:.8rem; font-weight:750; cursor:pointer; }
 .pwa-install-button:hover, .pwa-install-button:focus-visible { border-color:var(--primary); background:#f7fbff; outline:none; }
 .pwa-install-overlay { position:fixed; inset:0; z-index:2200; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(5px); }
@@ -144,6 +169,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .health-notification-setting { grid-column:1; grid-row:2; }
   .health-notification-actions { grid-column:2; grid-row:2; }
   .health-notification-schedule, .health-notification-quick-actions { grid-column:1 / -1; }
+  .health-time-overlay { align-items:flex-end; padding:0; }
+  .health-time-picker { width:100%; padding:20px 18px max(20px, env(safe-area-inset-bottom)); border-radius:22px 22px 0 0; }
   .pwa-install-button { right:12px; bottom:max(12px, env(safe-area-inset-bottom)); }
   .pwa-install-overlay { align-items:flex-end; padding:0; }
   .pwa-install-panel { width:100%; max-height:88dvh; padding:22px 18px max(22px, env(safe-area-inset-bottom)); border-radius:22px 22px 0 0; }
