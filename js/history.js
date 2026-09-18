@@ -93,7 +93,7 @@ function buildRecordCard(r) {
   // 개인 운동 기록 칩
   const customChips = (r.customExercises || []).map(ex => {
     const catIcon = { '유산소': '🏊', '근력': '🏋️', '유연성': '🧘', '스포츠': '⚽' }[ex.category] || '🏅';
-    const intensityColor = { '하': '#22c55e', '중': '#f59e0b', '상': '#ef4444' }[ex.intensity] || '#5a7a9a';
+    const intensityColor = { '하': '#15803d', '중': '#92400e', '상': '#b91c1c' }[ex.intensity] || '#49647a';
     const strengthDetail = ex.category === '근력' && ex.sets && ex.reps
       ? ` · ${escapeHtml(ex.sets)}세트 × ${escapeHtml(ex.reps)}회`
       : '';

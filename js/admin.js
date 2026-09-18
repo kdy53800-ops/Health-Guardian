@@ -842,7 +842,7 @@ function renderUserMgmt() {
         <td data-label="관리">
           <button class="btn btn-outline btn-sm" style="font-size:.75rem;padding:4px 10px;" data-user-id="${escapeAttribute(user.id)}" onclick="viewUser(this.dataset.userId)">상세</button>
           <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isAdmin ? 'background:var(--border);color:var(--text-muted);cursor:not-allowed;' : 'background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;'}" data-user-id="${escapeAttribute(user.id)}" data-user-name="${escapeAttribute(user.name || '-')}" ${user.isAdmin ? 'disabled' : 'onclick="confirmDeleteUser(this.dataset.userId,this.dataset.userName)"'}>삭제</button>
-          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isSpecial ? 'background:var(--gold);color:var(--primary-dark);' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" data-user-id="${escapeAttribute(user.id)}" onclick="toggleSpecialTarget(this.dataset.userId, ${!!user.isSpecial})">⭐특별관리</button>
+          <button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;${user.isSpecial ? 'background:var(--gold-light);color:var(--primary-dark);border:1px solid #B2DFFF;' : 'background:transparent;border:1px solid var(--border);color:var(--text-muted);'}" data-user-id="${escapeAttribute(user.id)}" onclick="toggleSpecialTarget(this.dataset.userId, ${!!user.isSpecial})">⭐특별관리</button>
         </td>
       </tr>
     `;

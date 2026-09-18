@@ -1319,17 +1319,17 @@ function renderNavUser() {
        <span class="nav-username" id="navUsername">${escapeHtml(displayName)}</span>
       <span class="profile-caret">▼</span>
     </button>
-    <div class="nav-profile-dropdown" id="navProfileDropdown" role="menu">
+    <div class="nav-profile-dropdown" id="navProfileDropdown">
       <div class="dropdown-user-header">
         <div class="dropdown-user-name">${escapeHtml(displayName)}</div>
         <div class="dropdown-user-sub">${escapeHtml(user.username || '')}</div>
       </div>
       ${adminItemHTML}
-      <button class="dropdown-item logout-item" onclick="Auth.logout()" role="menuitem">
+      <button class="dropdown-item logout-item" onclick="Auth.logout()">
         <span class="di-icon">🚪</span>
         로그아웃
       </button>
-      <button class="dropdown-item danger-item" onclick="Auth.deleteAccount()" role="menuitem">
+      <button class="dropdown-item danger-item" onclick="Auth.deleteAccount()">
         <span class="di-icon">🗑️</span>
         계정 탈퇴
       </button>

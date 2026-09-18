@@ -14,7 +14,7 @@
   --border: #E3E6EB;
   --text: #29333F;
   --text-secondary: #596572;
-  --text-muted: #677482;
+  --text-muted: #5F6B76;
   --shadow-sm: 0 3px 16px rgba(0, 58, 145, .035);
   --shadow-md: 0 8px 28px rgba(0, 58, 145, .065);
   --shadow-lg: 0 16px 48px rgba(0, 58, 145, .10);
@@ -22,6 +22,7 @@
   --radius-lg: 22px;
 }
 body { background: var(--bg); color: var(--text); }
+.cal-cell.cal-future { opacity: 1 !important; background: #F0F2F5; }
 .top-nav { background: #fff; border-bottom: 1px solid var(--border); box-shadow: 0 2px 12px rgba(30,40,50,.035); }
 .nav-brand-name span { color: var(--primary); }
 .nav-links a.active { background: #EFF5FC; color: var(--primary); }

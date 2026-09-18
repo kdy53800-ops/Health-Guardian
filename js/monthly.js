@@ -78,8 +78,8 @@ function renderCalendar(year, month, recMap, totalDays) {
     const isToday  = dateStr === todayStr;
     const isFuture = dateStr >  todayStr;
     const dow      = (firstDow + d - 1) % 7;
-    const numColor = dow === 0 ? '#ef4444'
-                   : dow === 6 ? '#3b82f6'
+    const numColor = dow === 0 ? '#b91c1c'
+                   : dow === 6 ? '#1d4ed8'
                    : isToday   ? 'var(--gold-dark)'
                    : rec        ? 'var(--primary)'
                    : 'var(--text-muted)';
