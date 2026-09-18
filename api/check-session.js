@@ -52,7 +52,7 @@ function previousDate(dateText) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
 
-function buildReminder(records, latestInbody, clock) {
+function buildReminder(records, latestInbody, clock, includeCompletedDay = false) {
   const dates = new Set((records || []).map(record => record.record_date));
   const latestRecord = records && records[0] ? records[0].record_date : '';
   const inactiveDays = latestRecord ? daysBetween(latestRecord, clock.date) : null;
@@ -71,7 +71,29 @@ function buildReminder(records, latestInbody, clock) {
     messages.push(`💪 인바디 측정 후 ${inbodyDays}일이 지났습니다.`);
     if (messages.length === 1) url = '/inbody.html';
   }
+  if (!messages.length && includeCompletedDay) {
+    messages.push('✅ 오늘의 기록을 확인하고 몸의 변화를 돌아보세요.');
+    url = '/dashboard.html';
+  }
   return messages.length ? { title: '건강지킴이 알림', body: messages.join('\n'), url } : null;
+}
+
+function getReminderTiming(preference, clock) {
+  const reminderDays = Array.isArray(preference.reminder_days)
+    ? preference.reminder_days.map(Number)
+    : [0,1,2,3,4,5,6];
+  const parsedSnooze = preference.snoozed_until ? new Date(preference.snoozed_until) : null;
+  const snoozedUntil = parsedSnooze && Number.isFinite(parsedSnooze.getTime()) ? parsedSnooze : null;
+  const snoozeDue = !!(snoozedUntil && snoozedUntil <= new Date(clock.now));
+  if (snoozedUntil && !snoozeDue) return { due: false, snoozeDue: false };
+  if (snoozeDue) return { due: true, snoozeDue: true };
+  return {
+    due: reminderDays.includes(clock.weekday)
+      && preference.muted_on !== clock.date
+      && String(preference.reminder_time || '').slice(0, 5) === clock.time
+      && preference.last_sent_on !== clock.date,
+    snoozeDue: false,
+  };
 }
 
 async function sendDueReminders() {
@@ -87,13 +109,8 @@ async function sendDueReminders() {
   for (const preference of due) {
     const userId = preference.user_id;
     try {
-      const reminderDays = Array.isArray(preference.reminder_days) ? preference.reminder_days.map(Number) : [0,1,2,3,4,5,6];
-      const snoozedUntil = preference.snoozed_until ? new Date(preference.snoozed_until) : null;
-      const snoozeDue = snoozedUntil && Number.isFinite(snoozedUntil.getTime()) && snoozedUntil <= new Date(clock.now);
-      const scheduledNow = String(preference.reminder_time || '').slice(0, 5) === clock.time;
-      if (!reminderDays.includes(clock.weekday) || preference.muted_on === clock.date) continue;
-      if (snoozedUntil && !snoozeDue) continue;
-      if (!snoozeDue && (!scheduledNow || preference.last_sent_on === clock.date)) continue;
+      const { due: reminderDue, snoozeDue } = getReminderTiming(preference, clock);
+      if (!reminderDue) continue;
       const [records, inbody, subscriptions] = await Promise.all([
         fetchSupabase(`/rest/v1/daily_records?select=record_date&user_id=eq.${encodeEq(userId)}&order=record_date.desc&limit=100`, { headers: { Accept: 'application/json' } }),
         fetchSupabase(`/rest/v1/inbody_records?select=record_date&user_id=eq.${encodeEq(userId)}&order=record_date.desc&limit=1`, { headers: { Accept: 'application/json' } }),
@@ -105,7 +122,12 @@ async function sendDueReminders() {
         });
         continue;
       }
-      const reminder = buildReminder(records, Array.isArray(inbody) && inbody[0] ? inbody[0].record_date : '', clock);
+      const reminder = buildReminder(
+        records,
+        Array.isArray(inbody) && inbody[0] ? inbody[0].record_date : '',
+        clock,
+        preference.skip_if_recorded === false
+      );
       if (!reminder || !Array.isArray(subscriptions) || !subscriptions.length) continue;
       let delivered = false;
       for (const item of subscriptions) {
@@ -232,4 +254,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { buildReminder, getSeoulClock };
+module.exports._test = { buildReminder, getReminderTiming, getSeoulClock, safeSecretEqual };
