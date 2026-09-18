@@ -1,4 +1,4 @@
--- Run the reminder dispatcher every minute from Supabase Cron.
+-- Run the reminder dispatcher every five minutes from Supabase Cron.
 -- Before applying this migration, create a Vault secret named
 -- `health_guardian_cron_secret` and set the same value as CRON_SECRET in Vercel.
 create extension if not exists "pg_cron";
@@ -29,7 +29,7 @@ $$;
 
 select cron.schedule(
   'health-guardian-send-reminders',
-  '* * * * *',
+  '*/5 * * * *',
   $cron$
     select net.http_post(
       url := 'https://health-guardian-test.vercel.app/api/check-session?task=send-reminders',

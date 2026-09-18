@@ -79,20 +79,39 @@ function buildReminder(records, latestInbody, clock, includeCompletedDay = false
 }
 
 function getReminderTiming(preference, clock) {
+  const recoveryWindowMinutes = 15;
   const reminderDays = Array.isArray(preference.reminder_days)
     ? preference.reminder_days.map(Number)
     : [0,1,2,3,4,5,6];
   const parsedSnooze = preference.snoozed_until ? new Date(preference.snoozed_until) : null;
   const snoozedUntil = parsedSnooze && Number.isFinite(parsedSnooze.getTime()) ? parsedSnooze : null;
   const snoozeDue = !!(snoozedUntil && snoozedUntil <= new Date(clock.now));
-  if (snoozedUntil && !snoozeDue) return { due: false, snoozeDue: false };
-  if (snoozeDue) return { due: true, snoozeDue: true };
+  if (snoozedUntil && !snoozeDue) return { due: false, snoozeDue: false, sentOnDate: clock.date };
+  if (snoozeDue) return { due: true, snoozeDue: true, sentOnDate: clock.date };
+
+  const [scheduledHour, scheduledMinute] = String(preference.reminder_time || '').slice(0, 5).split(':').map(Number);
+  const [currentHour, currentMinute] = String(clock.time || '').split(':').map(Number);
+  if (![scheduledHour, scheduledMinute, currentHour, currentMinute].every(Number.isFinite)) {
+    return { due: false, snoozeDue: false, sentOnDate: clock.date };
+  }
+  const scheduledMinutes = scheduledHour * 60 + scheduledMinute;
+  const currentMinutes = currentHour * 60 + currentMinute;
+  let elapsedMinutes = currentMinutes - scheduledMinutes;
+  let sentOnDate = clock.date;
+  let scheduledWeekday = clock.weekday;
+  if (elapsedMinutes < 0 && scheduledMinutes >= 1440 - recoveryWindowMinutes && currentMinutes <= recoveryWindowMinutes) {
+    elapsedMinutes += 1440;
+    sentOnDate = previousDate(clock.date);
+    scheduledWeekday = (clock.weekday + 6) % 7;
+  }
   return {
-    due: reminderDays.includes(clock.weekday)
-      && preference.muted_on !== clock.date
-      && String(preference.reminder_time || '').slice(0, 5) === clock.time
-      && preference.last_sent_on !== clock.date,
+    due: elapsedMinutes >= 0
+      && elapsedMinutes <= recoveryWindowMinutes
+      && reminderDays.includes(scheduledWeekday)
+      && preference.muted_on !== sentOnDate
+      && preference.last_sent_on !== sentOnDate,
     snoozeDue: false,
+    sentOnDate,
   };
 }
 
@@ -109,14 +128,15 @@ async function sendDueReminders() {
   for (const preference of due) {
     const userId = preference.user_id;
     try {
-      const { due: reminderDue, snoozeDue } = getReminderTiming(preference, clock);
+      const { due: reminderDue, snoozeDue, sentOnDate } = getReminderTiming(preference, clock);
       if (!reminderDue) continue;
       const [records, inbody, subscriptions] = await Promise.all([
         fetchSupabase(`/rest/v1/daily_records?select=record_date&user_id=eq.${encodeEq(userId)}&order=record_date.desc&limit=100`, { headers: { Accept: 'application/json' } }),
         fetchSupabase(`/rest/v1/inbody_records?select=record_date&user_id=eq.${encodeEq(userId)}&order=record_date.desc&limit=1`, { headers: { Accept: 'application/json' } }),
         fetchSupabase(`/rest/v1/push_subscriptions?select=endpoint,subscription&user_id=eq.${encodeEq(userId)}&limit=20`, { headers: { Accept: 'application/json' } }),
       ]);
-      if (preference.skip_if_recorded !== false && Array.isArray(records) && records.some(record => record.record_date === clock.date)) {
+      const recordedDate = snoozeDue ? clock.date : sentOnDate;
+      if (preference.skip_if_recorded !== false && Array.isArray(records) && records.some(record => record.record_date === recordedDate)) {
         if (snoozeDue) await fetchSupabase(`/rest/v1/notification_preferences?user_id=eq.${encodeEq(userId)}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ snoozed_until: null }),
         });
@@ -125,7 +145,7 @@ async function sendDueReminders() {
       const reminder = buildReminder(
         records,
         Array.isArray(inbody) && inbody[0] ? inbody[0].record_date : '',
-        clock,
+        { ...clock, date: sentOnDate },
         preference.skip_if_recorded === false
       );
       if (!reminder || !Array.isArray(subscriptions) || !subscriptions.length) continue;
@@ -142,8 +162,10 @@ async function sendDueReminders() {
       }
       if (delivered) {
         sent += 1;
+        const deliveryPatch = { snoozed_until: null };
+        if (!snoozeDue) deliveryPatch.last_sent_on = sentOnDate;
         await fetchSupabase(`/rest/v1/notification_preferences?user_id=eq.${encodeEq(userId)}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ last_sent_on: clock.date, snoozed_until: null }),
+          method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(deliveryPatch),
         });
       }
     } catch (error) { console.warn('[ScheduledReminder] User reminder failed:', error.message); }
@@ -172,6 +194,7 @@ async function handleNotificationSettings(req, res, session, body) {
   const enabled = body.enabled === true;
   const reminderTime = String(body.reminderTime || '20:00');
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderTime)) { sendJson(res, 400, { ok: false, message: '알림 시각을 올바르게 선택해 주세요.' }); return; }
+  if (Number(reminderTime.slice(3, 5)) % 5 !== 0) { sendJson(res, 400, { ok: false, message: '알림 시각은 5분 단위로 선택해 주세요.' }); return; }
   const reminderDays = [...new Set((Array.isArray(body.reminderDays) ? body.reminderDays : [0,1,2,3,4,5,6]).map(Number))].filter(day => Number.isInteger(day) && day >= 0 && day <= 6).sort();
   if (!reminderDays.length) { sendJson(res, 400, { ok: false, message: '알림을 받을 요일을 하나 이상 선택해 주세요.' }); return; }
   const skipIfRecorded = body.skipIfRecorded !== false;
