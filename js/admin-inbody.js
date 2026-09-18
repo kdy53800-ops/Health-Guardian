@@ -67,7 +67,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('adminLoginOverlay');
   
   // Set default date
-  document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  document.getElementById('recordDate').value = todayValue;
+  document.getElementById('recordDate').max = todayValue;
 
   const user = Auth.requireAdmin();
   if (!user) {
@@ -289,6 +292,13 @@ async function saveRecord() {
   
   if (!date || !weight || !skeletalMuscle || !bodyFatMass || !bmi || !bodyFatPercent || !ecwRatio || !inbodyScore || !phaseAngle) {
     alert('모든 필드를 입력해주세요.');
+    return;
+  }
+  const invalidInput = ['recordDate', 'weight', 'skeletalMuscle', 'bodyFatMass', 'bmi', 'bodyFatPercent', 'ecwRatio', 'inbodyScore', 'phaseAngle']
+    .map(id => document.getElementById(id))
+    .find(input => !input.checkValidity());
+  if (invalidInput) {
+    invalidInput.reportValidity();
     return;
   }
 

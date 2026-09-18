@@ -54,6 +54,36 @@ function mapOverviewRecord(row) {
   };
 }
 
+function validatedNumber(value, label, min, max, integer = false) {
+  if (value === '' || value == null) {
+    throw Object.assign(new Error(`${label} 값을 입력해 주세요.`), { statusCode: 400 });
+  }
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max || (integer && !Number.isInteger(number))) {
+    throw Object.assign(new Error(`${label} 값이 허용 범위를 벗어났습니다.`), { statusCode: 400 });
+  }
+  return number;
+}
+
+function validateRecordDate(value) {
+  const date = String(value || '');
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00Z`) : null;
+  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    throw Object.assign(new Error('측정일자 형식이 올바르지 않습니다.'), { statusCode: 400 });
+  }
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date()).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  const today = `${parts.year}-${parts.month}-${parts.day}`;
+  if (date > today) {
+    throw Object.assign(new Error('미래 날짜의 인바디 기록은 저장할 수 없습니다.'), { statusCode: 400 });
+  }
+  return date;
+}
+
 async function getAllInbodyRecords() {
   const records = [];
   for (let offset = 0; offset < 30000; offset += 1000) {
@@ -142,16 +172,36 @@ module.exports = async function handler(req, res) {
 
       const { userId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, phaseAngle, imageBase64, fileName } = body;
 
-      if (!userId || !date) {
+      const safeUserId = String(userId || '').trim();
+      if (!safeUserId || !/^[A-Za-z0-9_-]{1,100}$/.test(safeUserId) || !date) {
         sendJson(res, 400, { ok: false, message: 'Missing required fields' });
         return;
       }
 
-      const numericFields = { weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, phaseAngle };
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || Object.values(numericFields).some(value => !Number.isFinite(Number(value)))) {
-        sendJson(res, 400, { ok: false, message: '날짜와 측정값을 올바르게 입력해 주세요.' });
+      const recordDate = validateRecordDate(date);
+      const values = {
+        weight: validatedNumber(weight, '체중', 20, 500),
+        skeletalMuscle: validatedNumber(skeletalMuscle, '골격근량', 0, 200),
+        bodyFatMass: validatedNumber(bodyFatMass, '체지방량', 0, 300),
+        bmi: validatedNumber(bmi, 'BMI', 5, 100),
+        bodyFatPercent: validatedNumber(bodyFatPercent, '체지방률', 0, 100),
+        ecwRatio: validatedNumber(ecwRatio, '세포외수분비', 0.1, 1),
+        inbodyScore: validatedNumber(inbodyScore, '인바디 점수', 0, 200, true),
+        phaseAngle: validatedNumber(phaseAngle, '위상각', 0, 30),
+      };
+      const profiles = await fetchSupabase(`/rest/v1/profiles?select=id&id=eq.${encodeURIComponent(safeUserId)}&limit=1`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!Array.isArray(profiles) || !profiles.length) {
+        sendJson(res, 404, { ok: false, message: '사용자를 찾을 수 없습니다.' });
         return;
       }
+
+      const existingRows = await fetchSupabase(
+        `/rest/v1/inbody_records?select=id,image_url&user_id=eq.${encodeURIComponent(safeUserId)}&record_date=eq.${encodeURIComponent(recordDate)}&limit=1`,
+        { headers: { Accept: 'application/json' } }
+      );
+      const existing = Array.isArray(existingRows) && existingRows[0] ? existingRows[0] : null;
 
       let imageUrl = null;
       if (imageBase64 && fileName) {
@@ -165,41 +215,64 @@ module.exports = async function handler(req, res) {
           sendJson(res, 413, { ok: false, message: '이미지는 2MB 이하만 업로드할 수 있습니다.' });
           return;
         }
-        const uploadPath = `${BUCKET}/${userId}/${date}_${randomUUID()}.jpg`;
+        const imageFormat = match[1];
+        const imageType = imageFormat === 'png' ? 'image/png' : imageFormat === 'webp' ? 'image/webp' : 'image/jpeg';
+        const imageExtension = imageFormat === 'jpeg' ? 'jpg' : imageFormat;
+        const uploadPath = `${BUCKET}/${safeUserId}/${recordDate}_${randomUUID()}.${imageExtension}`;
         
         await fetchSupabase(`/storage/v1/object/${uploadPath}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'image/jpeg', 'x-upsert': 'false' },
+          headers: { 'Content-Type': imageType, 'x-upsert': 'false' },
           body: buffer
         });
         imageUrl = uploadPath;
       }
 
-      const recordId = `inbody_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+      const recordId = existing && existing.id ? existing.id : `inbody_${Date.now()}_${Math.random().toString(36).slice(2,11)}`;
       const payload = {
         id: recordId,
-        user_id: userId,
-        record_date: date,
-        weight: parseFloat(weight),
-        skeletal_muscle: parseFloat(skeletalMuscle),
-        body_fat_mass: parseFloat(bodyFatMass),
-        bmi: parseFloat(bmi),
-        body_fat_percent: parseFloat(bodyFatPercent),
-        ecw_ratio: parseFloat(ecwRatio),
-        inbody_score: parseInt(inbodyScore),
-        phase_angle: parseFloat(phaseAngle || 0),
+        user_id: safeUserId,
+        record_date: recordDate,
+        weight: values.weight,
+        skeletal_muscle: values.skeletalMuscle,
+        body_fat_mass: values.bodyFatMass,
+        bmi: values.bmi,
+        body_fat_percent: values.bodyFatPercent,
+        ecw_ratio: values.ecwRatio,
+        inbody_score: values.inbodyScore,
+        phase_angle: values.phaseAngle,
       };
       if (imageUrl) payload.image_url = imageUrl;
+      else if (existing && existing.image_url) payload.image_url = existing.image_url;
 
-      const dbRes = await fetchSupabase('/rest/v1/inbody_records?on_conflict=user_id,record_date', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates,return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-      await writeAdminAudit(auth, 'upsert_inbody_record', { targetType: 'user', targetId: userId, details: { recordDate: date, hasImage: !!imageUrl } });
+      let dbRes;
+      try {
+        dbRes = await fetchSupabase('/rest/v1/inbody_records?on_conflict=user_id,record_date', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=representation'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        if (imageUrl) {
+          try { await fetchSupabase(`/storage/v1/object/${imageUrl}`, { method: 'DELETE' }); } catch (cleanupError) {
+            console.warn('[AdminInbodyAPI] Failed to clean up uploaded image:', cleanupError.message);
+          }
+        }
+        throw error;
+      }
+
+      if (imageUrl && existing && existing.image_url && existing.image_url !== imageUrl) {
+        try {
+          const previousPath = extractObjectPath(existing.image_url);
+          if (previousPath) await fetchSupabase(`/storage/v1/object/${previousPath}`, { method: 'DELETE' });
+        } catch (cleanupError) {
+          console.warn('[AdminInbodyAPI] Failed to delete replaced image:', cleanupError.message);
+        }
+      }
+      await writeAdminAudit(auth, 'upsert_inbody_record', { targetType: 'user', targetId: safeUserId, details: { recordDate, hasImage: !!imageUrl } });
       sendJson(res, 200, { ok: true, data: dbRes });
       return;
     }
@@ -256,6 +329,10 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('[AdminInbodyAPI]', error);
-    sendJson(res, error.statusCode || 500, { ok: false, message: error.message || 'Internal Server Error' });
+    const statusCode = error.statusCode || 500;
+    sendJson(res, statusCode, {
+      ok: false,
+      message: statusCode < 500 && error.message ? error.message : '인바디 기록 처리 중 서버 오류가 발생했습니다.',
+    });
   }
 };
