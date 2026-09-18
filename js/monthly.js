@@ -152,7 +152,7 @@ function renderCatCards(monthRecs) {
     const mins    = catMins[c.key];
     const isEmpty = mins === 0;
     return `
-      <div class="cat-card" style="background:${c.bg};border-color:${c.color}33;${isEmpty?'opacity:0.45;':''}">
+      <div class="cat-card" style="background:${c.bg};border-color:${c.color}33;${isEmpty?'border-style:dashed;':''}">
         <div class="cat-icon">${c.icon}</div>
         <div class="cat-name">${c.key}</div>
         <div class="cat-mins" style="color:${isEmpty?'var(--text-muted)':c.color};">${mins}</div>
