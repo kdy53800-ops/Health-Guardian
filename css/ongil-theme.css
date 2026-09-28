@@ -159,6 +159,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .pwa-install-steps li { display:grid; grid-template-columns:28px minmax(0,1fr); align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
 .pwa-install-steps li > span { display:flex; width:28px; height:28px; align-items:center; justify-content:center; border-radius:50%; background:#eaf3fc; color:var(--primary); font-size:.72rem; font-weight:900; }
 .pwa-install-steps p { color:var(--text-secondary); font-size:.78rem; line-height:1.5; word-break:keep-all; }
+.pwa-install-note { margin-top:14px; padding:11px 12px; border-radius:12px; background:#f2f6fa; color:var(--text-secondary); font-size:.76rem; line-height:1.55; word-break:keep-all; }
+.pwa-install-copy { width:100%; min-height:44px; margin-top:18px; border:1px solid var(--primary); border-radius:12px; background:#f7fbff; color:var(--primary); font:inherit; font-size:.82rem; font-weight:800; cursor:pointer; }
+.pwa-install-copy + .pwa-install-steps { margin-top:14px; }
 .pwa-install-benefits { display:flex; flex-wrap:wrap; gap:7px; margin-top:16px; }
 .pwa-install-benefits span { padding:6px 9px; border-radius:100px; background:#f3f7fb; color:var(--text-secondary); font-size:.68rem; font-weight:700; }
 .pwa-install-done { width:100%; min-height:44px; margin-top:18px; border:0; border-radius:12px; background:var(--primary); color:#fff; font:inherit; font-size:.84rem; font-weight:800; cursor:pointer; }

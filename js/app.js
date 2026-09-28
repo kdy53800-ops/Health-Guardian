@@ -1493,10 +1493,10 @@ function getInstallEnvironment() {
   const edge = /EdgA|EdgiOS|Edg\//i.test(ua);
   const firefox = /Firefox|FxiOS/i.test(ua);
   const chrome = /Chrome|CriOS/i.test(ua) && !edge && !samsung;
-  const safari = ios && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+  const inApp = /NAVER|KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua);
+  const safari = ios && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua) && !inApp;
   const desktopSafari = !ios && /Safari/i.test(ua) && !/Chrome|Chromium|Edg\//i.test(ua);
   const windows = /Windows/i.test(ua);
-  const inApp = /NAVER|KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua);
   return { ios, android, samsung, edge, firefox, chrome, safari, desktopSafari, windows, inApp };
 }
 
@@ -1512,7 +1512,7 @@ function updateInstallButton() {
   const env = getInstallEnvironment();
   button.textContent = deferredInstallPrompt
     ? '📱 건강지킴이 설치'
-    : (env.ios ? '📱 아이폰 설치 방법' : '📱 앱 설치 방법');
+    : (env.ios ? '📱 iPhone·iPad 설치 방법' : '📱 앱 설치 방법');
 }
 
 async function requestPwaInstall() {
@@ -1542,8 +1542,29 @@ function installGuideContent() {
   if (isPwaInstalled()) return { title: '이미 설치되어 있습니다', intro: '홈 화면의 건강지킴이 아이콘으로 실행할 수 있습니다.', steps: [] };
   if (env.ios) {
     return env.safari
-      ? { title: 'iPhone·iPad에 설치', intro: 'Apple 정책상 설치 버튼을 대신 누를 수 없어 Safari 메뉴에서 직접 추가해야 합니다.', steps: ['Safari 하단 또는 상단의 공유 버튼을 누르세요.', '메뉴에서 ‘홈 화면에 추가’를 선택하세요.', '‘웹 앱으로 열기’를 켜고 ‘추가’를 누르세요.'] }
-      : { title: 'Safari에서 설치해 주세요', intro: 'iPhone의 Chrome·Edge 등에서는 설치 창을 직접 열 수 없습니다.', steps: ['현재 주소를 복사해 Safari에서 여세요.', 'Safari의 공유 버튼을 누르세요.', '‘홈 화면에 추가’ → ‘웹 앱으로 열기’ → ‘추가’를 선택하세요.'] };
+      ? {
+          title: 'iPhone·iPad 홈 화면에 설치',
+          intro: 'Safari에서는 홈 화면에 추가하면 건강지킴이를 앱처럼 열 수 있습니다.',
+          steps: [
+            'Safari 화면 아래쪽 또는 위쪽의 공유 버튼(네모에서 위로 향한 화살표)을 누르세요. 공유 버튼이 없으면 주소창 옆 페이지 메뉴를 연 뒤 ‘공유’를 누르세요.',
+            '공유 목록을 아래로 내려 ‘홈 화면에 추가’를 누르세요.',
+            '‘웹 앱으로 열기’ 항목이 보이면 켜고, 오른쪽 위의 ‘추가’를 누르세요.',
+            '홈 화면에 생긴 건강지킴이 아이콘을 눌러 실행하세요. 알림을 사용하려면 앱 안에서 허용해 주세요.'
+          ],
+          note: '‘홈 화면에 추가’가 보이지 않나요? 공유 목록 맨 아래의 ‘동작 편집’에서 ‘홈 화면에 추가’를 찾아 선택하세요.'
+        }
+      : {
+          title: 'Safari로 열어 설치',
+          intro: '현재 브라우저에서는 설치 창을 바로 열 수 없습니다. Safari에서 아래 순서로 추가해 주세요.',
+          steps: [
+            '아래 ‘건강지킴이 주소 복사’를 누르세요. 현재 브라우저 메뉴에 ‘Safari에서 열기’가 있다면 그것을 눌러도 됩니다.',
+            'Safari 앱을 열고 주소창에 복사한 주소를 붙여넣어 건강지킴이를 여세요.',
+            '공유 버튼(네모에서 위로 향한 화살표)을 누르세요. 버튼이 없다면 페이지 메뉴에서 ‘공유’를 선택하세요.',
+            '공유 목록에서 ‘홈 화면에 추가’를 누르고, ‘웹 앱으로 열기’가 보이면 켠 다음 ‘추가’를 누르세요.'
+          ],
+          note: '‘홈 화면에 추가’가 없으면 공유 목록 맨 아래의 ‘동작 편집’에서 찾아보세요. 설치 후에는 홈 화면의 아이콘으로 실행하면 됩니다.',
+          copyUrl: true
+        };
   }
   if (env.android && env.inApp) return { title: '외부 브라우저에서 설치', intro: '현재 앱 안의 브라우저에서는 설치 기능이 제한될 수 있습니다.', steps: ['브라우저 메뉴에서 ‘외부 브라우저로 열기’를 선택하세요.', 'Chrome 또는 Samsung Internet에서 페이지를 여세요.', '브라우저 메뉴의 ‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택하세요.'] };
   if (env.android) {
@@ -1567,14 +1588,27 @@ function openInstallGuide() {
   const guide = installGuideContent();
   overlay.innerHTML = `<section class="pwa-install-panel" role="dialog" aria-modal="true" aria-labelledby="pwaInstallTitle">
     <div class="pwa-install-heading"><div class="pwa-install-icon"><img src="images/app-icon-192.png" alt=""></div><div><h2 id="pwaInstallTitle">${escapeHtml(guide.title)}</h2><p>${escapeHtml(guide.intro)}</p></div><button type="button" class="pwa-install-close" aria-label="설치 안내 닫기">×</button></div>
+    ${guide.copyUrl ? '<button type="button" class="pwa-install-copy">건강지킴이 주소 복사</button>' : ''}
     ${guide.steps.length ? `<ol class="pwa-install-steps">${guide.steps.map((step, index) => `<li><span>${index + 1}</span><p>${escapeHtml(step)}</p></li>`).join('')}</ol>` : ''}
+    ${guide.note ? `<p class="pwa-install-note">${escapeHtml(guide.note)}</p>` : ''}
     <div class="pwa-install-benefits"><span>✓ 홈 화면에서 바로 실행</span><span>✓ 앱처럼 전체 화면 사용</span><span>✓ 동의한 경우 예약 알림 제공</span></div>
     <button type="button" class="pwa-install-done">확인</button>
   </section>`;
   overlay.querySelector('.pwa-install-close').addEventListener('click', closeInstallGuide);
   overlay.querySelector('.pwa-install-done').addEventListener('click', closeInstallGuide);
+  overlay.querySelector('.pwa-install-copy')?.addEventListener('click', copyInstallUrl);
   overlay.classList.add('open');
   overlay.querySelector('.pwa-install-close').focus();
+}
+
+async function copyInstallUrl() {
+  const url = `${window.location.origin}/index.html`;
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('주소를 복사했습니다. Safari 주소창에 붙여넣으세요.', 'success');
+  } catch (error) {
+    window.prompt('이 주소를 복사해 Safari 주소창에 붙여넣으세요.', url);
+  }
 }
 
 function closeInstallGuide(restoreFocus = true) {
