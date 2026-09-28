@@ -1416,10 +1416,32 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let deferredInstallPrompt = null;
+let installPromptCheckComplete = false;
+let installPromptCheckTimer = null;
 
 function initializePwa() {
   if (!window.location.protocol.startsWith('http') || !('serviceWorker' in navigator)) return;
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    clearTimeout(installPromptCheckTimer);
+    updateInstallButton();
+    closeInstallGuide(false);
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    clearTimeout(installPromptCheckTimer);
+    document.getElementById('pwaInstallButton')?.remove();
+    closeInstallGuide(false);
+    showToast('건강지킴이가 홈 화면에 설치되었습니다.', 'success');
+  });
   renderInstallButton();
+  if (!isPwaInstalled() && canOfferDirectInstall()) {
+    installPromptCheckTimer = setTimeout(() => {
+      installPromptCheckComplete = true;
+      updateInstallButton();
+    }, 5000);
+  }
   navigator.serviceWorker.register('/service-worker.js').then(registration => {
     registration.addEventListener('updatefound', () => {
       const worker = registration.installing;
@@ -1429,17 +1451,6 @@ function initializePwa() {
       });
     });
   }).catch(error => console.warn('[PWA]', error));
-  window.addEventListener('beforeinstallprompt', event => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    updateInstallButton();
-  });
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    document.getElementById('pwaInstallButton')?.remove();
-    closeInstallGuide();
-    showToast('건강지킴이가 홈 화면에 설치되었습니다.', 'success');
-  });
   window.addEventListener('online', async () => {
     const user = Auth.getUser();
     if (!user) return;
@@ -1483,26 +1494,44 @@ function getInstallEnvironment() {
   const firefox = /Firefox|FxiOS/i.test(ua);
   const chrome = /Chrome|CriOS/i.test(ua) && !edge && !samsung;
   const safari = ios && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+  const desktopSafari = !ios && /Safari/i.test(ua) && !/Chrome|Chromium|Edg\//i.test(ua);
+  const windows = /Windows/i.test(ua);
   const inApp = /NAVER|KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua);
-  return { ios, android, samsung, edge, firefox, chrome, safari, inApp };
+  return { ios, android, samsung, edge, firefox, chrome, safari, desktopSafari, windows, inApp };
+}
+
+function canOfferDirectInstall() {
+  const env = getInstallEnvironment();
+  return !env.ios && !env.inApp && (env.chrome || env.edge || env.samsung);
 }
 
 function updateInstallButton() {
   const button = document.getElementById('pwaInstallButton');
   if (!button) return;
+  button.hidden = !deferredInstallPrompt && canOfferDirectInstall() && !installPromptCheckComplete;
   const env = getInstallEnvironment();
   button.textContent = deferredInstallPrompt
     ? '📱 건강지킴이 설치'
-    : (env.ios ? '📱 아이폰 설치 방법' : '📱 앱 설치 안내');
+    : (env.ios ? '📱 아이폰 설치 방법' : '📱 앱 설치 방법');
 }
 
 async function requestPwaInstall() {
   if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
+    const prompt = deferredInstallPrompt;
     deferredInstallPrompt = null;
-    if (choice.outcome === 'accepted') document.getElementById('pwaInstallButton')?.remove();
-    else updateInstallButton();
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice.outcome === 'accepted') document.getElementById('pwaInstallButton')?.remove();
+      else {
+        installPromptCheckComplete = true;
+        updateInstallButton();
+      }
+    } catch (error) {
+      installPromptCheckComplete = true;
+      updateInstallButton();
+      openInstallGuide();
+    }
     return;
   }
   openInstallGuide();
@@ -1521,6 +1550,8 @@ function installGuideContent() {
     const browser = env.samsung ? 'Samsung Internet' : env.edge ? 'Edge' : env.firefox ? 'Firefox' : env.chrome ? 'Chrome' : '현재 브라우저';
     return { title: `${browser}에서 설치`, intro: '자동 설치 창을 지원하지 않거나 아직 설치 조건을 확인 중입니다.', steps: ['브라우저 오른쪽 위의 메뉴(⋮)를 누르세요.', '‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택하세요.', '화면에 표시되는 설치 확인을 누르세요.'] };
   }
+  if (env.desktopSafari) return { title: 'Safari에서 설치', intro: 'Mac의 Safari에서는 브라우저 메뉴로 웹 앱을 추가할 수 있습니다.', steps: ['상단 메뉴의 ‘파일’ 또는 공유 버튼을 누르세요.', '‘Dock에 추가’를 선택하세요.', '이름을 확인하고 ‘추가’를 누르세요.'] };
+  if (env.firefox && env.windows) return { title: 'Firefox에서 설치', intro: 'Windows용 Firefox에서는 주소창에서 웹 앱으로 추가할 수 있습니다.', steps: ['주소창 오른쪽의 웹 앱 버튼을 누르세요.', '화면에 표시되는 설치 확인을 누르세요.', '버튼이 없다면 Firefox를 최신 버전으로 업데이트하세요.'] };
   return { title: '컴퓨터에 앱으로 설치', intro: 'Chrome 또는 Edge에서 앱처럼 별도 창으로 설치할 수 있습니다.', steps: ['주소창 오른쪽의 설치 아이콘을 누르세요.', '아이콘이 없다면 브라우저 메뉴에서 ‘앱 설치’를 선택하세요.', '설치 확인 창에서 ‘설치’를 누르세요.'] };
 }
 
@@ -1546,9 +1577,9 @@ function openInstallGuide() {
   overlay.querySelector('.pwa-install-close').focus();
 }
 
-function closeInstallGuide() {
+function closeInstallGuide(restoreFocus = true) {
   document.getElementById('pwaInstallOverlay')?.classList.remove('open');
-  document.getElementById('pwaInstallButton')?.focus();
+  if (restoreFocus) document.getElementById('pwaInstallButton')?.focus();
 }
 
 // ─── 모바일 햄버거 드로어 메뉴 ──────────────────────────
