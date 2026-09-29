@@ -207,8 +207,9 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- Total Exercise Chart (전체 너비) -->
-    <div class="chart-card mb-20">
+    <!-- 주요 변화 그래프 -->
+    <div class="dashboard-chart-row">
+    <div class="chart-card">
       <div class="chart-card-header">
         <div class="chart-card-title">🔥 총 운동 시간 추이</div>
         <div class="filter-btns">
@@ -221,8 +222,8 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- Weight Chart (전체 너비) - 위치 이동 -->
-    <div class="chart-card mb-20">
+    <!-- Weight Chart -->
+    <div class="chart-card">
       <div class="chart-card-header">
         <div class="chart-card-title">⚖️ 체중 변화</div>
         <div class="filter-btns">
@@ -235,11 +236,11 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- Heart Rate Chart (전체 너비) -->
+    <!-- 모바일에서는 나머지 건강지표를 접어 표시 -->
     <details class="mobile-chart-details" id="dashboardMoreCharts" open>
       <summary>다른 건강지표 그래프 보기 <span aria-hidden="true">⌄</span></summary>
       <div class="mobile-chart-details-body">
-    <div class="chart-card mb-20">
+    <div class="chart-card">
       <div class="chart-card-header">
         <div class="chart-card-title">❤️ 심박수 변화</div>
         <div class="filter-btns">
@@ -252,6 +253,7 @@ function renderDashboard() {
       </div>
     </div>
 
+    <div class="dashboard-other-charts">
     <!-- Charts Row: 걷기&러닝 (선 그래프) -->
     <div class="mb-20">
       <!-- Cardio Line Chart -->
@@ -328,8 +330,10 @@ function renderDashboard() {
         </div>
       </div>
     </div>
+    </div>
       </div>
     </details>
+    </div>
 
     <!-- Recent Activity -->
     <div class="chart-card mb-20">
