@@ -208,6 +208,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .pwa-install-panel { width:100%; max-height:88dvh; padding:22px 18px max(22px, env(safe-area-inset-bottom)); border-radius:22px 22px 0 0; }
   .page-guide-trigger { left:12px; bottom:max(12px, env(safe-area-inset-bottom)); padding:6px 9px; font-size:.69rem; }
   .record-page .page-guide-trigger, .record-page .pwa-install-button { bottom:calc(82px + env(safe-area-inset-bottom, 0px)); }
+  .record-page .page-guide-trigger { width:44px; height:44px; padding:6px; justify-content:center; }
+  .record-page .page-guide-trigger span:last-child { display:none; }
 }
 
 /* Neutral surfaces with brand blue reserved for small accents. */

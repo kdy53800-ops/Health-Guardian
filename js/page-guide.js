@@ -40,12 +40,13 @@
     'history.html': [
       { target: '#filterMonth', title: '월별 기록 찾기', body: '실제 월 선택창에서 원하는 달을 고르면 해당 기간의 기록만 볼 수 있습니다.' },
       { target: '#filterSort', title: '기록 순서 바꾸기', body: '최신순이나 오래된순을 선택해 목록을 정렬해 보세요.' },
-      { target: '#recordsList .record-card', title: '기록 확인하기', body: '카드에는 그날의 핵심 지표가 표시됩니다. 수정 버튼으로 입력한 내용을 다시 확인하고 고칠 수 있습니다.' },
+      { target: '#recordsList .record-card', title: '기록 확인하기', body: '모바일에서는 날짜 아래 요약을 눌러 모든 지표를 펼칠 수 있습니다. 수정 버튼으로 입력한 내용을 다시 확인하고 고칠 수 있습니다.' },
       { target: '#recordsList', title: '기록 목록', body: '아직 기록이 없다면 이곳에 안내가 표시됩니다. 기록을 저장하면 날짜별 카드가 생깁니다.', emptyOnly: true }
     ],
     'inbody.html': [
       { target: '#chartComposition', title: '체성분 변화', body: '실제 측정 기록을 바탕으로 체성분 지표의 변화를 그래프로 볼 수 있습니다.' },
       { target: '#chartWeight', title: '체중 변화', body: '측정 시점별 체중의 흐름을 살펴보세요. 기록이 쌓일수록 비교하기 쉽습니다.' },
+      { target: '#inbodyMoreButton', title: '추가 체성분 지표', body: '모바일에서는 이 버튼을 눌러 골격근량·체지방률 등 나머지 추이 그래프를 펼쳐 볼 수 있습니다.' },
       { target: '#recordListBody', title: '측정 기록 목록', body: '아래 목록에서 측정 날짜와 값을 확인할 수 있습니다.' },
       { target: '#noDataMessage', title: '측정 기록 안내', body: '아직 등록된 인바디 기록이 없다면 이 화면의 안내가 표시됩니다.', emptyOnly: true }
     ]

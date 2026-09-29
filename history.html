@@ -316,9 +316,10 @@
       .record-details[open] .record-details-caret { transform:rotate(180deg); }
       .record-details .metrics-grid { margin-top:10px; }
       .record-details .record-memo { margin-top:10px; }
-      .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; }
-      .filter-input { width: 100%; }
-      .record-count-badge { margin-left: 0; text-align: center; }
+      .filter-bar { display:grid; grid-template-columns:74px minmax(0,1fr); align-items:center; gap:8px 10px; padding:12px 14px; margin-bottom:14px; }
+      .filter-bar label { margin:0 !important; font-size:.78rem; }
+      .filter-input { width:100%; min-width:0; min-height:44px; }
+      .record-count-badge { margin:0; text-align:center; }
       .record-card { padding: 14px 14px; }
       .record-card-top { flex-wrap: wrap; }
       .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

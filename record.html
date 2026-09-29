@@ -358,6 +358,7 @@
       .form-grid-2 { grid-template-columns: 1fr; gap:12px; }
       .record-summary-bar {
         display:grid;
+        grid-template-columns:minmax(0,1fr);
         gap: 8px;
         padding: 12px 14px;
         margin-bottom:12px;
@@ -393,8 +394,10 @@
       }
       .sticky-actions > div {
         max-width: 100% !important;
+        gap:8px !important;
       }
       .sticky-actions .btn { flex: 1; }
+      .sticky-actions .btn-block { width:auto; min-width:0; }
       /* 폼 하단이 저장버튼(~64px)에 가리지 않도록 */
       form#recordForm {
         padding-bottom: 80px;
