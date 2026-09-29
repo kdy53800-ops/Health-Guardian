@@ -236,11 +236,8 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- 모바일에서는 나머지 건강지표를 접어 표시 -->
-    <details class="mobile-chart-details" id="dashboardMoreCharts" open>
-      <summary>다른 건강지표 그래프 보기 <span aria-hidden="true">⌄</span></summary>
-      <div class="mobile-chart-details-body">
-    <div class="chart-card">
+    <!-- Heart Rate Chart -->
+    <div class="chart-card" id="heartRateChartCard">
       <div class="chart-card-header">
         <div class="chart-card-title">❤️ 심박수 변화</div>
         <div class="filter-btns">
@@ -252,8 +249,12 @@ function renderDashboard() {
         <div id="heartRateChartWrap" class="chart-wrap"><canvas id="chartHeartRate"></canvas></div>
       </div>
     </div>
+    </div>
 
-    <div class="dashboard-other-charts">
+    <!-- 모바일에서는 나머지 건강지표를 접어 표시 -->
+    <details class="mobile-chart-details" id="dashboardMoreCharts" open>
+      <summary>다른 건강지표 그래프 보기 <span aria-hidden="true">⌄</span></summary>
+      <div class="mobile-chart-details-body">
     <!-- Charts Row: 걷기&러닝 (선 그래프) -->
     <div class="mb-20">
       <!-- Cardio Line Chart -->
@@ -330,10 +331,8 @@ function renderDashboard() {
         </div>
       </div>
     </div>
-    </div>
       </div>
     </details>
-    </div>
 
     <!-- Recent Activity -->
     <div class="chart-card mb-20">
@@ -361,6 +360,9 @@ function setupMobileDashboardDetails() {
   const mobileQuery = window.matchMedia('(max-width: 600px)');
   const report = document.querySelector('.report-extra');
   const graphs = document.getElementById('dashboardMoreCharts');
+  const chartRow = document.querySelector('.dashboard-chart-row');
+  const heartRateCard = document.getElementById('heartRateChartCard');
+  const extraCharts = graphs?.querySelector('.mobile-chart-details-body');
   const ranking = document.getElementById('dashboardRanking');
   ranking?.querySelectorAll('[data-ranking-tab]').forEach(button => {
     button.addEventListener('click', () => {
@@ -376,9 +378,14 @@ function setupMobileDashboardDetails() {
     });
   });
   const sync = () => {
+    if (heartRateCard && chartRow && extraCharts) {
+      if (mobileQuery.matches) extraCharts.prepend(heartRateCard);
+      else chartRow.append(heartRateCard);
+    }
     if (report) report.open = !mobileQuery.matches;
     if (graphs) graphs.open = !mobileQuery.matches;
     if (ranking) ranking.open = !mobileQuery.matches;
+    if (!mobileQuery.matches) requestAnimationFrame(() => charts.heartRate?.resize?.());
   };
   mobileQuery.addEventListener('change', sync);
   if (graphs) graphs.addEventListener('toggle', () => {
