@@ -150,8 +150,12 @@ function renderDashboard() {
         </span>
         <span class="ranking-chevron" aria-hidden="true">⌄</span>
       </summary>
+      <div class="ranking-switch" role="group" aria-label="명예의 전당 순위 기준">
+        <button type="button" class="active" data-ranking-tab="attendance" aria-pressed="true">총 출석일 수</button>
+        <button type="button" data-ranking-tab="exercise" aria-pressed="false">총 운동 시간</button>
+      </div>
       <div class="ranking-body grid-2">
-        <div class="chart-card">
+        <div class="chart-card ranking-panel is-active" data-ranking-panel="attendance">
           <div class="chart-card-header">
             <div class="chart-card-title">🏆 ${rankingTitle}: 총 출석일 수</div>
           </div>
@@ -159,7 +163,7 @@ function renderDashboard() {
             <div class="chart-no-data">데이터를 불러오는 중...</div>
           </div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card ranking-panel" data-ranking-panel="exercise">
           <div class="chart-card-header">
             <div class="chart-card-title">🔥 ${rankingTitle}: 총 운동 시간</div>
           </div>
@@ -357,6 +361,19 @@ function setupMobileDashboardDetails() {
   const report = document.querySelector('.report-extra');
   const graphs = document.getElementById('dashboardMoreCharts');
   const ranking = document.getElementById('dashboardRanking');
+  ranking?.querySelectorAll('[data-ranking-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      const selected = button.dataset.rankingTab;
+      ranking.querySelectorAll('[data-ranking-tab]').forEach(tab => {
+        const active = tab.dataset.rankingTab === selected;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-pressed', String(active));
+      });
+      ranking.querySelectorAll('[data-ranking-panel]').forEach(panel => {
+        panel.classList.toggle('is-active', panel.dataset.rankingPanel === selected);
+      });
+    });
+  });
   const sync = () => {
     if (report) report.open = !mobileQuery.matches;
     if (graphs) graphs.open = !mobileQuery.matches;

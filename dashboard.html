@@ -72,7 +72,8 @@
     .ranking-chevron { display:flex; align-items:center; justify-content:center; width:32px; height:32px; flex:0 0 32px; border-radius:50%; background:var(--surface-2); color:var(--text-secondary); font-size:1.25rem; transition:transform .2s; }
     .ranking-section[open] .ranking-chevron { transform:rotate(180deg); }
     .ranking-section[open] .ranking-summary { margin-bottom:12px; }
-    .ranking-section:not([open]) .ranking-body { display:none; }
+    .ranking-section:not([open]) :is(.ranking-switch, .ranking-body) { display:none; }
+    .ranking-switch { display:none; }
     .ranking-summary:focus-visible { outline:3px solid var(--primary); outline-offset:4px; border-radius:8px; }
 
     .personal-report {
@@ -184,7 +185,13 @@
       #mainContent > .ranking-section { order:-1; }
       .ranking-section { padding:14px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); box-shadow:var(--shadow-sm); }
       .ranking-summary { min-height:48px; }
-      .ranking-body { gap:10px; }
+      .ranking-switch { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-bottom:10px; }
+      .ranking-switch button { min-width:0; min-height:44px; padding:8px 6px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text-secondary); font:inherit; font-size:.8rem; font-weight:800; cursor:pointer; }
+      .ranking-switch button.active { border-color:var(--primary); background:#eff5fc; color:var(--primary); }
+      .ranking-switch button:focus-visible { outline:3px solid var(--primary); outline-offset:2px; }
+      .ranking-body { display:block; }
+      .ranking-panel:not(.is-active) { display:none; }
+      .ranking-panel .chart-card-header { display:none; }
       .report-heading { gap:10px; margin-bottom:12px; }
       .report-heading h2 { font-size:1.18rem; }
       .report-heading p { font-size:.86rem; }
@@ -720,6 +727,6 @@
 
   <script src="js/app.js"></script>
   <script src="js/page-guide.js"></script>
-  <script src="js/dashboard.js?v=39"></script>
+  <script src="js/dashboard.js?v=41"></script>
 </body>
 </html>
