@@ -365,6 +365,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .top-nav { padding: 0 clamp(12px, 2.4vw, 24px); gap: 12px; }
   .nav-links { display: none; }
   .nav-right { margin-left: auto; gap: 8px; }
+  .nav-profile { display: none; }
   .nav-hamburger {
     display: flex; align-items: center; justify-content: center;
     width: 42px; height: 42px; flex: 0 0 42px;
@@ -379,9 +380,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .nav-brand { gap: 7px; min-width: 0; }
   .nav-brand-name { max-width: 112px; overflow: hidden; text-overflow: ellipsis; font-size: 1.02rem; }
   .nav-right { gap: 6px; }
-  .nav-profile-btn { width: 40px; height: 40px; padding: 2px; justify-content: center; }
-  .nav-profile-btn .nav-avatar { width: 34px; height: 34px; }
-  .nav-profile-btn .nav-username, .nav-profile-btn .profile-caret { display: none; }
   .notification-bell { width: 40px; height: 40px; }
   .nav-hamburger { width: 40px; height: 40px; flex-basis: 40px; }
 }
