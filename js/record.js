@@ -432,6 +432,12 @@ function addWater(amount) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function setFasting(hours) {
+  const input = document.getElementById('fFasting');
+  input.value = hours;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 // ─── 기존 기록 모달 컨트롤 ────────────────────────────
 function loadExistingRecord() {
   if (!pendingDuplicateRecord) return;
