@@ -794,6 +794,8 @@ function removeExercise(id) {
 function renderCustomExList() {
   const container = document.getElementById('customExList');
   if (!container) return;
+  const hint = document.getElementById('addExerciseHint');
+  if (hint) hint.hidden = customExercises.length > 0;
 
   if (!customExercises.length) {
     container.innerHTML = '';

@@ -803,6 +803,7 @@
       color: var(--primary);
       background: rgba(0,77,191,0.04);
     }
+    .add-ex-btn[hidden] { display:none; }
 
     @media (max-width: 600px) {
       .record-status-stack { align-items: flex-start; width: 100%; }
@@ -1046,7 +1047,7 @@
           <div class="custom-ex-list" id="customExList"></div>
 
           <!-- 추가 버튼 -->
-          <button type="button" class="add-ex-btn" onclick="addCustomExercise()">
+          <button type="button" class="add-ex-btn" id="addExerciseHint" onclick="addCustomExercise()">
             👆 위에서 종목을 선택해 추가하세요
           </button>
 
