@@ -31,7 +31,7 @@
     }
     .month-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
-    .monthly-main-grid { display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:20px; align-items:stretch; margin-bottom:20px; }
+    .monthly-main-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.7fr); gap:20px; align-items:start; margin-bottom:20px; }
     .calendar-panel { min-width:0; display:flex; flex-direction:column; gap:14px; padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); box-shadow:var(--shadow-sm); }
     .calendar-month-header { display:grid; grid-template-columns:44px minmax(0,1fr) 44px; align-items:center; gap:8px; padding-bottom:14px; border-bottom:1px solid var(--border); }
     .calendar-month-header .month-nav-btn { width:44px; height:44px; font-size:.85rem; }
@@ -105,17 +105,17 @@
 
     /* ── Stats Panel ── */
     .stats-panel {
-      background: var(--surface-2);
+      min-width: 0;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 16px;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
     }
     .stats-panel-title {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: .05em;
+      font-size: 0.9rem;
+      font-weight: 850;
+      color: var(--text);
       margin-bottom: 12px;
     }
     .stat-row {
@@ -133,12 +133,15 @@
     /* ── Category Cards ── */
     .cat-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
     }
+    .category-section { margin-top:18px; padding-top:16px; border-top:1px solid var(--border); }
+    .category-title { color:var(--text); font-size:.9rem; font-weight:800; }
+    .category-note { margin:3px 0 12px; color:var(--text-muted); font-size:.72rem; }
     .cat-card {
       border-radius: var(--radius-md);
-      padding: 14px 10px;
+      padding: 11px 8px;
       text-align: center;
       border: 1px solid transparent;
       transition: all 0.2s;
@@ -159,10 +162,9 @@
 
     @media (max-width: 900px) {
       .monthly-main-grid { grid-template-columns: 1fr; }
-      .cat-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 600px) {
-      .cat-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-panel { padding:16px; }
       .cal-num { font-size: 0.7rem; }
       .cal-cond-emoji { font-size: 0.65rem; }
       .cal-cell { padding: 3px 1px; border-radius: 6px; }
@@ -369,9 +371,9 @@
             </div>
           </div>
         </section>
-        <!-- 통계 패널 -->
-        <div class="stats-panel">
-          <div class="stats-panel-title" id="statsPanelTitle"></div>
+        <!-- 합계 및 카테고리 분석 -->
+        <section class="stats-panel" aria-label="월별 합계와 카테고리별 운동 시간">
+          <h2 class="stats-panel-title" id="statsPanelTitle"></h2>
           <div id="statsRows"></div>
           <div class="stat-row" style="border-bottom:none;margin-top:4px;">
             <span class="stat-row-label">⭐ 평균 컨디션</span>
@@ -381,17 +383,12 @@
             <div class="record-day-badge" id="recordDayBadge">0<span style="font-size:0.85rem;font-weight:500;color:var(--text-muted);">일</span></div>
             <div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;">기록 완료</div>
           </div>
-        </div>
-      </div>
-
-      <!-- 카테고리별 운동 시간 -->
-      <div class="chart-card mb-20">
-        <div class="chart-card-header">
-          <div class="chart-card-title">🏅 카테고리별 운동 시간 <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);">(개인 운동 기록 기준)</span></div>
-        </div>
-        <div class="chart-card-body">
-          <div class="cat-grid" id="catGrid"></div>
-        </div>
+          <div class="category-section">
+            <h3 class="category-title">🏅 카테고리별 운동 시간</h3>
+            <p class="category-note">개인 운동 기록 기준</p>
+            <div class="cat-grid" id="catGrid"></div>
+          </div>
+        </section>
       </div>
 
     </main>
