@@ -54,6 +54,17 @@
       margin-left: auto;
       flex-shrink: 0;
     }
+    .record-rhythm { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr); margin-bottom:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .record-rhythm .streak-section { min-width:0; margin:0; padding:20px; border:0; border-right:1px solid var(--border); border-radius:0; background:transparent; box-shadow:none; color:var(--text); }
+    .record-rhythm .streak-count span { color:var(--text-secondary); font-size:1.1rem; font-weight:600; }
+    .week-section { display:flex; min-width:0; flex-direction:column; justify-content:center; gap:18px; padding:20px; }
+    .week-section h2 { color:var(--text); font-size:.95rem; font-weight:800; }
+    .record-rhythm .week-grid { margin-bottom:0; }
+    @media (max-width:900px) {
+      .record-rhythm { grid-template-columns:1fr; }
+      .record-rhythm .streak-section { border-right:0; }
+      .week-section { border-top:1px solid var(--border); }
+    }
 
     /* Hero stats */
     .hero-stats-grid {
@@ -225,7 +236,8 @@
       .mobile-chart-details { margin:0 0 20px; }
       .mobile-chart-details > summary { background:#fff; }
       .hero-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .streak-section { flex-direction: column; text-align: center; gap: 12px; padding: 16px; }
+      .record-rhythm .streak-section { flex-direction:row; text-align:left; gap:12px; padding:14px 16px; }
+      .week-section { gap:12px; padding:14px 12px; }
       .streak-cta { margin-left: 0; width: 100%; }
       .streak-cta .btn { width: 100%; }
       .streak-flame { font-size: 2.2rem; }
@@ -736,6 +748,6 @@
 
   <script src="js/app.js"></script>
   <script src="js/page-guide.js"></script>
-  <script src="js/dashboard.js?v=43"></script>
+  <script src="js/dashboard.js?v=45"></script>
 </body>
 </html>

@@ -1,8 +1,8 @@
-const CACHE_NAME = 'health-guardian-shell-v44';
+const CACHE_NAME = 'health-guardian-shell-v45';
 const APP_SHELL = [
   '/', '/index.html', '/dashboard.html', '/record.html', '/history.html', '/monthly.html', '/inbody.html',
   '/terms.html', '/privacy.html',
-  '/css/style.css', '/css/ongil-theme.css', '/js/app.js', '/js/page-guide.js', '/js/dashboard.js?v=43', '/js/record.js', '/js/history.js', '/js/monthly.js', '/js/inbody.js',
+  '/css/style.css', '/css/ongil-theme.css', '/js/app.js', '/js/page-guide.js', '/js/dashboard.js?v=45', '/js/record.js', '/js/history.js', '/js/monthly.js', '/js/inbody.js',
   '/images/ongil-symbol.png', '/images/ongil-hospital.png', '/images/app-icon.svg',
   '/images/app-icon-180.png', '/images/app-icon-192.png', '/images/app-icon-512.png', '/manifest.webmanifest'
 ];
