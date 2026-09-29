@@ -130,24 +130,6 @@ function renderDashboard() {
       <p class="subtitle">${escapeHtml(currentUser.name)}님의 건강 통계 &nbsp;·&nbsp; 총 <strong>${userRecords.length}일</strong> 기록</p>
     </div>
 
-    <!-- Record rhythm -->
-    <section class="record-rhythm" aria-label="연속 기록과 최근 7일 기록">
-      <div class="streak-section">
-        <div class="streak-flame" aria-hidden="true">🔥</div>
-        <div class="streak-info">
-          <h2>연속 기록 스트릭</h2>
-          <div class="streak-count">${streak}<span> 일</span></div>
-          <p>${streak > 0 ? '지금 이 흐름을 유지하세요! 💪' : '오늘 기록을 시작해 스트릭을 시작하세요!'}</p>
-        </div>
-      </div>
-      <div class="week-section">
-        <h2>📅 최근 7일 기록 현황</h2>
-        <div class="week-grid" id="weekGrid"></div>
-      </div>
-    </section>
-
-    ${renderPersonalReport(personalReport)}
-
     <!-- Ranking Top 5 -->
     <details class="ranking-section" id="dashboardRanking" ${window.matchMedia('(max-width: 600px)').matches ? '' : 'open'}>
       <summary class="ranking-summary">
@@ -180,6 +162,24 @@ function renderDashboard() {
         </div>
       </div>
     </details>
+
+    ${renderPersonalReport(personalReport)}
+
+    <!-- Record rhythm -->
+    <section class="record-rhythm" aria-label="연속 기록과 최근 7일 기록">
+      <div class="streak-section">
+        <div class="streak-flame" aria-hidden="true">🔥</div>
+        <div class="streak-info">
+          <h2>연속 기록 스트릭</h2>
+          <div class="streak-count">${streak}<span> 일</span></div>
+          <p>${streak > 0 ? '지금 이 흐름을 유지하세요! 💪' : '오늘 기록을 시작해 스트릭을 시작하세요!'}</p>
+        </div>
+      </div>
+      <div class="week-section">
+        <h2>📅 최근 7일 기록 현황</h2>
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+    </section>
 
     <!-- Hero Stats -->
     <div class="hero-stats-grid mb-20">
