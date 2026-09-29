@@ -12,7 +12,8 @@
     'dashboard.html': [
       { target: '#mainContent .page-header', title: '나의 건강 현황', body: '대시보드는 내가 남긴 기록과 건강지표의 흐름을 한곳에 모아 보여줍니다.' },
       { target: '#weekGrid', title: '이번 주 기록', body: '날짜별 기록 상태를 실제 화면에서 확인할 수 있습니다. 기록이 없는 날에는 기록하기 화면에서 새로 입력해 보세요.' },
-      { target: '#personalReportTitle', title: '개인 건강기록 리포트', body: '최근 7일과 30일의 운동·생활 기록, 측정 지표의 변화를 여기에서 확인하세요.' },
+      { target: '#personalReportTitle', title: '개인 건강기록 리포트', body: '선택한 달의 기록과 측정 지표 변화를 PDF 없이 대시보드에서 바로 확인하세요.' },
+      { target: '#reportMonth', title: '보고서 월 바꾸기', body: '월을 직접 선택하거나 양옆 화살표를 눌러 이전·다음 달의 요약과 일별 추세를 살펴보세요. PDF도 현재 보고 있는 달로 열립니다.' },
       { target: '.report-action[onclick*="openConsultReportDialog"]', title: '월간 건강지표 PDF 만들기', body: '실제 버튼을 눌러 PDF 설정 창을 열어 보세요. 안내가 자동으로 다운로드하거나 인쇄하지는 않습니다.', action: true },
       { target: '#consultReportMonth', title: '보고서 월 선택', body: 'PDF에 담을 월을 직접 선택할 수 있습니다.', require: '#consultReportDialog.open' },
       { target: '.privacy-options', title: '개인정보 표시 범위', body: '이름·생년·연락처 등 PDF에 표시할 항목을 직접 체크해 보세요. 필요한 정보만 포함할 수 있습니다.', require: '#consultReportDialog.open' },

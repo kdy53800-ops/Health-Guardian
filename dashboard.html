@@ -75,9 +75,20 @@
     .report-heading h2 { font-size:1.08rem; font-weight:850; color:var(--text); }
     .report-heading p { margin-top:4px; font-size:.78rem; color:var(--text-muted); }
     .report-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
-    .report-period, .report-action { background:var(--surface-2); color:var(--primary); border:1px solid var(--border); border-radius:100px; padding:6px 10px; font:inherit; font-size:.72rem; font-weight:800; white-space:nowrap; }
+    .report-action { background:var(--surface-2); color:var(--primary); border:1px solid var(--border); border-radius:100px; padding:6px 10px; font:inherit; font-size:.72rem; font-weight:800; white-space:nowrap; }
     .report-action { cursor:pointer; }
     .report-action:hover, .report-action:focus-visible { border-color:var(--primary); outline:none; }
+    .report-month-controls { display:flex; align-items:center; gap:5px; padding:3px; border:1px solid var(--border); border-radius:100px; background:var(--surface-2); }
+    .report-month-controls label { padding-left:5px; color:var(--text-secondary); font-size:.7rem; font-weight:800; white-space:nowrap; }
+    .report-month-controls input { min-width:0; width:126px; padding:4px 6px; border:0; background:transparent; color:var(--text); font:inherit; font-size:.75rem; font-weight:800; }
+    .report-month-nav { width:29px; height:29px; border:0; border-radius:50%; background:#fff; color:var(--primary); font:inherit; font-size:1.3rem; line-height:1; cursor:pointer; }
+    .report-month-nav:disabled { color:#9aa8b6; cursor:not-allowed; }
+    .report-month-comparison { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:12px; color:var(--text-secondary); font-size:.76rem; }
+    .report-month-comparison strong { color:var(--text); font-size:.85rem; }
+    .report-month-comparison span { color:var(--text-muted); font-size:.69rem; }
+    .report-trend { margin-top:12px; padding:13px; border:1px solid var(--border); border-radius:var(--radius-md); background:#fff; }
+    .report-trend h3 { margin-bottom:8px; color:var(--text); font-size:.78rem; font-weight:800; }
+    .report-trend .consult-chart-svg { max-height:180px; }
     .report-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
     .report-metric { padding:14px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface-2); }
     .report-metric-label { font-size:.7rem; color:var(--text-muted); font-weight:700; }
@@ -576,6 +587,8 @@
       .activity-summary { font-size: 0.78rem; }
       .personal-report { padding:16px; }
       .report-heading { flex-direction:column; }
+      .report-actions { width:100%; justify-content:flex-start; }
+      .report-month-controls { max-width:100%; }
       .report-metrics { grid-template-columns:repeat(2,1fr); }
       .report-insights { grid-template-columns:1fr; }
       .privacy-options { grid-template-columns:1fr; }
@@ -591,6 +604,7 @@
       body.print-personal-report #mainContent > .personal-report { display:block !important; }
       body.print-personal-report .personal-report { box-shadow:none; border:none; margin:0; }
       body.print-personal-report .report-action { display:none; }
+      body.print-personal-report .report-month-controls { display:none; }
 
       body.print-consult-report { margin:0 !important; background:#fff !important; }
       body.print-consult-report > *:not(#consultReportSheet) { display:none !important; }
