@@ -31,6 +31,15 @@
     }
     .month-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
+    .monthly-main-grid { display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:20px; align-items:stretch; margin-bottom:20px; }
+    .calendar-panel { min-width:0; display:flex; flex-direction:column; gap:14px; padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); box-shadow:var(--shadow-sm); }
+    .calendar-month-header { display:grid; grid-template-columns:44px minmax(0,1fr) 44px; align-items:center; gap:8px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+    .calendar-month-header .month-nav-btn { width:44px; height:44px; font-size:.85rem; }
+    .calendar-month-label { color:var(--text); font-size:1.05rem; font-weight:850; text-align:center; }
+    .calendar-body { display:flex; flex:1; flex-direction:column; gap:6px; min-width:0; }
+    .calendar-legend-row { display:flex; align-items:center; gap:12px; padding-top:4px; color:var(--text-muted); font-size:.73rem; }
+    .calendar-total-days { margin-left:auto; color:var(--primary); font-weight:700; }
+
     /* ── Calendar ── */
     .cal-hdr-row {
       display: grid;
@@ -50,6 +59,7 @@
       grid-template-columns: repeat(7, 1fr);
       grid-auto-rows: 1fr;
       gap: 3px;
+      flex: 1;
     }
     .cal-cell {
       border-radius: 8px;
@@ -148,7 +158,7 @@
     }
 
     @media (max-width: 900px) {
-      .monthly-main-grid { grid-template-columns: 1fr !important; }
+      .monthly-main-grid { grid-template-columns: 1fr; }
       .cat-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 600px) {
@@ -156,8 +166,8 @@
       .cal-num { font-size: 0.7rem; }
       .cal-cond-emoji { font-size: 0.65rem; }
       .cal-cell { padding: 3px 1px; border-radius: 6px; }
-      .month-nav-btn { width: 38px; height: 38px; font-size: 0.85rem; }
-      .page-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+      .calendar-panel { padding:14px; gap:12px; }
+      .calendar-month-header { padding-bottom:12px; }
     }
 
     /* ── Summary Modal ── */
@@ -335,46 +345,41 @@
   <div class="app-layout">
     <main class="page-content fade-in">
 
-      <!-- Page Header + Month Nav -->
-      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h1><div class="page-icon">📆</div> 월별 분석</h1>
-          <p class="subtitle">월별 운동 기록과 통계를 한눈에 확인하세요</p>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 14px;box-shadow:var(--shadow-sm);">
-          <button class="month-nav-btn" id="prevMonthBtn" onclick="changeMonth(-1)">◀</button>
-          <span id="monthLabel" style="font-size:1rem;font-weight:800;color:var(--text);min-width:110px;text-align:center;"></span>
-          <button class="month-nav-btn" id="nextMonthBtn" onclick="changeMonth(1)">▶</button>
-        </div>
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1><div class="page-icon">📆</div> 월별 분석</h1>
+        <p class="subtitle">월별 운동 기록과 통계를 한눈에 확인하세요</p>
       </div>
 
       <!-- 달력 + 통계 패널 -->
-      <div class="chart-card mb-20">
-        <div class="chart-card-body">
-          <div class="monthly-main-grid" style="display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:stretch;">
-            <!-- 달력 -->
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <div class="cal-hdr-row" id="calHdrRow"></div>
-              <div class="cal-grid" id="calGrid" style="flex:1;"></div>
-              <div style="display:flex;align-items:center;gap:12px;font-size:0.73rem;color:var(--text-muted);padding-top:4px;">
-                <span><span class="cal-legend cal-has"></span> 기록 있음</span>
-                <span><span class="cal-legend cal-today"></span> 오늘</span>
-                <span id="totalDaysLabel" style="margin-left:auto;font-weight:700;color:var(--primary);"></span>
-              </div>
+      <div class="monthly-main-grid">
+        <section class="calendar-panel" aria-label="월별 기록 달력">
+          <div class="calendar-month-header">
+            <button type="button" class="month-nav-btn" id="prevMonthBtn" onclick="changeMonth(-1)" aria-label="이전 달">◀</button>
+            <span class="calendar-month-label" id="monthLabel" aria-live="polite"></span>
+            <button type="button" class="month-nav-btn" id="nextMonthBtn" onclick="changeMonth(1)" aria-label="다음 달">▶</button>
+          </div>
+          <div class="calendar-body">
+            <div class="cal-hdr-row" id="calHdrRow"></div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div class="calendar-legend-row">
+              <span><span class="cal-legend cal-has"></span> 기록 있음</span>
+              <span><span class="cal-legend cal-today"></span> 오늘</span>
+              <span class="calendar-total-days" id="totalDaysLabel"></span>
             </div>
-            <!-- 통계 패널 -->
-            <div class="stats-panel">
-              <div class="stats-panel-title" id="statsPanelTitle"></div>
-              <div id="statsRows"></div>
-              <div class="stat-row" style="border-bottom:none;margin-top:4px;">
-                <span class="stat-row-label">⭐ 평균 컨디션</span>
-                <span class="stat-row-val" id="avgCondEl" style="color:var(--gold-dark);"></span>
-              </div>
-              <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:center;">
-                <div class="record-day-badge" id="recordDayBadge">0<span style="font-size:0.85rem;font-weight:500;color:var(--text-muted);">일</span></div>
-                <div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;">기록 완료</div>
-              </div>
-            </div>
+          </div>
+        </section>
+        <!-- 통계 패널 -->
+        <div class="stats-panel">
+          <div class="stats-panel-title" id="statsPanelTitle"></div>
+          <div id="statsRows"></div>
+          <div class="stat-row" style="border-bottom:none;margin-top:4px;">
+            <span class="stat-row-label">⭐ 평균 컨디션</span>
+            <span class="stat-row-val" id="avgCondEl" style="color:var(--gold-dark);"></span>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:center;">
+            <div class="record-day-badge" id="recordDayBadge">0<span style="font-size:0.85rem;font-weight:500;color:var(--text-muted);">일</span></div>
+            <div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;">기록 완료</div>
           </div>
         </div>
       </div>
