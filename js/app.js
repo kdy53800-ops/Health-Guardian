@@ -1455,6 +1455,7 @@ function initializePwa() {
   if (!window.location.protocol.startsWith('http') || !('serviceWorker' in navigator)) return;
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
+    if (getInstallEnvironment().samsung) return;
     deferredInstallPrompt = event;
     clearTimeout(installPromptCheckTimer);
     updateInstallButton();
@@ -1534,7 +1535,7 @@ function getInstallEnvironment() {
 
 function canOfferDirectInstall() {
   const env = getInstallEnvironment();
-  return !env.ios && !env.inApp && (env.chrome || env.edge || env.samsung);
+  return !env.ios && !env.inApp && (env.chrome || env.edge);
 }
 
 function updateInstallButton() {
@@ -1544,7 +1545,7 @@ function updateInstallButton() {
   const env = getInstallEnvironment();
   button.textContent = deferredInstallPrompt
     ? '📱 건강지킴이 설치'
-    : (env.ios ? '📱 iPhone·iPad 설치 방법' : '📱 앱 설치 방법');
+    : (env.ios ? '📱 iPhone·iPad 설치 방법' : env.samsung ? '📱 Chrome에서 설치 안내' : '📱 앱 설치 방법');
 }
 
 async function requestPwaInstall() {
@@ -1572,6 +1573,14 @@ async function requestPwaInstall() {
 function installGuideContent() {
   const env = getInstallEnvironment();
   if (isPwaInstalled()) return { title: '이미 설치되어 있습니다', intro: '홈 화면의 건강지킴이 아이콘으로 실행할 수 있습니다.', steps: [] };
+  if (env.android && env.samsung) return {
+    title: 'Chrome에서 건강지킴이 설치',
+    intro: '삼성 인터넷의 앱 설치 과정에서 Google Play 프로텍트 경고가 나타날 수 있습니다. 경고를 무시하고 설치하지 마세요.',
+    steps: ['아래 버튼으로 이 사이트를 Chrome에서 여세요. 열리지 않으면 주소를 복사해 Chrome 주소창에 붙여넣으세요.', 'Chrome에서 건강지킴이의 ‘설치’ 버튼을 누르세요. 버튼이 없다면 Chrome 메뉴(⋮)에서 ‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택하세요.'],
+    note: 'Chrome에서도 같은 경고가 나타나면 설치를 중단하고 브라우저에서 사용해 주세요.',
+    openChrome: true,
+    copyUrl: true
+  };
   if (env.ios) {
     return env.safari
       ? {
@@ -1620,6 +1629,7 @@ function openInstallGuide() {
   const guide = installGuideContent();
   overlay.innerHTML = `<section class="pwa-install-panel" role="dialog" aria-modal="true" aria-labelledby="pwaInstallTitle">
     <div class="pwa-install-heading"><div class="pwa-install-icon"><img src="images/app-icon-192.png" alt=""></div><div><h2 id="pwaInstallTitle">${escapeHtml(guide.title)}</h2><p>${escapeHtml(guide.intro)}</p></div><button type="button" class="pwa-install-close" aria-label="설치 안내 닫기">×</button></div>
+    ${guide.openChrome ? `<a class="pwa-install-copy pwa-install-open-chrome" href="${chromeInstallUrl()}">Chrome에서 열기</a>` : ''}
     ${guide.copyUrl ? '<button type="button" class="pwa-install-copy">건강지킴이 주소 복사</button>' : ''}
     ${guide.steps.length ? `<ol class="pwa-install-steps">${guide.steps.map((step, index) => `<li><span>${index + 1}</span><p>${escapeHtml(step)}</p></li>`).join('')}</ol>` : ''}
     ${guide.note ? `<p class="pwa-install-note">${escapeHtml(guide.note)}</p>` : ''}
@@ -1628,18 +1638,23 @@ function openInstallGuide() {
   </section>`;
   overlay.querySelector('.pwa-install-close').addEventListener('click', closeInstallGuide);
   overlay.querySelector('.pwa-install-done').addEventListener('click', closeInstallGuide);
-  overlay.querySelector('.pwa-install-copy')?.addEventListener('click', copyInstallUrl);
+  overlay.querySelector('button.pwa-install-copy')?.addEventListener('click', copyInstallUrl);
   overlay.classList.add('open');
   overlay.querySelector('.pwa-install-close').focus();
+}
+
+function chromeInstallUrl() {
+  const url = new URL('/index.html', window.location.origin);
+  return `intent://${url.host}${url.pathname}#Intent;scheme=${url.protocol.slice(0, -1)};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url.href)};end`;
 }
 
 async function copyInstallUrl() {
   const url = `${window.location.origin}/index.html`;
   try {
     await navigator.clipboard.writeText(url);
-    showToast('주소를 복사했습니다. Safari 주소창에 붙여넣으세요.', 'success');
+    showToast(`주소를 복사했습니다. ${getInstallEnvironment().ios ? 'Safari' : 'Chrome'} 주소창에 붙여넣으세요.`, 'success');
   } catch (error) {
-    window.prompt('이 주소를 복사해 Safari 주소창에 붙여넣으세요.', url);
+    window.prompt('이 주소를 복사해 브라우저 주소창에 붙여넣으세요.', url);
   }
 }
 

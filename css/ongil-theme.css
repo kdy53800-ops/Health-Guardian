@@ -168,6 +168,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .pwa-install-steps p { color:var(--text-secondary); font-size:.78rem; line-height:1.5; word-break:keep-all; }
 .pwa-install-note { margin-top:14px; padding:11px 12px; border-radius:12px; background:#f2f6fa; color:var(--text-secondary); font-size:.76rem; line-height:1.55; word-break:keep-all; }
 .pwa-install-copy { width:100%; min-height:44px; margin-top:18px; border:1px solid var(--primary); border-radius:12px; background:#f7fbff; color:var(--primary); font:inherit; font-size:.82rem; font-weight:800; cursor:pointer; }
+.pwa-install-open-chrome { display:flex; align-items:center; justify-content:center; text-decoration:none; }
+.pwa-install-open-chrome + .pwa-install-copy { margin-top:8px; }
 .pwa-install-copy + .pwa-install-steps { margin-top:14px; }
 .pwa-install-benefits { display:flex; flex-wrap:wrap; gap:7px; margin-top:16px; }
 .pwa-install-benefits span { padding:6px 9px; border-radius:100px; background:#f3f7fb; color:var(--text-secondary); font-size:.68rem; font-weight:700; }
