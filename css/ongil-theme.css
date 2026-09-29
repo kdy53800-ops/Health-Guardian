@@ -82,6 +82,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .health-notification-header h2 { color: var(--text); font-size: 1.15rem; letter-spacing: -.025em; }
 .health-notification-header p { margin-top: 5px; color: var(--text-muted); font-size: .76rem; }
 .health-notification-close { width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; }
+.health-notification-help { margin-top:16px; border:1px solid var(--border); border-radius:12px; background:#f8fafb; }
+.health-notification-help summary { padding:11px 13px; color:#24577d; font-size:.78rem; font-weight:800; cursor:pointer; }
+.health-notification-help summary::marker { color:#24577d; }
+.health-notification-help-body { padding:0 13px 13px; color:var(--text-secondary); font-size:.74rem; line-height:1.6; word-break:keep-all; }
+.health-notification-help-body ol { display:grid; gap:6px; margin:10px 0; padding-left:20px; }
+.health-notification-help-body li::marker { color:#24577d; font-weight:800; }
+.health-notification-install-help { min-height:36px; margin-top:10px; padding:7px 11px; border:1px solid #b7d2e3; border-radius:9px; background:#fff; color:#24577d; font:inherit; font-weight:800; cursor:pointer; }
 .health-notification-list { display: grid; gap: 8px; margin: 18px 0; }
 .health-notification-item {
   display: flex; gap: 11px; align-items: center; padding: 13px; border: 1px solid var(--border);
@@ -166,7 +173,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .pwa-install-benefits span { padding:6px 9px; border-radius:100px; background:#f3f7fb; color:var(--text-secondary); font-size:.68rem; font-weight:700; }
 .pwa-install-done { width:100%; min-height:44px; margin-top:18px; border:0; border-radius:12px; background:var(--primary); color:#fff; font:inherit; font-size:.84rem; font-weight:800; cursor:pointer; }
 
-.page-guide-trigger { position:fixed; left:16px; bottom:max(16px, env(safe-area-inset-bottom)); z-index:1800; width:42px; height:42px; border:1px solid var(--border); border-radius:50%; background:#fff; color:var(--primary); box-shadow:0 8px 24px rgba(0,0,0,.12); font:inherit; font-size:1.15rem; font-weight:850; cursor:pointer; }
+.page-guide-trigger { position:fixed; left:16px; bottom:max(16px, env(safe-area-inset-bottom)); z-index:1800; display:flex; align-items:center; gap:7px; min-height:42px; padding:7px 12px; border:1px solid var(--border); border-radius:100px; background:#fff; color:#24577d; box-shadow:0 8px 24px rgba(0,0,0,.12); font:inherit; font-size:.76rem; font-weight:800; cursor:pointer; }
+.page-guide-trigger span:first-child { display:flex; width:23px; height:23px; align-items:center; justify-content:center; border-radius:50%; background:#edf5fa; font-size:.9rem; }
 .page-guide-trigger:hover, .page-guide-trigger:focus-visible { border-color:var(--primary); background:#f7fbff; outline:2px solid var(--primary); outline-offset:2px; }
 .page-guide-live { position:fixed; inset:0; z-index:12000; pointer-events:none; }
 .page-guide-shade { position:fixed; background:rgba(18,29,42,.62); pointer-events:auto; }
@@ -196,7 +204,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .pwa-install-button { right:12px; bottom:max(12px, env(safe-area-inset-bottom)); }
   .pwa-install-overlay { align-items:flex-end; padding:0; }
   .pwa-install-panel { width:100%; max-height:88dvh; padding:22px 18px max(22px, env(safe-area-inset-bottom)); border-radius:22px 22px 0 0; }
-  .page-guide-trigger { left:12px; bottom:max(12px, env(safe-area-inset-bottom)); }
+  .page-guide-trigger { left:12px; bottom:max(12px, env(safe-area-inset-bottom)); padding:6px 9px; font-size:.69rem; }
 }
 
 /* Neutral surfaces with brand blue reserved for small accents. */

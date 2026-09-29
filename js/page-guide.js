@@ -48,6 +48,12 @@
     ]
   };
   if (!configs[page]) return;
+  if (page !== 'index.html') {
+    configs[page].push(
+      { target: '#notificationBell', title: '알림 설정 열기', body: '상단의 실제 종 버튼을 눌러 알림과 예약 설정을 열어 보세요. 설치형 앱에서도 같은 위치에서 설정할 수 있습니다.', action: true },
+      { target: '#healthNotificationHelp summary', title: '알림 사용법 다시 보기', body: '알림 창에서 이 항목을 누르면 기기에 맞는 설정 순서와 테스트 방법을 언제든 다시 읽을 수 있습니다.', require: '#healthNotificationOverlay.open' }
+    );
+  }
 
   const ready = () => {
     if (page === 'dashboard.html') return !!document.querySelector('#mainContent .page-header, #mainContent .empty-state');
@@ -91,7 +97,8 @@
     document.removeEventListener('keydown', onKeyDown);
     root?.remove();
     root = null;
-    trigger?.focus({ preventScroll: true });
+    const focusTarget = document.querySelector('#healthNotificationOverlay.open #healthNotificationHelp summary') || trigger;
+    focusTarget?.focus({ preventScroll: true });
   }
 
   function onKeyDown(event) {
@@ -195,9 +202,9 @@
   const trigger = document.createElement('button');
   trigger.type = 'button';
   trigger.className = 'page-guide-trigger';
-  trigger.textContent = '?';
-  trigger.setAttribute('aria-label', '이 화면 사용 안내 다시 보기');
-  trigger.title = '이 화면 사용 안내';
+  trigger.innerHTML = '<span aria-hidden="true">?</span><span>화면 설명 다시 보기</span>';
+  trigger.setAttribute('aria-label', '현재 화면 설명 다시 보기');
+  trigger.title = '현재 화면 설명 다시 보기';
   trigger.addEventListener('click', start);
   document.body.appendChild(trigger);
 
