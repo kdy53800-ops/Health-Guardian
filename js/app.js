@@ -1087,31 +1087,34 @@ function openNotificationCenter() {
   if (!user) return;
   let overlay = document.getElementById('healthNotificationOverlay');
   if (!overlay) {
+    const showHelp = window.location.pathname.endsWith('/dashboard.html');
     const env = getInstallEnvironment();
     const deviceNote = env.ios
       ? (isPwaInstalled() ? 'iPhone·iPad에서는 홈 화면의 건강지킴이 아이콘으로 실행한 상태에서 설정하세요.' : 'iPhone·iPad에서는 먼저 홈 화면에 설치하고, 설치된 건강지킴이에서 알림을 설정하세요.')
       : env.android
         ? 'Android에서는 설치된 건강지킴이 또는 알림을 지원하는 브라우저에서 설정할 수 있습니다.'
         : '컴퓨터에서는 알림을 지원하는 브라우저나 설치된 건강지킴이에서 설정할 수 있습니다.';
+    const helpMarkup = showHelp ? `
+      <details class="health-notification-help" id="healthNotificationHelp">
+        <summary>알림 설정 사용법 다시 보기</summary>
+        <div class="health-notification-help-body">
+          <p>${escapeHtml(deviceNote)}</p>
+          <ol>
+            <li>시계 버튼에서 알림 시각을 정하고, 받을 요일을 선택하세요. 필요하면 ‘주말 제외’나 ‘오늘 기록 완료 시 생략’을 선택할 수 있습니다.</li>
+            <li>‘지정 시각 알림 받기’를 누른 뒤 기기의 알림 권한 요청이 나타나면 허용하세요.</li>
+            <li>설정을 바꾼 뒤에는 ‘설정 저장’을 누르세요. ‘테스트 알림 보내기’로 기기에 표시되는지도 확인할 수 있습니다.</li>
+          </ol>
+          <p>알림이 보이지 않으면 기기의 알림 설정과 방해 금지 모드를 확인하세요. 테스트 알림은 기기 표시 여부를 확인하며, 예약 알림은 선택한 요일·시각과 기록 상태에 따라 발송됩니다.</p>
+          ${isPwaInstalled() ? '' : '<button type="button" class="health-notification-install-help">앱 설치·설치 방법 보기</button>'}
+        </div>
+      </details>` : '';
     overlay = document.createElement('div');
     overlay.id = 'healthNotificationOverlay';
     overlay.className = 'health-notification-overlay';
     overlay.innerHTML = `
       <section class="health-notification-panel" role="dialog" aria-modal="true" aria-labelledby="healthNotificationTitle">
         <div class="health-notification-header"><div><h2 id="healthNotificationTitle">건강 알림</h2><p>기록 변화를 바탕으로 생활 관리를 도와드려요.</p></div><button type="button" class="health-notification-close" aria-label="알림 닫기">×</button></div>
-        <details class="health-notification-help" id="healthNotificationHelp">
-          <summary>알림 설정 사용법 다시 보기</summary>
-          <div class="health-notification-help-body">
-            <p>${escapeHtml(deviceNote)}</p>
-            <ol>
-              <li>시계 버튼에서 알림 시각을 정하고, 받을 요일을 선택하세요. 필요하면 ‘주말 제외’나 ‘오늘 기록 완료 시 생략’을 선택할 수 있습니다.</li>
-              <li>‘지정 시각 알림 받기’를 누른 뒤 기기의 알림 권한 요청이 나타나면 허용하세요.</li>
-              <li>설정을 바꾼 뒤에는 ‘설정 저장’을 누르세요. ‘테스트 알림 보내기’로 기기에 표시되는지도 확인할 수 있습니다.</li>
-            </ol>
-            <p>알림이 보이지 않으면 기기의 알림 설정과 방해 금지 모드를 확인하세요. 테스트 알림은 기기 표시 여부를 확인하며, 예약 알림은 선택한 요일·시각과 기록 상태에 따라 발송됩니다.</p>
-            ${isPwaInstalled() ? '' : '<button type="button" class="health-notification-install-help">앱 설치·설치 방법 보기</button>'}
-          </div>
-        </details>
+        ${helpMarkup}
         <div id="healthNotificationList" class="health-notification-list"></div>
         <div class="health-notification-consent">
           <div class="health-notification-setting"><label>알림 시각</label><input type="hidden" id="healthNotificationTime" value="20:00"><button type="button" id="healthNotificationTimeButton" class="health-time-button" aria-label="알림 시각 선택"><span aria-hidden="true">🕐</span><strong id="healthNotificationTimeText">오후 8:00</strong></button></div>
@@ -1147,7 +1150,7 @@ function openNotificationCenter() {
     overlay.querySelector('#healthNotificationDismiss').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'dismiss-today').catch(error => showToast(error.message, 'error')));
   }
   overlay.classList.add('open');
-  if (isPwaInstalled()) {
+  if (isPwaInstalled() && overlay.querySelector('#healthNotificationHelp')) {
     const helpKey = `${APP_NAME}_notificationHelpSeen_v1_${user.id}`;
     try {
       if (!localStorage.getItem(helpKey)) {

@@ -11,6 +11,7 @@
     ],
     'dashboard.html': [
       { target: '#mainContent .page-header', title: '나의 건강 현황', body: '대시보드는 내가 남긴 기록과 건강지표의 흐름을 한곳에 모아 보여줍니다.' },
+      { target: '#mainContent .empty-state', title: '첫 기록을 시작해 보세요', body: '아직 기록이 없다면 여기에 시작 안내가 나타납니다. 기록을 남기면 대시보드와 PDF 리포트가 채워집니다.' },
       { target: '#weekGrid', title: '이번 주 기록', body: '날짜별 기록 상태를 실제 화면에서 확인할 수 있습니다. 기록이 없는 날에는 기록하기 화면에서 새로 입력해 보세요.' },
       { target: '#personalReportTitle', title: '개인 건강기록 리포트', body: '선택한 달의 기록과 측정 지표 변화를 PDF 없이 대시보드에서 바로 확인하세요.' },
       { target: '#reportMonth', title: '보고서 월 바꾸기', body: '월을 직접 선택하거나 양옆 화살표를 눌러 이전·다음 달의 요약과 일별 추세를 살펴보세요. PDF도 현재 보고 있는 달로 열립니다.' },
@@ -18,7 +19,8 @@
       { target: '#consultReportMonth', title: '보고서 월 선택', body: 'PDF에 담을 월을 직접 선택할 수 있습니다.', require: '#consultReportDialog.open' },
       { target: '.privacy-options', title: '개인정보 표시 범위', body: '이름·생년·연락처 등 PDF에 표시할 항목을 직접 체크해 보세요. 필요한 정보만 포함할 수 있습니다.', require: '#consultReportDialog.open' },
       { target: '#createConsultReportBtn', title: 'PDF 미리보기·출력', body: '이 버튼을 누르면 실제 보고서가 열리고 브라우저에서 PDF로 저장할 수 있습니다. 준비가 되었을 때 직접 실행하세요.', require: '#consultReportDialog.open' },
-      { target: '#mainContent .empty-state', title: '첫 기록을 시작해 보세요', body: '아직 기록이 없다면 여기에 시작 안내가 나타납니다. 기록을 남기면 대시보드와 PDF 리포트가 채워집니다.' }
+      { target: '#notificationBell', title: '알림 설정 열기', body: '상단의 실제 종 버튼을 눌러 알림과 예약 설정을 열어 보세요. 설치형 앱에서도 같은 위치에서 설정할 수 있습니다.', action: true },
+      { target: '#healthNotificationHelp summary', title: '알림 사용법 다시 보기', body: '알림 창에서 이 항목을 누르면 기기에 맞는 설정 순서와 테스트 방법을 언제든 다시 읽을 수 있습니다.', require: '#healthNotificationOverlay.open' }
     ],
     'monthly.html': [
       { target: '#prevMonthBtn', title: '월 이동', body: '실제 화살표 버튼으로 이전 달을 살펴보세요. 오른쪽 화살표를 누르면 다음 달로 돌아갈 수 있습니다.' },
@@ -49,12 +51,6 @@
     ]
   };
   if (!configs[page]) return;
-  if (page !== 'index.html') {
-    configs[page].push(
-      { target: '#notificationBell', title: '알림 설정 열기', body: '상단의 실제 종 버튼을 눌러 알림과 예약 설정을 열어 보세요. 설치형 앱에서도 같은 위치에서 설정할 수 있습니다.', action: true },
-      { target: '#healthNotificationHelp summary', title: '알림 사용법 다시 보기', body: '알림 창에서 이 항목을 누르면 기기에 맞는 설정 순서와 테스트 방법을 언제든 다시 읽을 수 있습니다.', require: '#healthNotificationOverlay.open' }
-    );
-  }
 
   const ready = () => {
     if (page === 'dashboard.html') return !!document.querySelector('#mainContent .page-header, #mainContent .empty-state');
@@ -81,6 +77,12 @@
     if (step.emptyOnly && page === 'history.html' && document.querySelector('#recordsList .record-card')) return false;
     if (step.emptyOnly && page === 'inbody.html' && !visible(document.querySelector('#noDataMessage'))) return false;
     return visible(document.querySelector(step.target));
+  };
+  const nextAvailableIndex = from => {
+    for (let index = from; index < steps.length; index++) {
+      if (isStepAvailable(steps[index])) return index;
+    }
+    return -1;
   };
 
   function detachTarget() {
@@ -141,18 +143,21 @@
 
   function show(index) {
     detachTarget();
-    let next = index;
-    while (next < steps.length && !isStepAvailable(steps[next])) next++;
-    if (next >= steps.length) { close(); return; }
+    const next = nextAvailableIndex(index);
+    if (next < 0) { close(); return; }
     if (page === 'index.html' && steps[next].target === '.btn-naver' && mobile() && !document.querySelector('.login-container.login-visible')) {
       document.querySelector('.mobile-login-next')?.click();
       setTimeout(() => { if (root) show(next); }, 650);
       return;
     }
+    if (page === 'dashboard.html' && steps[next].target === '#notificationBell' && document.querySelector('#consultReportDialog.open')) {
+      if (typeof closeConsultReportDialog === 'function') closeConsultReportDialog();
+    }
     currentIndex = next;
     const step = steps[next];
     currentTarget = document.querySelector(step.target);
-    card.querySelector('.page-guide-progress').textContent = `${next + 1} / ${steps.length}`;
+    const hasNext = nextAvailableIndex(next + 1) >= 0;
+    card.querySelector('.page-guide-progress').textContent = hasNext ? `${next + 1}번째 안내` : '마지막 안내';
     card.querySelector('.page-guide-title').textContent = step.title;
     card.querySelector('.page-guide-copy').textContent = step.body;
     const hint = card.querySelector('.page-guide-hint');
@@ -160,7 +165,7 @@
     hint.hidden = !actionable;
     hint.textContent = '밝게 표시된 실제 버튼을 눌러 체험할 수 있습니다.';
     const nextButton = card.querySelector('.page-guide-next');
-    nextButton.textContent = next === steps.length - 1 ? '완료' : '다음';
+    nextButton.textContent = hasNext ? '다음' : '완료';
     if (step.action && !currentTarget.disabled) {
       clickHandler = () => setTimeout(() => {
         if (root) show(currentIndex + 1);
