@@ -59,6 +59,7 @@ function initializeConsultReportDialog() {
 
 function renderDashboard() {
   const main = document.getElementById('mainContent');
+  main.classList.toggle('dashboard-has-records', userRecords.length > 0);
 
   if (userRecords.length === 0) {
     main.innerHTML = `
