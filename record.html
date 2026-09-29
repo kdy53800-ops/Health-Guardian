@@ -309,6 +309,11 @@
     /* Collapsible goals panel */
     .goals-toggle {
       display: flex;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      font: inherit;
+      text-align: left;
       align-items: center;
       gap: 8px;
       cursor: pointer;
@@ -1067,10 +1072,10 @@
               <p>목표치를 변경하면 진행률에 반영됩니다</p>
             </div>
           </div>
-          <div class="goals-toggle" id="goalsToggle" onclick="toggleGoals()">
+          <button type="button" class="goals-toggle" id="goalsToggle" aria-controls="goalsPanel" aria-expanded="false" onclick="toggleGoals()">
             <span>목표 수정하기</span>
             <span class="chevron">▼</span>
-          </div>
+          </button>
           <div class="goals-panel" id="goalsPanel">
             <div class="goal-edit-row" id="goalEditRow"></div>
             <button type="button" class="btn btn-outline btn-sm mt-16" onclick="saveGoals()">

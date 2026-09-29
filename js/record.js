@@ -596,6 +596,7 @@ function toggleGoals() {
   const panel  = document.getElementById('goalsPanel');
   toggle.classList.toggle('open');
   panel.classList.toggle('open');
+  toggle.setAttribute('aria-expanded', String(panel.classList.contains('open')));
 }
 
 function saveGoals() {
