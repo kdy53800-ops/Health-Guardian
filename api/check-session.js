@@ -209,6 +209,12 @@ async function handleNotificationSettings(req, res, session, body) {
       method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({ user_id: session.uid, endpoint, subscription, last_seen_at: new Date().toISOString() }),
     });
+    const previousEndpoint = String(body.previousEndpoint || '');
+    if (previousEndpoint.startsWith('https://') && previousEndpoint.length <= 2000 && previousEndpoint !== endpoint) {
+      await fetchSupabase(`/rest/v1/push_subscriptions?user_id=eq.${encodeEq(session.uid)}&endpoint=eq.${encodeEq(previousEndpoint)}`, {
+        method: 'DELETE', headers: { Prefer: 'return=minimal' },
+      });
+    }
   } else {
     await fetchSupabase(`/rest/v1/push_subscriptions?user_id=eq.${encodeEq(session.uid)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
   }

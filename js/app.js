@@ -768,33 +768,57 @@ const HealthNotifications = {
   async getPushSubscription() {
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
+    if (!this.vapidPublicKey) throw new Error('예약 알림 서버 설정이 아직 준비되지 않았습니다.');
+    const applicationServerKey = this.toApplicationServerKey(this.vapidPublicKey);
+    const subscribedKey = subscription && subscription.options && subscription.options.applicationServerKey;
+    if (subscribedKey) {
+      const oldBytes = new Uint8Array(subscribedKey);
+      if (oldBytes.length !== applicationServerKey.length || oldBytes.some((byte, index) => byte !== applicationServerKey[index])) {
+        this.replacedEndpoint = subscription.endpoint;
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+    }
     if (!subscription) {
-      if (!this.vapidPublicKey) throw new Error('예약 알림 서버 설정이 아직 준비되지 않았습니다.');
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.toApplicationServerKey(this.vapidPublicKey),
+        applicationServerKey,
       });
     }
     return subscription;
+  },
+
+  async refreshSubscription(user) {
+    if (!user || user.authProvider === 'test' || !this.serverConfigured || !this.isEnabled(user.id)
+      || !this.vapidPublicKey || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const registration = await navigator.serviceWorker.ready;
+    const previous = await registration.pushManager.getSubscription();
+    const subscription = await this.getPushSubscription();
+    if (!previous || previous !== subscription) await this.saveSchedule(user, true, subscription);
   },
 
   async saveSchedule(user, enabled, subscription = null) {
     const timeInput = document.getElementById('healthNotificationTime');
     const reminderTime = timeInput ? timeInput.value : this.getReminderTime(user.id);
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderTime)) throw new Error('알림 시각을 선택해 주세요.');
-    const reminderDays = [...document.querySelectorAll('[name="healthNotificationDay"]:checked')].map(input => Number(input.value));
+    const dayInputs = [...document.querySelectorAll('[name="healthNotificationDay"]')];
+    const reminderDays = dayInputs.length
+      ? dayInputs.filter(input => input.checked).map(input => Number(input.value))
+      : this.getReminderDays(user.id);
     if (!reminderDays.length) throw new Error('알림을 받을 요일을 하나 이상 선택해 주세요.');
-    const skipIfRecorded = document.getElementById('healthNotificationSkipRecorded')?.checked !== false;
+    const skipInput = document.getElementById('healthNotificationSkipRecorded');
+    const skipIfRecorded = skipInput ? skipInput.checked : this.getSkipIfRecorded(user.id);
     if (user.authProvider !== 'test') {
       const endpoint = new URL('api/check-session', window.location.href);
       endpoint.searchParams.set('view', 'notification-settings');
       const response = await fetch(endpoint.toString(), {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ enabled, reminderTime, reminderDays, skipIfRecorded, subscription: subscription ? subscription.toJSON() : null }),
+        body: JSON.stringify({ enabled, reminderTime, reminderDays, skipIfRecorded, subscription: subscription ? subscription.toJSON() : null, previousEndpoint: this.replacedEndpoint || null }),
       });
       const payload = await response.json();
       if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || '알림 설정을 저장하지 못했습니다.');
       this.serverConfigured = true;
+      this.replacedEndpoint = null;
     }
     this.setReminderTime(user.id, reminderTime);
     this.setReminderDays(user.id, reminderDays);
@@ -1279,6 +1303,7 @@ function initializeHealthNotifications() {
   if (!user || window.location.protocol === 'file:') return;
   setTimeout(async () => {
     await HealthNotifications.loadSchedule(user);
+    HealthNotifications.refreshSubscription(user).catch(error => console.warn('[HealthNotifications] Subscription refresh failed:', error.message));
     await HealthNotifications.evaluate(user);
     if (HealthNotifications.shouldShowInitialPrompt(user.id)) {
       HealthNotifications.markInitialPromptSeen(user.id);
