@@ -24,6 +24,7 @@ let customExercises = [];     // [{ id, category, name, duration, intensity, set
 let favoriteExercises = [];
 let recentExerciseTemplates = [];
 let activeStrengthTemplate = 1;
+let exerciseShortcutTrigger = null;
 
 const STRENGTH_TEMPLATES = [
   { label: '가볍게 2세트 × 12회', sets: 2, reps: 12, duration: 20 },
@@ -237,6 +238,29 @@ function addFavoriteExercise(index) {
 
 function addRecentExercise(index) {
   if (recentExerciseTemplates[index]) addExerciseTemplate(recentExerciseTemplates[index]);
+}
+
+function openExerciseShortcut(kind, trigger) {
+  const dialog = document.getElementById('exerciseShortcutDialog');
+  const source = document.getElementById(kind === 'favorites' ? 'favoriteExerciseList' : 'recentExerciseList');
+  if (!dialog || !source || !['favorites', 'recent'].includes(kind)) return;
+  exerciseShortcutTrigger = trigger;
+  document.getElementById('exerciseShortcutDialogTitle').textContent = kind === 'favorites' ? '⭐ 즐겨찾기' : '🕒 최근 운동';
+  document.getElementById('exerciseShortcutDialogList').innerHTML = source.innerHTML;
+  dialog.showModal();
+}
+
+function closeExerciseShortcut() {
+  document.getElementById('exerciseShortcutDialog')?.close();
+}
+
+function handleExerciseShortcutDialogClick(event) {
+  if (event.target.closest('.quick-exercise-chip')) closeExerciseShortcut();
+}
+
+function restoreExerciseShortcutFocus() {
+  exerciseShortcutTrigger?.focus();
+  exerciseShortcutTrigger = null;
 }
 
 function selectStrengthTemplate(index) {
@@ -733,6 +757,8 @@ function renderExPresets(cat) {
   if (!el) return;
   const cfg = EX_CAT_CFG[cat];
   if (!cfg) { el.innerHTML = ''; return; }
+  const heading = document.getElementById('exercisePresetTitle');
+  if (heading) heading.textContent = `${cat} 종목`;
 
   el.innerHTML = cfg.presets.map(name => `
     <span class="preset-item">

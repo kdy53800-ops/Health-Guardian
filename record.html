@@ -598,8 +598,43 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 14px;
+      margin-bottom: 0;
     }
+
+    .exercise-choice-section {
+      min-width: 0;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+    }
+    .exercise-choice-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .exercise-choice-heading h4 { color:var(--text); font-size:.84rem; font-weight:800; }
+    .exercise-choice-heading span { display:none; color:var(--text-muted); font-size:.7rem; white-space:nowrap; }
+    .exercise-choice-section .custom-ex-tabs { margin-bottom:0; }
+
+    .exercise-shortcut-launchers { display:none; }
+    .exercise-shortcut-dialog {
+      position:fixed;
+      inset:0;
+      width:min(420px,calc(100% - 32px));
+      max-height:min(70dvh,600px);
+      margin:auto;
+      padding:20px;
+      border:1px solid var(--border);
+      border-radius:20px;
+      background:var(--surface);
+      box-shadow:0 24px 70px rgba(15,23,42,.25);
+      color:var(--text);
+    }
+    .exercise-shortcut-dialog::backdrop { background:rgba(15,23,42,.52); }
+    .exercise-shortcut-dialog-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+    .exercise-shortcut-dialog-header h3 { font-size:1rem; font-weight:850; }
+    .exercise-shortcut-dialog-close { width:44px; height:44px; flex:0 0 44px; border:0; border-radius:50%; background:var(--surface-2); color:var(--text-secondary); font:inherit; font-size:1.25rem; cursor:pointer; }
+    .exercise-shortcut-dialog-note { margin-bottom:16px; color:var(--text-muted); font-size:.78rem; }
+    .exercise-shortcut-dialog-list { display:flex; flex-direction:column; gap:8px; max-height:45dvh; overflow-y:auto; }
+    .exercise-shortcut-dialog-list .quick-exercise-chip { min-height:44px; border-radius:10px; text-align:left; }
 
     .exercise-shortcuts {
       display: grid;
@@ -771,8 +806,14 @@
 
     @media (max-width: 600px) {
       .record-status-stack { align-items: flex-start; width: 100%; }
-      .exercise-shortcuts { grid-template-columns: 1fr; }
+      .exercise-choice-heading span { display:block; }
+      .exercise-shortcut-launchers { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:12px; }
+      .exercise-shortcut-launchers button { min-width:0; min-height:48px; padding:8px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); color:var(--text); font:inherit; font-size:.8rem; font-weight:800; cursor:pointer; }
+      .exercise-shortcut-launchers button:focus-visible { outline:3px solid var(--primary); outline-offset:2px; }
+      .exercise-shortcuts { grid-template-columns: 1fr; margin-bottom:0; }
+      .exercise-shortcut-group:not(.template-group) { display:none; }
       .exercise-shortcut-group.template-group { grid-column: auto; }
+      .exercise-shortcut-group.template-group:not([hidden]) { margin-bottom:12px; }
       .exercise-chip-list, .custom-ex-tabs, .custom-ex-preset {
         flex-wrap:nowrap;
         overflow-x:auto;
@@ -957,6 +998,10 @@
             </div>
           </div>
 
+          <div class="exercise-shortcut-launchers" aria-label="운동 빠른 추가">
+            <button type="button" onclick="openExerciseShortcut('favorites',this)">⭐ 즐겨찾기 열기</button>
+            <button type="button" onclick="openExerciseShortcut('recent',this)">🕒 최근 운동 열기</button>
+          </div>
           <div class="exercise-shortcuts" aria-label="운동 빠른 추가">
             <div class="exercise-shortcut-group">
               <div class="exercise-shortcut-title"><span>⭐ 즐겨찾기</span><small>자주 쓰는 운동</small></div>
@@ -972,8 +1017,10 @@
             </div>
           </div>
 
-          <!-- 카테고리 탭 -->
-          <div class="custom-ex-tabs">
+          <!-- 운동 분류 -->
+          <div class="exercise-choice-section">
+            <div class="exercise-choice-heading"><h4>운동 분류</h4><span>옆으로 밀어 선택</span></div>
+            <div class="custom-ex-tabs" role="group" aria-label="운동 분류">
             <button type="button" class="custom-ex-tab cat-cardio active" data-cat="유산소" onclick="switchExCat(this,'유산소')">
               🏊 유산소
             </button>
@@ -986,10 +1033,14 @@
             <button type="button" class="custom-ex-tab cat-sports" data-cat="스포츠" onclick="switchExCat(this,'스포츠')">
               ⚽ 스포츠
             </button>
+            </div>
           </div>
 
-          <!-- 카테고리별 추천 종목 -->
-          <div id="exPresets" class="custom-ex-preset"></div>
+          <!-- 선택한 분류의 운동 종목 -->
+          <div class="exercise-choice-section">
+            <div class="exercise-choice-heading"><h4 id="exercisePresetTitle">유산소 종목</h4><span>옆으로 밀어 선택</span></div>
+            <div id="exPresets" class="custom-ex-preset" role="group" aria-labelledby="exercisePresetTitle"></div>
+          </div>
 
           <!-- 추가된 운동 목록 -->
           <div class="custom-ex-list" id="customExList"></div>
@@ -1144,6 +1195,15 @@
       </form>
     </main>
   </div>
+
+  <dialog id="exerciseShortcutDialog" class="exercise-shortcut-dialog" aria-labelledby="exerciseShortcutDialogTitle" onclose="restoreExerciseShortcutFocus()" onclick="if(event.target===this) closeExerciseShortcut()">
+    <div class="exercise-shortcut-dialog-header">
+      <h3 id="exerciseShortcutDialogTitle"></h3>
+      <button type="button" class="exercise-shortcut-dialog-close" aria-label="창 닫기" onclick="closeExerciseShortcut()">×</button>
+    </div>
+    <p class="exercise-shortcut-dialog-note">종목을 누르면 현재 기록에 추가됩니다.</p>
+    <div class="exercise-shortcut-dialog-list" id="exerciseShortcutDialogList" onclick="handleExerciseShortcutDialogClick(event)"></div>
+  </dialog>
 
   <!-- 기존 기록 확인 모달 -->
   <div id="duplicateModal" style="
