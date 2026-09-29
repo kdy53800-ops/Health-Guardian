@@ -142,30 +142,33 @@ function renderDashboard() {
     ${renderPersonalReport(personalReport)}
 
     <!-- Ranking Top 5 -->
-    <div class="section-header mb-12">
-      <h2 style="font-size:1.1rem; font-weight:800; display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.4rem;">🏆</span> ${rankingTitle}
-        <span style="font-size:0.8rem; font-weight:500; color:var(--text-muted); margin-left:4px;">${rankingSubtitle}</span>
-      </h2>
-    </div>
-    <div class="grid-2 mb-20">
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <div class="chart-card-title">🏆 ${rankingTitle}: 총 출석일 수</div>
+    <details class="ranking-section" id="dashboardRanking" ${window.matchMedia('(max-width: 600px)').matches ? '' : 'open'}>
+      <summary class="ranking-summary">
+        <span class="ranking-heading">
+          <span class="ranking-title" role="heading" aria-level="2"><span aria-hidden="true">🏆</span> ${rankingTitle}</span>
+          <span class="ranking-subtitle">${rankingSubtitle}</span>
+        </span>
+        <span class="ranking-chevron" aria-hidden="true">⌄</span>
+      </summary>
+      <div class="ranking-body grid-2">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">🏆 ${rankingTitle}: 총 출석일 수</div>
+          </div>
+          <div class="chart-card-body" id="rankingAttendance">
+            <div class="chart-no-data">데이터를 불러오는 중...</div>
+          </div>
         </div>
-        <div class="chart-card-body" id="rankingAttendance">
-          <div class="chart-no-data">데이터를 불러오는 중...</div>
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">🔥 ${rankingTitle}: 총 운동 시간</div>
+          </div>
+          <div class="chart-card-body" id="rankingExercise">
+            <div class="chart-no-data">데이터를 불러오는 중...</div>
+          </div>
         </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <div class="chart-card-title">🔥 ${rankingTitle}: 총 운동 시간</div>
-        </div>
-        <div class="chart-card-body" id="rankingExercise">
-          <div class="chart-no-data">데이터를 불러오는 중...</div>
-        </div>
-      </div>
-    </div>
+    </details>
 
     <!-- Weekly Check -->
     <div class="chart-card mb-20">
@@ -353,9 +356,11 @@ function setupMobileDashboardDetails() {
   const mobileQuery = window.matchMedia('(max-width: 600px)');
   const report = document.querySelector('.report-extra');
   const graphs = document.getElementById('dashboardMoreCharts');
+  const ranking = document.getElementById('dashboardRanking');
   const sync = () => {
     if (report) report.open = !mobileQuery.matches;
     if (graphs) graphs.open = !mobileQuery.matches;
+    if (ranking) ranking.open = !mobileQuery.matches;
   };
   mobileQuery.addEventListener('change', sync);
   if (graphs) graphs.addEventListener('toggle', () => {
