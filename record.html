@@ -50,6 +50,12 @@
       margin-top: 1px;
     }
 
+    .activity-input-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .activity-input-group { min-width:0; margin:0; padding:16px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface-2); }
+    .activity-input-group legend { padding:0 5px; color:var(--text); font-size:.95rem; font-weight:800; }
+    .activity-input-group .form-group { margin-bottom:12px; }
+    .activity-input-group .form-label { display:block; }
+
     .input-with-progress {
       position: relative;
     }
@@ -355,6 +361,8 @@
     }
 
     @media (max-width: 600px) {
+      .activity-input-grid { grid-template-columns:1fr; gap:12px; }
+      .activity-input-group { padding:12px 14px; }
       .form-grid-2 { grid-template-columns: 1fr; gap:12px; }
       .record-summary-bar {
         display:grid;
@@ -874,15 +882,21 @@
             <div class="section-card-icon card-icon-green">🏃</div>
             <div>
               <h3>걷기&러닝 기록</h3>
-              <p>오늘의 걷기 및 러닝 시간을 기록하세요</p>
+              <p>걷기와 러닝의 시간·거리를 각각 기록하세요</p>
             </div>
           </div>
-          <div class="form-row">
-            <!-- 걷기 -->
-            <div class="form-group">
-              <label class="form-label" for="fWalking">🚶 걷기 <span class="unit">(분)</span></label>
-              <input type="number" id="fWalking" class="form-control" placeholder="0" min="0" max="999"
-                oninput="updateProgress('fWalking','progressWalking','pctWalking','walking'); updateSummary()">
+          <div class="activity-input-grid">
+            <fieldset class="activity-input-group">
+              <legend>🚶 걷기</legend>
+              <div class="form-group">
+                <label class="form-label" for="fWalking">시간 <span class="unit">(분)</span></label>
+                <input type="number" id="fWalking" class="form-control" placeholder="0" min="0" max="999"
+                  oninput="updateProgress('fWalking','progressWalking','pctWalking','walking'); updateSummary()">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fWalkingKm">거리 <span class="unit">(km, 선택)</span></label>
+                <input type="number" id="fWalkingKm" class="form-control" placeholder="0.0" step="0.1" min="0" max="999">
+              </div>
               <div class="input-goal-info">
                 <span class="goal-pct" id="pctWalking">목표: 0%</span>
                 <span class="goal-target" id="targetWalking">목표: 30분</span>
@@ -890,12 +904,18 @@
               <div class="record-progress">
                 <div class="record-progress-bar green" id="progressWalking" style="width:0%"></div>
               </div>
-            </div>
-            <!-- 러닝 -->
-            <div class="form-group">
-              <label class="form-label" for="fRunning">🏃 러닝 <span class="unit">(분)</span></label>
-              <input type="number" id="fRunning" class="form-control" placeholder="0" min="0" max="999"
-                oninput="updateProgress('fRunning','progressRunning','pctRunning','running'); updateSummary()">
+            </fieldset>
+            <fieldset class="activity-input-group">
+              <legend>🏃 러닝</legend>
+              <div class="form-group">
+                <label class="form-label" for="fRunning">시간 <span class="unit">(분)</span></label>
+                <input type="number" id="fRunning" class="form-control" placeholder="0" min="0" max="999"
+                  oninput="updateProgress('fRunning','progressRunning','pctRunning','running'); updateSummary()">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fRunningKm">거리 <span class="unit">(km, 선택)</span></label>
+                <input type="number" id="fRunningKm" class="form-control" placeholder="0.0" step="0.1" min="0" max="999">
+              </div>
               <div class="input-goal-info">
                 <span class="goal-pct" id="pctRunning">목표: 0%</span>
                 <span class="goal-target" id="targetRunning">목표: 20분</span>
@@ -903,18 +923,7 @@
               <div class="record-progress">
                 <div class="record-progress-bar green" id="progressRunning" style="width:0%"></div>
               </div>
-            </div>
-          </div>
-          <!-- 거리 (옵션) -->
-          <div class="form-row">
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label" for="fWalkingKm">🗺️ 걷기 거리 <span class="unit">(km, 선택)</span></label>
-              <input type="number" id="fWalkingKm" class="form-control" placeholder="0.0" step="0.1" min="0" max="999">
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label" for="fRunningKm">🗺️ 러닝 거리 <span class="unit">(km, 선택)</span></label>
-              <input type="number" id="fRunningKm" class="form-control" placeholder="0.0" step="0.1" min="0" max="999">
-            </div>
+            </fieldset>
           </div>
         </div>
 
