@@ -44,6 +44,7 @@ async function loadInbodyRecords() {
       
       renderCharts();
       renderRecordList();
+      if (window.matchMedia('(max-width: 600px)').matches) document.querySelector('.inbody-grid').classList.add('mobile-collapsed');
     }
   } catch (err) {
     if (window.location.protocol === 'file:' || (err.message && err.message.includes('Failed to fetch'))) {
@@ -57,11 +58,23 @@ async function loadInbodyRecords() {
       document.getElementById('inbodyContent').style.display = 'block';
       renderCharts();
       renderRecordList();
+      if (window.matchMedia('(max-width: 600px)').matches) document.querySelector('.inbody-grid').classList.add('mobile-collapsed');
       return;
     }
     console.error('Error loading inbody records:', err);
     alert('인바디 기록을 불러오는데 실패했습니다.');
   }
+}
+
+function toggleInbodyMore() {
+  const grid = document.querySelector('.inbody-grid');
+  const button = document.getElementById('inbodyMoreButton');
+  if (!grid || !button) return;
+  const expanded = grid.classList.toggle('mobile-expanded');
+  grid.classList.toggle('mobile-collapsed', !expanded);
+  button.setAttribute('aria-expanded', String(expanded));
+  button.innerHTML = `${expanded ? '추가 지표 접기' : '추가 체성분 지표 6개 보기'} <span aria-hidden="true">⌄</span>`;
+  if (expanded) requestAnimationFrame(() => Object.values(charts).forEach(chart => chart?.resize?.()));
 }
 
 function renderCharts() {

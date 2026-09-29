@@ -355,19 +355,26 @@
     }
 
     @media (max-width: 600px) {
-      .form-grid-2 { grid-template-columns: 1fr; }
+      .form-grid-2 { grid-template-columns: 1fr; gap:12px; }
       .record-summary-bar {
-        flex-direction: column;
-        gap: 10px;
-        padding: 14px 16px;
+        display:grid;
+        gap: 8px;
+        padding: 12px 14px;
+        margin-bottom:12px;
         text-align: center;
       }
-      .summary-stats { justify-content: center; gap: 12px; }
+      .summary-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; width:100%; }
+      .summary-stat { min-width:0; }
       .summary-stat-val { font-size: 1.1rem; }
       .summary-date { font-size: 0.95rem; }
-      .section-card { padding: 16px; }
-      .record-quick-actions { align-items: stretch; flex-direction: column; }
+      .section-card { padding: 14px; margin-bottom:12px; }
+      .section-card-header { margin-bottom:14px; }
+      .section-card-header p { display:none; }
+      .form-group { margin-bottom:14px; }
+      .record-quick-actions { align-items: stretch; flex-direction: column; gap:8px; margin:0 0 12px; padding:10px 14px; }
       .record-quick-actions .btn { width: 100%; }
+      .record-status-stack { gap:2px; }
+      .draft-status, .sync-status { min-height:20px; font-size:.72rem; }
       .cond-btn { min-width: 56px; padding: 8px 4px; }
       .cond-btn .cond-emoji { font-size: 1.3rem; }
       /* 저장 버튼: 화면 하단에 고정, safe-area 포함 */
@@ -756,7 +763,7 @@
   </style>
   <link rel="stylesheet" href="css/ongil-theme.css">
 </head>
-<body>
+<body class="record-page">
   <!-- Top Nav -->
   <nav class="top-nav">
     <a href="dashboard.html" class="nav-brand">

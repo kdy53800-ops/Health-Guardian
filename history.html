@@ -140,6 +140,8 @@
       gap: 8px;
       margin-bottom: 12px;
     }
+    .record-details > summary { display:none; }
+    .record-details .record-memo { margin:0 0 12px; }
 
     .metric-chip {
       display: flex;
@@ -303,6 +305,17 @@
     }
 
     @media (max-width: 600px) {
+      .record-details > summary {
+        display:flex; align-items:center; justify-content:space-between; gap:8px;
+        min-height:44px; padding:10px 12px; border-radius:10px;
+        background:var(--surface-2); color:var(--text-secondary);
+        font-size:.82rem; font-weight:700; line-height:1.4;
+        cursor:pointer; list-style:none;
+      }
+      .record-details > summary::-webkit-details-marker { display:none; }
+      .record-details[open] .record-details-caret { transform:rotate(180deg); }
+      .record-details .metrics-grid { margin-top:10px; }
+      .record-details .record-memo { margin-top:10px; }
       .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; }
       .filter-input { width: 100%; }
       .record-count-badge { margin-left: 0; text-align: center; }

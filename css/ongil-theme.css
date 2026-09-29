@@ -207,6 +207,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .pwa-install-overlay { align-items:flex-end; padding:0; }
   .pwa-install-panel { width:100%; max-height:88dvh; padding:22px 18px max(22px, env(safe-area-inset-bottom)); border-radius:22px 22px 0 0; }
   .page-guide-trigger { left:12px; bottom:max(12px, env(safe-area-inset-bottom)); padding:6px 9px; font-size:.69rem; }
+  .record-page .page-guide-trigger, .record-page .pwa-install-button { bottom:calc(82px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Neutral surfaces with brand blue reserved for small accents. */

@@ -165,18 +165,26 @@
       border-radius: var(--radius-lg);
       border: 1px dashed var(--border);
     }
+    .inbody-more-button { display:none; }
 
     @media (max-width: 900px) {
       .inbody-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) {
       .inbody-grid { grid-template-columns: 1fr; gap: 16px; }
+      .inbody-grid.mobile-collapsed > .chart-card:nth-child(n+4) { display:none; }
+      .inbody-more-button {
+        display:flex; align-items:center; justify-content:space-between; gap:12px;
+        width:100%; min-height:48px; margin:16px 0 20px; padding:12px 16px;
+        border:1px solid var(--border); border-radius:12px; background:#fff;
+        color:var(--primary-dark); font:inherit; font-size:.86rem; font-weight:800; cursor:pointer;
+      }
+      .inbody-more-button[aria-expanded="true"] span { transform:rotate(180deg); }
       .chart-card { padding: 16px; }
       .record-list-card { padding: 16px; }
       .project-notice { padding: 12px 14px; gap: 8px; }
       .project-notice p { font-size: 0.85rem; }
       /* 테이블 스크롤 */
-      .record-list-card { overflow-x: auto; }
       .record-table { min-width: 480px; }
     }
   </style>
@@ -229,7 +237,7 @@
       </div>
 
       <div id="inbodyContent">
-        <div class="inbody-grid">
+        <div class="inbody-grid" id="inbodyCharts">
           <!-- 0. 체성분 구성 (요약 막대) -->
           <div class="chart-card" style="grid-column: 1 / -1;">
             <h3>📊 체성분 구성 요약 (최근 측정 기준)</h3>
@@ -284,6 +292,8 @@
             <div style="height: 200px;"><canvas id="chartScore"></canvas></div>
           </div>
         </div>
+
+        <button type="button" class="inbody-more-button" id="inbodyMoreButton" aria-expanded="false" aria-controls="inbodyCharts" onclick="toggleInbodyMore()">추가 체성분 지표 6개 보기 <span aria-hidden="true">⌄</span></button>
 
         <div class="record-list-card">
           <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px;">검사 기록 목록</h3>

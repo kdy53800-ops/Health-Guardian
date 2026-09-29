@@ -87,10 +87,18 @@
       .admin-charts{grid-template-columns:1fr;}
     }
     @media(max-width:600px){
+      .admin-filter-bar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px !important; padding:12px !important; }
+      .admin-filter-bar .filter-left, .admin-filter-bar .filter-right { display:contents !important; }
+      .admin-filter-bar .filter-group { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:0; }
+      .admin-filter-bar .filter-label { margin:0; font-size:.75rem; }
+      .admin-filter-bar .filter-select { width:100%; min-width:0; min-height:44px; font-size:.8rem; }
       .platform-stats{grid-template-columns:repeat(2,1fr);}
       .admin-charts{grid-template-columns:1fr;}
       .p-stat { padding: 14px; }
       .p-stat-value { font-size: 1.6rem; }
+      .attention-board { padding:16px; margin-bottom:16px; }
+      .attention-header { flex-direction:column; gap:10px; }
+      .attention-header > div:last-child { align-self:flex-end; }
       .attention-summary { grid-template-columns:repeat(2,1fr); }
       .attention-list { grid-template-columns:1fr; }
       .audit-row { grid-template-columns:1fr 1fr; gap:5px 10px; }

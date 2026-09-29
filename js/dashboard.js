@@ -74,6 +74,7 @@ function renderDashboard() {
       </div>
       ${renderPersonalReport(buildPersonalReport(selectedReportMonth))}
     `;
+    setupMobileDashboardDetails();
     loadInbodyReport();
     return;
   }
@@ -231,6 +232,9 @@ function renderDashboard() {
     </div>
 
     <!-- Heart Rate Chart (전체 너비) -->
+    <details class="mobile-chart-details" id="dashboardMoreCharts" open>
+      <summary>다른 건강지표 그래프 보기 <span aria-hidden="true">⌄</span></summary>
+      <div class="mobile-chart-details-body">
     <div class="chart-card mb-20">
       <div class="chart-card-header">
         <div class="chart-card-title">❤️ 심박수 변화</div>
@@ -320,6 +324,8 @@ function renderDashboard() {
         </div>
       </div>
     </div>
+      </div>
+    </details>
 
     <!-- Recent Activity -->
     <div class="chart-card mb-20">
@@ -336,10 +342,26 @@ function renderDashboard() {
   renderWeekGrid(getLast7Days(), todayStr);
   renderYesterdayGoalRings(yesterdayRecord);
   drawCharts('7');
+  setupMobileDashboardDetails();
   renderRecentActivity();
   renderCustomExSummary('7');
   fetchAndRenderRanking();
   loadInbodyReport();
+}
+
+function setupMobileDashboardDetails() {
+  const mobileQuery = window.matchMedia('(max-width: 600px)');
+  const report = document.querySelector('.report-extra');
+  const graphs = document.getElementById('dashboardMoreCharts');
+  const sync = () => {
+    if (report) report.open = !mobileQuery.matches;
+    if (graphs) graphs.open = !mobileQuery.matches;
+  };
+  mobileQuery.addEventListener('change', sync);
+  if (graphs) graphs.addEventListener('toggle', () => {
+    if (graphs.open) requestAnimationFrame(() => Object.values(charts).forEach(chart => chart?.resize?.()));
+  });
+  sync();
 }
 
 function recordExerciseMinutes(record) {
@@ -419,11 +441,14 @@ function renderPersonalReportBody(report) {
       <div class="report-metric"><div class="report-metric-label">평균 목표 달성률</div><div class="report-metric-value">${report.goalRate}%</div><div class="report-metric-note">현재 목표 기준 · 기록일 평균</div></div>
       <div class="report-metric"><div class="report-metric-label">체중 기록 변화</div><div class="report-metric-value">${weightText}</div><div class="report-metric-note">선택한 달 첫·마지막 기록 비교</div></div>
     </div>
+    <details class="report-extra" open><summary>월간 변화와 성취 자세히 보기 <span aria-hidden="true">⌄</span></summary>
+    <div class="report-extra-body">
     <div class="report-month-comparison">전월 대비 운동 시간: <strong>${monthText}</strong><span>${report.isCurrentMonth ? '지난달 같은 날짜까지 비교' : '지난달 전체와 비교'}</span></div>
     <div class="report-trend"><h3>일별 운동 시간</h3>${buildExerciseTrendSvg(report.records, report.month)}</div>
     <div class="report-insights">${report.insights.map(text => `<div class="report-insight">${escapeHtml(text)}</div>`).join('')}</div>
     <div class="achievement-badges" aria-label="선택한 달의 성취 배지">${badges.map(badge => `<span class="achievement-badge ${badge.earned ? 'earned' : ''}" aria-label="${badge.label} ${badge.earned ? '달성' : '미달성'}"><span aria-hidden="true">${badge.earned ? badge.icon : '○'}</span>${badge.label}</span>`).join('')}</div>
-    <div class="inbody-report" id="inbodyReport" role="status">체성분 측정 기록을 확인하는 중입니다.</div>`;
+    <div class="inbody-report" id="inbodyReport" role="status">체성분 측정 기록을 확인하는 중입니다.</div>
+    </div></details>`;
 }
 
 function renderPersonalReport(report) {
@@ -445,9 +470,12 @@ function setReportMonth(month) {
   const input = document.getElementById('reportMonth');
   const body = document.getElementById('personalReportBody');
   if (!input || !body) return;
+  const wasOpen = document.querySelector('.report-extra')?.open;
   input.value = month;
   document.getElementById('reportNextMonth').disabled = month >= today().slice(0, 7);
   body.innerHTML = renderPersonalReportBody(buildPersonalReport(month));
+  const reportExtra = body.querySelector('.report-extra');
+  if (reportExtra) reportExtra.open = wasOpen ?? !window.matchMedia('(max-width: 600px)').matches;
   renderMonthlyInbodyReport();
 }
 

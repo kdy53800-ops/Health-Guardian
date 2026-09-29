@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   userRecords = await Records.getUserRecordsAsync(currentUser.id);
   renderHistory();
+  window.matchMedia('(max-width: 600px)').addEventListener('change', event => {
+    document.querySelectorAll('.record-details').forEach(details => { details.open = !event.matches; });
+  });
 });
 
 function renderHistory() {
@@ -61,6 +64,9 @@ function renderHistory() {
   }
 
   container.innerHTML = records.map(r => buildRecordCard(r)).join('');
+  if (window.matchMedia('(max-width: 600px)').matches) {
+    container.querySelectorAll('.record-details').forEach(details => { details.open = false; });
+  }
 }
 
 function buildRecordCard(r) {
@@ -85,7 +91,7 @@ function buildRecordCard(r) {
     <div class="metric-chip ${m.cls}">
       <span class="chip-icon">${m.icon}</span>
       <span class="chip-label">${m.label}</span>
-      <span class="chip-val">${m.val}</span>
+      <span class="chip-val">${escapeHtml(m.val)}</span>
       <span style="color:var(--text-muted); font-weight:400; font-size:0.72rem">${m.unit}</span>
     </div>
   `).join('');
@@ -106,6 +112,10 @@ function buildRecordCard(r) {
       </div>
     `;
   }).join('');
+
+  const summaryParts = metrics.slice(0, 2).map(m => `${m.label} ${m.val}${m.unit}`);
+  const remaining = metrics.length - summaryParts.length + (r.customExercises || []).length;
+  const summary = `${summaryParts.join(' · ') || '입력한 지표'}${remaining > 0 ? ` 외 ${remaining}항목` : ''}`;
 
 
 
@@ -128,15 +138,18 @@ function buildRecordCard(r) {
         </div>
       </div>
 
-      ${metrics.length > 0 ? `<div class="metrics-grid">${metricChips}</div>` : ''}
-      ${customChips ? `<div class="custom-exercise-section"><div class="custom-exercise-label">🏅 개인 운동</div><div class="custom-exercise-list">${customChips}</div></div>` : ''}
+      <details class="record-details" open>
+        <summary>${escapeHtml(summary)} <span class="record-details-caret" aria-hidden="true">⌄</span></summary>
+        ${metrics.length > 0 ? `<div class="metrics-grid">${metricChips}</div>` : ''}
+        ${customChips ? `<div class="custom-exercise-section"><div class="custom-exercise-label">🏅 개인 운동</div><div class="custom-exercise-list">${customChips}</div></div>` : ''}
+        ${r.memo ? `<div class="record-memo">"${escapeHtml(r.memo)}"</div>` : ''}
+      </details>
 
       <div class="record-footer">
         <div class="record-condition">
           <span>${CONDITION_EMOJI[cond]}</span>
           <span style="font-size:0.8rem">${CONDITION_MAP[cond]}</span>
         </div>
-        ${r.memo ? `<div class="record-memo">"${escapeHtml(r.memo)}"</div>` : ''}
       </div>
     </div>
   `;

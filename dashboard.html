@@ -101,6 +101,7 @@
     .achievement-badge { display:inline-flex; align-items:center; gap:6px; padding:8px 11px; border:1px solid var(--border); border-radius:100px; background:#fff; color:var(--text-secondary); font-size:.74rem; font-weight:750; }
     .achievement-badge.earned { border-color:rgba(0,77,191,.24); background:#eff5fc; color:var(--primary); }
     .inbody-report { margin-top:12px; padding:13px 14px; border-radius:var(--radius-md); background:#f5f6f8; color:var(--text-secondary); font-size:.78rem; line-height:1.55; }
+    .report-extra > summary, .mobile-chart-details > summary { display:none; }
 
     .consult-report-dialog {
       position: fixed;
@@ -166,6 +167,26 @@
     .consult-report-footer { display:flex; justify-content:space-between; gap:20px; margin-top:14px; padding-top:9px; border-top:1px solid #dbe3eb; color:#78899a; font-size:7px; line-height:1.5; }
 
     @media (max-width: 600px) {
+      .report-heading { gap:10px; margin-bottom:12px; }
+      .report-heading p { line-height:1.4; }
+      .report-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      .report-month-controls { grid-column:1 / -1; justify-content:space-between; border-radius:12px; min-height:44px; }
+      .report-month-controls input { flex:1; width:auto; }
+      .report-action { border-radius:10px; min-height:42px; padding:8px 6px; }
+      .report-metric { padding:11px; }
+      .report-metric-note { line-height:1.35; }
+      .report-extra, .mobile-chart-details { margin-top:12px; }
+      .report-extra > summary, .mobile-chart-details > summary {
+        display:flex; align-items:center; justify-content:space-between; gap:10px;
+        min-height:44px; padding:10px 14px; border:1px solid var(--border);
+        border-radius:12px; background:var(--surface-2); color:var(--primary-dark);
+        font-size:.84rem; font-weight:800; cursor:pointer; list-style:none;
+      }
+      .report-extra > summary::-webkit-details-marker, .mobile-chart-details > summary::-webkit-details-marker { display:none; }
+      .report-extra[open] > summary span, .mobile-chart-details[open] > summary span { transform:rotate(180deg); }
+      .report-extra-body, .mobile-chart-details-body { padding-top:12px; }
+      .mobile-chart-details { margin:0 0 20px; }
+      .mobile-chart-details > summary { background:#fff; }
       .hero-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .streak-section { flex-direction: column; text-align: center; gap: 12px; padding: 16px; }
       .streak-cta { margin-left: 0; width: 100%; }
