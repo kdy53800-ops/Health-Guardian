@@ -22,6 +22,7 @@ function filterUserSelect() {
   if (query.length > 0 && matches.length > 0) {
     resultsList.classList.add('show');
     matches.forEach(u => {
+      const age = Number(u.birthyear) ? new Date().getFullYear() - Number(u.birthyear) + 1 : null;
       // Hidden select update
       const option = document.createElement('option');
       option.value = u.id;
@@ -34,7 +35,7 @@ function filterUserSelect() {
       item.innerHTML = `
         <div class="user-info-brief">
           <span class="user-name-id">${escapeHtml(u.name || '이름없음')} <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted); ml-4">@${escapeHtml(u.username)}</span></span>
-          <span class="user-meta-brief">${escapeHtml(u.gender || '-')} / ${escapeHtml(u.age || '-')}세</span>
+          <span class="user-meta-brief">${escapeHtml(u.gender || '-')} / ${age ? `${age}세` : '연령 미확인'}</span>
         </div>
         <div class="select-indicator">선택됨</div>
       `;
