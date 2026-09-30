@@ -43,6 +43,11 @@ function mapOverviewUser(row) {
 }
 
 function mapOverviewRecord(row) {
+  const optionalNumber = value => {
+    if (value === null || value === undefined || value === '') return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
   return {
     id: row.id,
     userId: row.user_id,
@@ -51,6 +56,10 @@ function mapOverviewRecord(row) {
     muscle: Number(row.skeletal_muscle) || 0,
     fat: Number(row.body_fat_percent) || 0,
     score: Number(row.inbody_score) || 0,
+    bodyFatMass: optionalNumber(row.body_fat_mass),
+    bmi: optionalNumber(row.bmi),
+    ecwRatio: optionalNumber(row.ecw_ratio),
+    phaseAngle: optionalNumber(row.phase_angle),
   };
 }
 
@@ -88,7 +97,7 @@ async function getAllInbodyRecords() {
   const records = [];
   for (let offset = 0; offset < 30000; offset += 1000) {
     const page = await fetchSupabase(
-      `/rest/v1/inbody_records?select=id,user_id,record_date,weight,skeletal_muscle,body_fat_percent,inbody_score&order=record_date.desc&limit=1000&offset=${offset}`,
+      `/rest/v1/inbody_records?select=id,user_id,record_date,weight,skeletal_muscle,body_fat_mass,bmi,body_fat_percent,ecw_ratio,inbody_score,phase_angle&order=record_date.desc&limit=1000&offset=${offset}`,
       { headers: { Accept: 'application/json' } }
     );
     if (!Array.isArray(page) || !page.length) break;

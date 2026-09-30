@@ -1,6 +1,17 @@
 let allUsers = [];
 let allInBodyRecords = [];
-let userTrendChart = null;
+let metricChartInstances = [];
+
+const inbodyMetrics = [
+  { label: '종합점수', key: 'score', unit: '점', digits: 0, color: '#0054a6' },
+  { label: '체중', key: 'weight', unit: 'kg', digits: 1, color: '#008cc6' },
+  { label: '골격근량', key: 'muscle', unit: 'kg', digits: 1, color: '#3076bb' },
+  { label: '체지방량', key: 'bodyFatMass', unit: 'kg', digits: 1, color: '#cc7858' },
+  { label: 'BMI', key: 'bmi', unit: '', digits: 1, color: '#6878bd' },
+  { label: '체지방률', key: 'fat', unit: '%', digits: 1, color: '#d46b73' },
+  { label: '세포외수분비', key: 'ecwRatio', unit: '', digits: 3, color: '#3d8c8d' },
+  { label: '위상각', key: 'phaseAngle', unit: '°', digits: 1, color: '#9a72aa' },
+];
 
 document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('adminLoginOverlay');
@@ -189,63 +200,78 @@ function showUserGraph(userId) {
   
   const graphDialog = document.getElementById('growthGraphArea');
   document.getElementById('graphTitle').textContent = `📈 ${item.user.name || '이름없음'}님의 체성분 변화 추이`;
-  document.getElementById('graphPeriod').textContent = `${document.getElementById('growthStartMonth').value} ~ ${document.getElementById('growthEndMonth').value}`;
+  document.getElementById('graphPeriod').textContent = `${document.getElementById('growthStartMonth').value} ~ ${document.getElementById('growthEndMonth').value} · 측정일별 변화`;
   
   const records = item.userRecords;
   const labels = records.map(r => r.date);
-  const muscles = records.map(r => r.muscle);
-  const fats = records.map(r => r.fat);
-  
-  const ctx = document.getElementById('userTrendChart');
-  if (userTrendChart) userTrendChart.destroy();
-  if (!graphDialog.open) graphDialog.showModal();
+  metricChartInstances.forEach(chart => chart.destroy());
+  metricChartInstances = [];
+  const chartGrid = document.getElementById('metricCharts');
+  chartGrid.replaceChildren();
 
-  userTrendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: '골격근량 (kg)',
-          data: muscles,
-          borderColor: '#06b6d4',
-          backgroundColor: 'rgba(6, 182, 212, 0.1)',
-          borderWidth: 3,
-          yAxisID: 'y'
-        },
-        {
-          label: '체지방률 (%)',
-          data: fats,
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          borderWidth: 3,
-          yAxisID: 'y1'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      scales: {
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: { display: true, text: '골격근량 (kg)' }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: { display: true, text: '체지방률 (%)' },
-          grid: { drawOnChartArea: false } // only want the grid lines for one axis to show up
-        }
-      }
+  const chartCards = inbodyMetrics.map(metric => {
+    const card = document.createElement('section');
+    card.className = 'metric-chart-card';
+    const title = document.createElement('h3');
+    title.className = 'metric-chart-title';
+    title.textContent = metric.label;
+    const change = document.createElement('p');
+    change.className = 'metric-chart-change';
+    const values = records.map(record => {
+      const value = record[metric.key];
+      return value === null || value === undefined || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+    });
+    const measured = values.filter(value => value !== null);
+    if (measured.length >= 2) {
+      const first = measured[0];
+      const last = measured[measured.length - 1];
+      const delta = last - first;
+      const format = value => value.toFixed(metric.digits);
+      change.textContent = `${format(first)} → ${format(last)} ${metric.unit} · 변화 ${delta > 0 ? '+' : ''}${format(delta)} ${metric.unit}`;
+    } else {
+      change.textContent = '비교 가능한 측정값이 없습니다.';
     }
+    card.append(title, change);
+    if (measured.length >= 2) {
+      const wrap = document.createElement('div');
+      wrap.className = 'metric-chart-canvas';
+      const canvas = document.createElement('canvas');
+      canvas.setAttribute('aria-label', `${metric.label} 변화 그래프`);
+      canvas.setAttribute('role', 'img');
+      wrap.appendChild(canvas);
+      card.appendChild(wrap);
+      chartGrid.appendChild(card);
+      return { metric, values, canvas };
+    }
+    chartGrid.appendChild(card);
+    return null;
+  }).filter(Boolean);
+
+  if (!graphDialog.open) graphDialog.showModal();
+  chartCards.forEach(({ metric, values, canvas }) => {
+    metricChartInstances.push(new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: `${metric.label}${metric.unit ? ` (${metric.unit})` : ''}`,
+          data: values,
+          borderColor: metric.color,
+          backgroundColor: metric.color,
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.25,
+          spanGaps: false,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { maxTicksLimit: 5 } }, y: { ticks: { maxTicksLimit: 5 } } },
+      },
+    }));
   });
 }
 
