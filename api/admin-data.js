@@ -99,6 +99,24 @@ function mapDashboardRecord(row) {
     condition:Number(row.condition) || 3 };
 }
 
+function seoulDateDaysAgo(days) {
+  return new Date(Date.now() + 9 * 3600000 - days * 86400000).toISOString().slice(0, 10);
+}
+
+function monthBounds(month) {
+  const [year, number] = month.split('-').map(Number);
+  return { start:`${month}-01`, end:new Date(Date.UTC(year, number, 1)).toISOString().slice(0, 10) };
+}
+
+function mapRollup(row) {
+  return { userId:row.user_id, recordCount:Number(row.record_count) || 0,
+    totalMinutes:Number(row.total_minutes) || 0,
+    walkingSum:Number(row.walking_sum) || 0, walkingEntries:Number(row.walking_entries) || 0,
+    runningSum:Number(row.running_sum) || 0, runningEntries:Number(row.running_entries) || 0,
+    customSum:Number(row.custom_sum) || 0, customEntries:Number(row.custom_entries) || 0,
+    activeThisMonth:!!row.active_this_month, lastDate:row.last_date || '' };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     sendJson(res, 405, { ok: false, message: 'Method Not Allowed' });
@@ -184,6 +202,39 @@ module.exports = async function handler(req, res) {
       await writeAdminAudit(auth, 'view_admin_dashboard', { targetType:'users', details:{ userCount:users.length, recordCount:records.length } });
       sendJson(res, 200, { ok:true, users });
       return;
+    }
+
+    if (view === 'dashboard-summary') {
+      const month = requestUrl.searchParams.get('month') || '';
+      if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+        sendJson(res, 400, { ok:false, message:'올바르지 않은 월입니다.' });
+        return;
+      }
+      const { start, end } = month ? monthBounds(month) : { start:seoulDateDaysAgo(29), end:seoulDateDaysAgo(-1) };
+      const rollupPromise = fetchSupabase('/rest/v1/rpc/admin_record_rollup', {
+        method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json' },
+        body:JSON.stringify({ p_month:month || null }),
+      });
+      const inbodyDatesPromise = fetchSupabase('/rest/v1/inbody_records?select=user_id,record_date&order=record_date.desc&limit=1000', {
+        headers:{ Accept:'application/json' },
+      });
+      const recordsPromise = fetchRecordPages('id,user_id,record_date,weight,walking,running,water,fasting,condition,custom_exercises', `&record_date=gte.${start}&record_date=lt.${end}`);
+      try {
+        const [profiles, rollup, inbodyDates, records] = await Promise.all([profilesPromise, rollupPromise, inbodyDatesPromise, recordsPromise]);
+        const inbodyLatest = {};
+        for (const row of Array.isArray(inbodyDates) ? inbodyDates : []) {
+          if (row.user_id && !inbodyLatest[row.user_id]) inbodyLatest[row.user_id] = row.record_date;
+        }
+        await writeAdminAudit(auth, 'view_admin_dashboard', {
+          targetType:'health_records', details:{ userCount:profiles.length, recordCount:records.length, summary:true },
+        });
+        sendJson(res, 200, { ok:true, users:profiles.map(mapProfile), rollups:rollup.map(mapRollup),
+          records:records.map(mapDashboardRecord), inbodyLatest });
+        return;
+      } catch (error) {
+        // Older deployments can continue to render while the SQL migration is being applied.
+        if (error.status !== 404 && error.status !== 42883 && error.status !== 400) throw error;
+      }
     }
 
     // 독립적인 조회는 함께 시작해 첫 화면의 대기 시간을 줄입니다.

@@ -8,6 +8,8 @@ let allUsers = [];
 let allRecords = [];
 let fetchedUsers = [];
 let fetchedRecords = [];
+let dashboardRollups = null;
+let dashboardMonthRequest = 0;
 let adminInbodyLatest = {};
 let filterSpecialOnly = false;
 let filterGender = 'all';
@@ -86,7 +88,10 @@ async function fetchAdminData() {
     const endpoint = new URL('api/admin-data', window.location.href);
     const page = location.pathname.split('/').pop();
     if (page === 'admin-users.html') endpoint.searchParams.set('view', 'users-summary');
-    if (page === 'admin.html') endpoint.searchParams.set('view', 'dashboard-summary');
+    if (page === 'admin.html') {
+      endpoint.searchParams.set('view', 'dashboard-summary');
+      if (filterMonth) endpoint.searchParams.set('month', filterMonth);
+    }
     const response = await fetch(endpoint.toString(), {
       method: 'GET',
       credentials: 'include',
@@ -179,6 +184,7 @@ async function enterAdmin() {
   renderDemoDataNotice(!!(payload && payload.demo));
   fetchedUsers = (payload && Array.isArray(payload.users)) ? payload.users : [];
   fetchedRecords = (payload && Array.isArray(payload.records)) ? payload.records : [];
+  dashboardRollups = (payload && Array.isArray(payload.rollups)) ? payload.rollups : null;
   adminInbodyLatest = (payload && payload.inbodyLatest && typeof payload.inbodyLatest === 'object') ? payload.inbodyLatest : {};
   
   applyFilter();
@@ -307,12 +313,13 @@ function renderAttentionBoard() {
     signals.push({ user, type, icon, reason, priority });
   };
   const recentStart = dateDaysAgo(6), previousStart = dateDaysAgo(13), previousEnd = dateDaysAgo(7), monthStart = dateDaysAgo(29);
+  const rollupsByUser = dashboardRollups ? new Map(dashboardRollups.map(item => [String(item.userId), item])) : null;
 
   userMap.forEach((user, userId) => {
     const records = recordsByUser.get(userId) || [];
-    const latest = records[records.length - 1];
-    const inactiveDays = latest ? daysSince(latest.date) : Infinity;
-    if (inactiveDays >= 7) add(user, 'inactive', '🕒', latest ? `${inactiveDays}일 동안 새 기록이 없습니다.` : '아직 작성된 건강 기록이 없습니다.', 3);
+    const latestDate = rollupsByUser ? rollupsByUser.get(userId)?.lastDate : records[records.length - 1]?.date;
+    const inactiveDays = latestDate ? daysSince(latestDate) : Infinity;
+    if (inactiveDays >= 7) add(user, 'inactive', '🕒', latestDate ? `${inactiveDays}일 동안 새 기록이 없습니다.` : '아직 작성된 건강 기록이 없습니다.', 3);
 
     const recentMinutes = records.filter(r => r.date >= recentStart).reduce((sum,r) => sum + adminRecordMinutes(r), 0);
     const previousMinutes = records.filter(r => r.date >= previousStart && r.date <= previousEnd).reduce((sum,r) => sum + adminRecordMinutes(r), 0);
@@ -328,7 +335,7 @@ function renderAttentionBoard() {
       if (Math.abs(change) >= 3) add(user, 'weight', '⚖️', `최근 30일 체중 기록이 ${change > 0 ? '+' : ''}${change.toFixed(1)}% 변했습니다.`, 1);
     }
 
-    if (user.isSpecial && inactiveDays >= 3) add(user, 'special', '⭐', latest ? `특별관리 대상자의 마지막 기록은 ${latest.date}입니다.` : '특별관리 대상자의 첫 기록 확인이 필요합니다.', 4);
+    if (user.isSpecial && inactiveDays >= 3) add(user, 'special', '⭐', latestDate ? `특별관리 대상자의 마지막 기록은 ${latestDate}입니다.` : '특별관리 대상자의 첫 기록 확인이 필요합니다.', 4);
     if (user.isSpecial) {
       const inbodyDate = adminInbodyLatest[userId];
       const elapsed = daysSince(inbodyDate);
@@ -392,18 +399,22 @@ function renderPlatformStats() {
   
   // '전체 사용자'는 가입된 모든 인원
   const totalUsers = fetchedUsers.length;
-  const totalRecords = allRecords.length;
+  const validIds = new Set(allUsers.map(user => String(user.id)));
+  const relevantRollups = dashboardRollups ? dashboardRollups.filter(item => validIds.has(String(item.userId))) : null;
+  const totalRecords = relevantRollups ? relevantRollups.reduce((sum, item) => sum + item.recordCount, 0) : allRecords.length;
 
   // 활성 사용자 정의: 이 달의 기록 발생 인원 총계
   // filterMonth가 있으면 해당 월, 없으면 현재 실제 월 기준
-  const monthlyActiveUsers = new Set(
+  const monthlyActiveUsers = dashboardRollups
+    ? dashboardRollups.filter(item => filterMonth ? item.recordCount > 0 : item.activeThisMonth).length
+    : new Set(
     fetchedRecords
       .filter(r => String(r.date).startsWith(targetMonth))
       .map(r => r.userId)
-  ).size;
+    ).size;
   const activeLabel = filterMonth ? `${targetMonth.slice(5)}월 참여 인원` : '이번 달 참여 인원';
 
-  const totalExMins = allRecords.reduce((sum, record) => {
+  const totalExMins = relevantRollups ? relevantRollups.reduce((sum, item) => sum + item.totalMinutes, 0) : allRecords.reduce((sum, record) => {
     return sum + adminRecordMinutes(record);
   }, 0);
 
@@ -606,6 +617,17 @@ function renderExerciseAvgChart() {
   exercises.forEach(ex => {
     let validRecords = [];
     let sum = 0;
+
+    if (dashboardRollups) {
+      const validIds = new Set(allUsers.map(user => String(user.id)));
+      const relevant = dashboardRollups.filter(item => validIds.has(String(item.userId)));
+      const key = ex.type === 'custom' ? 'custom' : ex.key;
+      const total = relevant.reduce((acc, item) => acc + item[`${key}Sum`], 0);
+      const count = relevant.reduce((acc, item) => acc + item[`${key}Entries`], 0);
+      averages.push(count ? Math.round(total / count) : 0);
+      labels.push(ex.label);
+      return;
+    }
 
     if (ex.type === 'custom') {
       allRecords.forEach(r => {
@@ -1144,7 +1166,9 @@ async function deleteUser() {
 function applyFilter() {
   const currentYear = new Date().getFullYear();
   const isUserPage = location.pathname.split('/').pop() === 'admin-users.html';
-  const recordUserIds = isUserPage ? null : new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
+  const recordUserIds = isUserPage ? null : dashboardRollups
+    ? new Set(dashboardRollups.filter(item => item.recordCount > 0).map(item => item.userId))
+    : new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
 
   allUsers = fetchedUsers.filter(u => {
     // 1. 특별관리 필터
@@ -1189,7 +1213,7 @@ function applyFilter() {
   renderAll();
 }
 
-function updateFilters() {
+async function updateFilters() {
   const gSelect = document.getElementById('filterGender');
   const aSelect = document.getElementById('filterAge');
   const sSelect = document.getElementById('filterSpecial');
@@ -1198,8 +1222,25 @@ function updateFilters() {
   if (gSelect) filterGender = gSelect.value;
   if (aSelect) filterAge = aSelect.value;
   if (sSelect) filterSpecialOnly = (sSelect.value === 'special');
+  const previousMonth = filterMonth;
   if (mSelect) filterMonth = mSelect.value;
-  
+  if (previousMonth !== filterMonth && location.pathname.split('/').pop() === 'admin.html') {
+    const requestId = ++dashboardMonthRequest;
+    const requestedMonth = filterMonth;
+    try {
+      const payload = await fetchAdminData();
+      if (requestId !== dashboardMonthRequest || requestedMonth !== filterMonth) return;
+      fetchedUsers = Array.isArray(payload.users) ? payload.users : [];
+      fetchedRecords = Array.isArray(payload.records) ? payload.records : [];
+      dashboardRollups = Array.isArray(payload.rollups) ? payload.rollups : null;
+      adminInbodyLatest = payload.inbodyLatest || {};
+    } catch (error) {
+      if (requestId !== dashboardMonthRequest) return;
+      filterMonth = previousMonth;
+      syncFilterUI();
+      showToast(error.message || '월별 데이터를 불러오지 못했습니다.', 'error');
+    }
+  }
   applyFilter();
 }
 

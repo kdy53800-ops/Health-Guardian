@@ -17,6 +17,11 @@ stubModule('../api/_lib/supabase', {
     calls.push(path);
     if (path.startsWith('/rest/v1/profiles?')) return [profile];
     if (path.startsWith('/rest/v1/inbody_records?')) return [];
+    if (path === '/rest/v1/rpc/admin_record_rollup') return [{
+      user_id:'user-1', record_count:1, total_minutes:20, walking_sum:20, walking_entries:1,
+      running_sum:0, running_entries:0, custom_sum:0, custom_entries:0,
+      active_this_month:true, last_date:'2026-09-29',
+    }];
     if (path.startsWith('/rest/v1/daily_records?')) {
       if (recordPages) return recordPages[Number(new URL(path, 'http://local').searchParams.get('offset'))] || [];
       return [record];
@@ -95,8 +100,12 @@ test('dashboard summary omits detailed exercise arrays', async () => {
   assert.equal(result.status, 200);
   assert.equal(result.body.records[0].customExercises, undefined);
   assert.equal(result.body.records[0].walking, 20);
+  assert.equal(result.body.rollups[0].recordCount, 1);
+  assert.equal(result.body.rollups[0].totalMinutes, 20);
   const recordQuery = calls.find(path => path.startsWith('/rest/v1/daily_records?'));
   assert.doesNotMatch(recordQuery, /heart_rate|saved_at/);
+  assert.match(recordQuery, /record_date=gte\./);
+  assert.equal(calls.length, 4);
 });
 
 test('full admin data includes heart rate and requests only needed columns', async () => {
