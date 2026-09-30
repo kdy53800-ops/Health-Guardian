@@ -1001,7 +1001,7 @@ function renderUserDetail(user, recs) {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">기록 없음</td></tr>';
+    : '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">기록 없음</td></tr>';
 
   const days30 = [];
   const counts30 = [];
@@ -1194,10 +1194,10 @@ function applyFilter() {
       }
     }
     
-    // 4. 기록 기반 필터 (가입일 대신 기록 유무 기준)
-    // 월별 필터가 있을 경우, 해당 월에 기록이 있는 사용자만 포함
+    // 사용자 관리는 기록이 없는 가입 계정도 보여줍니다.
+    // 월별 필터가 설정된 경우에만 해당 월 기록이 있는 계정으로 좁힙니다.
     if (isUserPage) {
-      if (!u.recordCount || (filterMonth && !(u.recordMonths || []).includes(filterMonth))) return false;
+      if (filterMonth && !(u.recordMonths || []).includes(filterMonth)) return false;
     } else if (!recordUserIds.has(u.id)) return false;
     
     return true;
