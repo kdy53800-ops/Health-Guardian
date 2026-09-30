@@ -205,7 +205,7 @@ function renderGrowthTable(data) {
       <td data-label="성장 점수" style="font-weight:900; color:${scoreColor};">${item.growthScore > 0 ? '+' : ''}${item.growthScore} 점 <span style="font-size:0.8rem;margin-left:4px;">${arrow}</span></td>
       <td data-label="평균 운동량">${item.dailyAvg}</td>
       <td data-label="상세" style="text-align:right;">
-        <button class="btn btn-sm" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
+        <button class="btn btn-sm" aria-haspopup="dialog" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
       </td>
     `;
     
@@ -230,12 +230,13 @@ function filterGrowthTable() {
 function showUserGraph(userId) {
   const item = window.currentRankingData.find(i => i.user.id === userId);
   if (!item) return;
-  
-  document.getElementById('growthGraphArea').style.display = 'flex';
+
+  const graphDialog = document.getElementById('growthGraphArea');
   document.getElementById('graphTitle').textContent = `📈 ${item.user.name || '이름없음'}님의 상세 트렌드`;
   
   const startStr = document.getElementById('growthStartDate').value;
   const endStr = document.getElementById('growthEndDate').value;
+  document.getElementById('graphPeriod').textContent = `${startStr} ~ ${endStr} · 일별 총 운동 시간`;
   const startDate = new Date(startStr);
   const endDate = new Date(endStr);
   
@@ -262,7 +263,8 @@ function showUserGraph(userId) {
   
   const ctx = document.getElementById('userTrendChart');
   if (userTrendChart) userTrendChart.destroy();
-  
+  if (!graphDialog.open) graphDialog.showModal();
+
   userTrendChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -291,11 +293,12 @@ function showUserGraph(userId) {
       }
     }
   });
-  
-  // 화면 부드럽게 스크롤
-  document.getElementById('growthGraphArea').scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function closeGraph() {
-  document.getElementById('growthGraphArea').style.display = 'none';
+  document.getElementById('growthGraphArea').close();
 }
+
+document.getElementById('growthGraphArea').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeGraph();
+});

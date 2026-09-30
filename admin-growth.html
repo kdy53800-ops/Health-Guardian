@@ -86,10 +86,18 @@
       border-radius: var(--radius-lg);
       padding: 24px;
       box-shadow: var(--shadow-sm);
-      margin-top: 24px;
-      min-height: 350px;
-      display: flex;
-      flex-direction: column;
+      width: min(900px, calc(100vw - 32px));
+      max-height: calc(100dvh - 32px);
+      overflow-y: auto;
+      margin: auto;
+      color: var(--text);
+    }
+    .graph-container::backdrop { background: rgba(20,35,55,.58); }
+    .graph-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }
+    .graph-chart-wrap { position:relative; height:min(55vh,460px); min-height:280px; width:100%; }
+    @media(max-width:600px) {
+      .graph-container { padding:16px; }
+      .graph-chart-wrap { height: min(52vh,380px); min-height:240px; }
     }
   </style>
   <link rel="stylesheet" href="css/ongil-theme.css">
@@ -205,19 +213,20 @@
           </div>
         </div>
 
-        <!-- 개인별 트렌드 그래프 -->
-        <div class="graph-container" id="growthGraphArea" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h3 style="font-size:1.1rem; font-weight:800;" id="graphTitle">사용자 상세 트렌드</h3>
-            <button class="btn btn-sm" onclick="closeGraph()">닫기 ✖</button>
-          </div>
-          <div style="position:relative; height:300px; width:100%;">
-            <canvas id="userTrendChart"></canvas>
-          </div>
-        </div>
       </div>
     </main>
   </div>
+
+  <dialog class="graph-container" id="growthGraphArea" aria-labelledby="graphTitle">
+    <div class="graph-header">
+      <div>
+        <h2 style="font-size:1.15rem;font-weight:800;" id="graphTitle">사용자 상세 트렌드</h2>
+        <p id="graphPeriod" style="font-size:.82rem;color:var(--text-muted);margin-top:5px;"></p>
+      </div>
+      <button type="button" class="btn btn-sm" onclick="closeGraph()" aria-label="그래프 창 닫기">닫기 ✖</button>
+    </div>
+    <div class="graph-chart-wrap"><canvas id="userTrendChart"></canvas></div>
+  </dialog>
 
   <script src="js/app.js"></script>
   <script src="js/supabase-auth.js"></script>
