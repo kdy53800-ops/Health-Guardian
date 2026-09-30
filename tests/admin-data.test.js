@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const calls = [];
 const audits = [];
+let recordPages = null;
 const profile = { id:'user-1', name:'관리자', is_admin:true, is_special:false, created_at:'2026-09-01T00:00:00Z' };
 const record = { id:'record-1', user_id:'user-1', record_date:'2026-09-29', heart_rate:72, walking:20, custom_exercises:[] };
 
@@ -16,7 +17,10 @@ stubModule('../api/_lib/supabase', {
     calls.push(path);
     if (path.startsWith('/rest/v1/profiles?')) return [profile];
     if (path.startsWith('/rest/v1/inbody_records?')) return [];
-    if (path.startsWith('/rest/v1/daily_records?')) return [record];
+    if (path.startsWith('/rest/v1/daily_records?')) {
+      if (recordPages) return recordPages[Number(new URL(path, 'http://local').searchParams.get('offset'))] || [];
+      return [record];
+    }
     throw new Error(`Unexpected query: ${path}`);
   },
 });
@@ -61,4 +65,24 @@ test('full admin data includes heart rate and requests only needed columns', asy
   assert.match(recordQuery, /heart_rate/);
   assert.match(recordQuery, /order=record_date.desc,id.desc/);
   assert.doesNotMatch(recordQuery, /select=\*/);
+});
+
+test('large record lists keep page order across paired requests', async () => {
+  calls.length = 0;
+  recordPages = {
+    0:Array.from({ length:1000 }, (_, index) => ({ ...record, id:`first-${index}` })),
+    1000:Array.from({ length:1000 }, (_, index) => ({ ...record, id:`second-${index}` })),
+    2000:[{ ...record, id:'last' }],
+  };
+  try {
+    const result = await request('/api/admin-data');
+    assert.equal(result.status, 200);
+    assert.equal(result.body.records.length, 2001);
+    assert.equal(result.body.records[0].id, 'first-0');
+    assert.equal(result.body.records[1000].id, 'second-0');
+    assert.equal(result.body.records[2000].id, 'last');
+    assert.equal(calls.filter(path => path.startsWith('/rest/v1/daily_records?')).length, 3);
+  } finally {
+    recordPages = null;
+  }
 });

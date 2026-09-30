@@ -105,15 +105,23 @@ module.exports = async function handler(req, res) {
 
     // 2. 일별 기록은 1000건 제한을 피하기 위해 페이지네이션 수행 (최대 30,000건까지)
     const recordsPromise = (async () => {
+      const fetchPage = page => fetchSupabase(`/rest/v1/daily_records?select=id,user_id,record_date,weight,walking,running,water,fasting,heart_rate,condition,custom_exercises,saved_at&order=record_date.desc,id.desc&limit=1000&offset=${page * 1000}`, {
+        headers: { Accept: 'application/json' },
+      });
       const allRecords = [];
-      for (let i = 0; i < 30; i++) {
-        const from = i * 1000;
-        const records = await fetchSupabase(`/rest/v1/daily_records?select=id,user_id,record_date,weight,walking,running,water,fasting,heart_rate,condition,custom_exercises,saved_at&order=record_date.desc,id.desc&limit=1000&offset=${from}`, {
-          headers: { Accept: 'application/json' },
-        });
-        if (!Array.isArray(records) || records.length === 0) break;
-        allRecords.push(...records);
-        if (records.length < 1000) break;
+      const firstPage = await fetchPage(0);
+      if (!Array.isArray(firstPage) || !firstPage.length) return allRecords;
+      allRecords.push(...firstPage);
+      if (firstPage.length < 1000) return allRecords;
+
+      for (let page = 1; page < 30; page += 2) {
+        const pageNumbers = [page, page + 1].filter(number => number < 30);
+        const pages = await Promise.all(pageNumbers.map(fetchPage));
+        for (const records of pages) {
+          if (!Array.isArray(records) || !records.length) return allRecords;
+          allRecords.push(...records);
+          if (records.length < 1000) return allRecords;
+        }
       }
       return allRecords;
     })();
