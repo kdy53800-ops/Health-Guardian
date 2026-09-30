@@ -5,12 +5,18 @@ let selectedUserLabel = '';
 let selectedFile = null;
 let specialUsersData = [];
 let specialUsersLoaded = false;
+let userListExpanded = true;
 
 function profileGenderCode(value) {
   const gender = String(value || '').trim().toLowerCase();
   if (['남', '남성', 'm', 'male'].includes(gender)) return '남';
   if (['여', '여성', 'f', 'female'].includes(gender)) return '여';
   return '';
+}
+
+function expandAndFilterUserSelect() {
+  userListExpanded = true;
+  filterUserSelect();
 }
 
 function filterUserSelect() {
@@ -33,12 +39,20 @@ function filterUserSelect() {
     if (ageFilter !== 'all' && (!age || (ageFilter === '50' ? age < 50 : age < Number(ageFilter) || age >= Number(ageFilter) + 10))) return false;
     const text = `${u.name || '이름없음'} (@${u.username || ''})`;
     return text.toLowerCase().includes(query);
-  }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
-  if (status) status.textContent = `${matches.length}명 표시 · 특별관리 대상자만 표시됩니다.${selectedUserLabel ? ` 현재 선택: ${selectedUserLabel}` : ''}`;
+  }).sort((a, b) => {
+    if (selectedUserId && a.id === selectedUserId) return -1;
+    if (selectedUserId && b.id === selectedUserId) return 1;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+  });
+  const showSelectedOnly = Boolean(selectedUserId && !userListExpanded);
+  const visibleUsers = showSelectedOnly ? specialUsersData.filter(u => u.id === selectedUserId) : matches;
+  if (status) status.textContent = showSelectedOnly
+    ? '선택한 대상자를 다시 누르면 목록이 열립니다.'
+    : `${matches.length}명 표시 · 특별관리 대상자만 표시됩니다.${selectedUserLabel ? ` 현재 선택: ${selectedUserLabel}` : ''}`;
 
-  if (matches.length > 0) {
+  if (visibleUsers.length > 0) {
     resultsList.classList.add('show');
-    matches.forEach(u => {
+    visibleUsers.forEach(u => {
       const age = Number(u.birthyear) ? new Date().getFullYear() - Number(u.birthyear) + 1 : null;
       const genderCode = profileGenderCode(u.gender);
       const genderLabel = genderCode === '남' ? '남성' : genderCode === '여' ? '여성' : '성별 미확인';
@@ -54,15 +68,15 @@ function filterUserSelect() {
       // List item creation
       const item = document.createElement('button');
       item.type = 'button';
-      item.className = `search-result-item ${selectedUserId === u.id ? 'active' : ''}`;
+      item.className = `search-result-item ${selectedUserId === u.id ? 'active' : ''} ${showSelectedOnly ? 'collapsed' : ''}`;
       item.innerHTML = `
         <div class="user-info-brief">
           <span class="user-name-id">${escapeHtml(displayName)}</span>
           <span class="user-meta-brief">${genderLabel} · ${ageLabel}</span>
         </div>
-        <div class="select-indicator">선택됨</div>
+        <div class="select-indicator">${showSelectedOnly ? '목록 열기 ▾' : '선택됨'}</div>
       `;
-      item.onclick = () => selectUserFromResult(u.id, selectedLabel);
+      item.onclick = () => showSelectedOnly ? expandAndFilterUserSelect() : selectUserFromResult(u.id, selectedLabel);
       resultsList.appendChild(item);
     });
   } else {
@@ -81,8 +95,15 @@ function filterUserSelect() {
 }
 
 function selectUserFromResult(userId, label) {
+  if (selectedUserId === userId) {
+    userListExpanded = false;
+    filterUserSelect();
+    return;
+  }
   selectedUserId = userId;
   selectedUserLabel = label;
+  userListExpanded = false;
+  document.getElementById('userSearch').value = '';
   filterUserSelect();
   loadUserRecords();
 }
