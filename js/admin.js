@@ -10,6 +10,7 @@ let fetchedUsers = [];
 let fetchedRecords = [];
 let dashboardRollups = null;
 let dashboardMonthRequest = 0;
+let attentionFilter = 'all';
 let adminInbodyLatest = {};
 let filterSpecialOnly = false;
 let filterGender = 'all';
@@ -318,8 +319,9 @@ function renderAttentionBoard() {
   userMap.forEach((user, userId) => {
     const records = recordsByUser.get(userId) || [];
     const latestDate = rollupsByUser ? rollupsByUser.get(userId)?.lastDate : records[records.length - 1]?.date;
-    const inactiveDays = latestDate ? daysSince(latestDate) : Infinity;
-    if (inactiveDays >= 7) add(user, 'inactive', '🕒', latestDate ? `${inactiveDays}일 동안 새 기록이 없습니다.` : '아직 작성된 건강 기록이 없습니다.', 3);
+    const joinedDate = String(user.createdAt || '').slice(0, 10);
+    const inactiveDays = latestDate ? daysSince(latestDate) : daysSince(joinedDate);
+    if (inactiveDays >= 7) add(user, 'inactive', '🕒', latestDate ? `${inactiveDays}일 동안 새 기록이 없습니다.` : '가입 후 7일 이상 건강 기록이 없습니다.', 3);
 
     const recentMinutes = records.filter(r => r.date >= recentStart).reduce((sum,r) => sum + adminRecordMinutes(r), 0);
     const previousMinutes = records.filter(r => r.date >= previousStart && r.date <= previousEnd).reduce((sum,r) => sum + adminRecordMinutes(r), 0);
@@ -344,22 +346,45 @@ function renderAttentionBoard() {
   });
 
   const uniqueUsers = new Set(signals.map(signal => String(signal.user.id))).size;
-  total.textContent = `${uniqueUsers}명`;
   const summaryItems = [
-    ['inactive','7일 이상 미기록'], ['decrease','운동량 감소'], ['weight','체중 변화'], ['special','특별관리 확인'], ['inbody','인바디 재측정']
+    ['all','전체',uniqueUsers],
+    ['inactive','7일 이상 미기록',counts.inactive],
+    ['decrease','운동량 감소',counts.decrease],
+    ['weight','체중 변화',counts.weight],
+    ['special','특별관리 확인',counts.special],
+    ['inbody','인바디 재측정',counts.inbody]
   ];
-  summary.innerHTML = summaryItems.map(([key,label]) => `<div class="attention-summary-item"><strong>${counts[key]}</strong><span>${label}</span></div>`).join('');
+  summary.innerHTML = summaryItems.map(([key,label,count]) => `<button type="button" class="attention-summary-item" data-filter="${key}" aria-pressed="${attentionFilter === key}" onclick="setAttentionFilter(this.dataset.filter)"><strong>${count}</strong><span>${label}</span></button>`).join('');
 
-  if (!signals.length) {
-    list.innerHTML = '<div class="attention-empty" style="grid-column:1/-1;">현재 기준으로 확인이 필요한 사용자가 없습니다.</div>';
+  const visibleSignals = attentionFilter === 'all' ? signals : signals.filter(signal => signal.type === attentionFilter);
+  const grouped = new Map();
+  visibleSignals.forEach(signal => {
+    const key = String(signal.user.id);
+    if (!grouped.has(key)) grouped.set(key, { user:signal.user, priority:signal.priority, icon:signal.icon, reasons:[] });
+    const item = grouped.get(key);
+    if (signal.priority > item.priority) item.icon = signal.icon;
+    item.priority = Math.max(item.priority, signal.priority);
+    item.reasons.push(signal.reason);
+  });
+  const rows = [...grouped.values()].sort((a,b) => b.priority - a.priority || String(a.user.name).localeCompare(String(b.user.name), 'ko'));
+  total.textContent = `${rows.length}명`;
+
+  if (!rows.length) {
+    list.innerHTML = `<div class="attention-empty" style="grid-column:1/-1;">${attentionFilter === 'all' ? '현재 기준으로 확인이 필요한 사용자가 없습니다.' : '선택한 유형에 해당하는 사용자가 없습니다.'}</div>`;
     return;
   }
-  signals.sort((a,b) => b.priority - a.priority || String(a.user.name).localeCompare(String(b.user.name), 'ko'));
-  list.innerHTML = signals.slice(0, 12).map(signal => `
+  list.innerHTML = rows.map(item => `
     <div class="attention-row">
-      <span class="attention-icon" aria-hidden="true">${signal.icon}</span>
-      <div class="attention-copy"><div class="attention-name">${escapeHtml(signal.user.name || signal.user.username || '사용자')}</div><div class="attention-reason">${escapeHtml(signal.reason)}</div></div>
+      <span class="attention-icon" aria-hidden="true">${item.icon}</span>
+      <div class="attention-copy"><div class="attention-name">${escapeHtml(item.user.name || item.user.username || '사용자')}</div>${item.reasons.map(reason => `<div class="attention-reason">${escapeHtml(reason)}</div>`).join('')}</div>
     </div>`).join('');
+}
+
+function setAttentionFilter(filter) {
+  if (!['all','inactive','decrease','weight','special','inbody'].includes(filter)) return;
+  attentionFilter = filter;
+  renderAttentionBoard();
+  document.querySelector(`#attentionSummary [data-filter="${filter}"]`)?.focus({ preventScroll:true });
 }
 
 async function exportAdminRecords() {
@@ -1166,6 +1191,7 @@ async function deleteUser() {
 function applyFilter() {
   const currentYear = new Date().getFullYear();
   const isUserPage = location.pathname.split('/').pop() === 'admin-users.html';
+  const isDashboardPage = location.pathname.split('/').pop() === 'admin.html';
   const recordUserIds = isUserPage ? null : dashboardRollups
     ? new Set(dashboardRollups.filter(item => item.recordCount > 0).map(item => item.userId))
     : new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
@@ -1198,7 +1224,7 @@ function applyFilter() {
     // 월별 필터가 설정된 경우에만 해당 월 기록이 있는 계정으로 좁힙니다.
     if (isUserPage) {
       if (filterMonth && !(u.recordMonths || []).includes(filterMonth)) return false;
-    } else if (!recordUserIds.has(u.id)) return false;
+    } else if ((!isDashboardPage || filterMonth) && !recordUserIds.has(u.id)) return false;
     
     return true;
   });

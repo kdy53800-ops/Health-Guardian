@@ -64,11 +64,14 @@
     .attention-header h2 { font-size:1.05rem; font-weight:850; color:var(--text); }
     .attention-header p { margin-top:4px; font-size:.76rem; color:var(--text-muted); }
     .attention-total { min-width:42px; height:30px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-radius:100px; background:#fff7ed; color:#c2410c; font-size:.78rem; font-weight:850; }
-    .attention-summary { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px; }
-    .attention-summary-item { padding:10px; border-radius:var(--radius-sm); background:var(--surface-2); border:1px solid var(--border); text-align:center; }
+    .attention-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:8px; margin-bottom:14px; }
+    .attention-summary-item { width:100%; padding:10px; border-radius:var(--radius-sm); background:var(--surface-2); border:1px solid var(--border); text-align:center; cursor:pointer; font:inherit; transition:background .15s,border-color .15s,box-shadow .15s; }
+    .attention-summary-item:hover { border-color:var(--primary); background:#f0f7ff; }
+    .attention-summary-item:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+    .attention-summary-item[aria-pressed="true"] { background:#eaf4ff; border-color:var(--primary); box-shadow:inset 0 0 0 1px var(--primary); }
     .attention-summary-item strong { display:block; color:var(--text); font-size:1.05rem; }
     .attention-summary-item span { color:var(--text-muted); font-size:.67rem; }
-    .attention-list { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .attention-list { display:grid; grid-template-columns:1fr 1fr; gap:8px; max-height:520px; overflow-y:auto; align-content:start; }
     .attention-row { display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--border); border-radius:var(--radius-md); background:#fff; }
     .attention-icon { width:34px; height:34px; border-radius:10px; background:#f7f8fa; display:flex; align-items:center; justify-content:center; flex:none; }
     .attention-copy { min-width:0; flex:1; }
@@ -204,8 +207,8 @@
 
       <div class="platform-stats" id="platformStats"></div>
       <section class="attention-board" aria-labelledby="attentionTitle">
-        <div class="attention-header"><div><h2 id="attentionTitle">🔎 오늘 확인할 사용자</h2><p>최근 기록 변화를 기준으로 확인이 필요한 대상을 자동 정리합니다.</p></div><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn btn-outline btn-sm" onclick="exportAdminRecords()">CSV 내보내기</button><span class="attention-total" id="attentionTotal">0명</span></div></div>
-        <div class="attention-summary" id="attentionSummary"></div>
+        <div class="attention-header"><div><h2 id="attentionTitle">🔎 오늘 확인할 사용자</h2><p>최근 기록 변화를 기준으로 확인이 필요한 대상을 자동 정리합니다.</p></div><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn btn-outline btn-sm" onclick="exportAdminRecords()">CSV 내보내기</button><span class="attention-total" id="attentionTotal" aria-live="polite">0명</span></div></div>
+        <div class="attention-summary" id="attentionSummary" role="group" aria-label="확인 대상 유형 필터"></div>
         <div class="attention-list" id="attentionList"><div class="attention-empty">대상자를 계산하고 있습니다.</div></div>
       </section>
       <section class="attention-board" id="auditPanel" aria-labelledby="auditTitle">
