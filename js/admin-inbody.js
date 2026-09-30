@@ -3,23 +3,32 @@ let currentUser = null;
 let selectedUserId = null;
 let selectedFile = null;
 let specialUsersData = [];
+let specialUsersLoaded = false;
 
 function filterUserSelect() {
-  const query = document.getElementById('userSearch') ? document.getElementById('userSearch').value.toLowerCase() : '';
+  const query = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
+  const gender = document.getElementById('filterGender')?.value || 'all';
+  const ageFilter = document.getElementById('filterAge')?.value || 'all';
   const select = document.getElementById('userSelect');
   const resultsList = document.getElementById('searchResults');
+  const status = document.getElementById('userListStatus');
   if (!select || !resultsList) return;
+  if (!specialUsersLoaded) return;
   
   // Update hidden select for compatibility
   select.innerHTML = '<option value="">사용자를 선택하세요...</option>';
   resultsList.innerHTML = '';
   
   const matches = specialUsersData.filter(u => {
-    const text = `${u.name || '이름없음'} (${u.username})`;
+    if (gender !== 'all' && u.gender !== gender) return false;
+    const age = Number(u.birthyear) ? new Date().getFullYear() - Number(u.birthyear) + 1 : null;
+    if (ageFilter !== 'all' && (!age || (ageFilter === '50' ? age < 50 : age < Number(ageFilter) || age >= Number(ageFilter) + 10))) return false;
+    const text = `${u.name || '이름없음'} (@${u.username || ''})`;
     return text.toLowerCase().includes(query);
-  });
+  }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
+  if (status) status.textContent = `${matches.length}명 표시 · 목록에서 대상자를 선택하거나 이름으로 검색하세요.`;
 
-  if (query.length > 0 && matches.length > 0) {
+  if (matches.length > 0) {
     resultsList.classList.add('show');
     matches.forEach(u => {
       const age = Number(u.birthyear) ? new Date().getFullYear() - Number(u.birthyear) + 1 : null;
@@ -30,7 +39,8 @@ function filterUserSelect() {
       select.appendChild(option);
 
       // List item creation
-      const item = document.createElement('div');
+      const item = document.createElement('button');
+      item.type = 'button';
       item.className = `search-result-item ${selectedUserId === u.id ? 'active' : ''}`;
       item.innerHTML = `
         <div class="user-info-brief">
@@ -42,11 +52,9 @@ function filterUserSelect() {
       item.onclick = () => selectUserFromResult(u.id, `${u.name || '이름없음'} (@${u.username})`);
       resultsList.appendChild(item);
     });
-  } else if (query.length > 0 && matches.length === 0) {
-    resultsList.classList.add('show');
-    resultsList.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">검색 결과가 없습니다.</div>';
   } else {
-    resultsList.classList.remove('show');
+    resultsList.classList.add('show');
+    resultsList.innerHTML = `<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">${specialUsersData.length ? '조건에 맞는 대상자가 없습니다.' : '특별관리 대상자가 없습니다.'}</div>`;
   }
 }
 
@@ -55,6 +63,7 @@ function selectUserFromResult(userId, label) {
   document.getElementById('userSelect').value = userId;
   document.getElementById('userSearch').value = label;
   document.getElementById('searchResults').classList.remove('show');
+  document.getElementById('userListStatus').textContent = `${label} 선택됨`;
   
   // Highlight active items
   document.querySelectorAll('.search-result-item').forEach(item => {
@@ -98,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('click', (e) => {
     const searchResults = document.getElementById('searchResults');
     const userSearch = document.getElementById('userSearch');
-    if (searchResults && !searchResults.contains(e.target) && e.target !== userSearch) {
+    if (selectedUserId && searchResults && !searchResults.contains(e.target) && e.target !== userSearch) {
       searchResults.classList.remove('show');
     }
   });
@@ -131,14 +140,20 @@ async function loadSpecialUsers() {
     }
 
     specialUsersData = (payload.users || []).filter(u => u.isSpecial);
+    specialUsersLoaded = true;
     filterUserSelect();
   } catch (err) {
     if (window.location.protocol === 'file:') {
       specialUsersData = JSON.parse(localStorage.getItem('users') || '[]').filter(u => u.isSpecial);
+      specialUsersLoaded = true;
       filterUserSelect();
     } else {
       console.error('Error loading special users:', err);
-      alert('사용자 목록을 불러오는 중 오류가 발생했습니다.');
+      document.getElementById('userListStatus').textContent = '대상자 목록을 불러오지 못했습니다.';
+      const results = document.getElementById('searchResults');
+      results.classList.add('show');
+      results.innerHTML = '<div style="padding:16px;color:var(--text-muted);">연결을 확인한 뒤 다시 시도해 주세요. <button type="button" id="retrySpecialUsers" class="btn btn-outline btn-sm">다시 시도</button></div>';
+      document.getElementById('retrySpecialUsers').addEventListener('click', loadSpecialUsers);
     }
   }
 }

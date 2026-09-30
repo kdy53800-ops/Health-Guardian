@@ -125,13 +125,18 @@
       display: block;
     }
     .search-result-item {
+      width: 100%;
       padding: 12px 16px;
+      border: 0;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: space-between;
       transition: background 0.2s;
+      background: white;
+      text-align: left;
+      font: inherit;
     }
     .search-result-item:last-child {
       border-bottom: none;
@@ -139,6 +144,7 @@
     .search-result-item:hover {
       background: var(--surface-2);
     }
+    .search-result-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .search-result-item.active {
       background: var(--primary-light);
       border-left: 4px solid var(--primary);
@@ -231,7 +237,7 @@
       <div class="admin-filter-bar">
         <div class="filter-group">
           <span class="filter-label">🚻 성별</span>
-          <select id="filterGender" class="filter-select" aria-label="성별 필터" onchange="updateFilters()">
+          <select id="filterGender" class="filter-select" aria-label="성별 필터" onchange="filterUserSelect()">
             <option value="all">전체</option>
             <option value="남">남성</option>
             <option value="여">여성</option>
@@ -239,19 +245,12 @@
         </div>
         <div class="filter-group">
           <span class="filter-label">🎂 연령대</span>
-          <select id="filterAge" class="filter-select" aria-label="연령 필터" onchange="updateFilters()">
+          <select id="filterAge" class="filter-select" aria-label="연령 필터" onchange="filterUserSelect()">
             <option value="all">전체</option>
             <option value="20">20대</option>
             <option value="30">30대</option>
             <option value="40">40대</option>
             <option value="50">50대 이상</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">⭐ 대상</span>
-          <select id="filterSpecial" class="filter-select" aria-label="특별관리 필터" onchange="updateFilters()" style="border-color:var(--gold);">
-            <option value="all">전체 사용자</option>
-            <option value="special">특별관리 대상</option>
           </select>
         </div>
       </div>
@@ -260,9 +259,10 @@
         <div class="form-group" style="margin-bottom: 20px; max-width: 500px;">
           <label>대상자 선택 (특별관리 대상자만 표시됩니다)</label>
           <div style="position: relative;">
-            <input type="text" id="userSearch" aria-label="사용자 검색" placeholder="이름 또는 아이디로 검색..." oninput="filterUserSelect()" style="margin-bottom: 0; width: 100%;">
-            <div id="searchResults" class="search-results-list">
-              <!-- Search results rendered here -->
+            <input type="text" id="userSearch" aria-label="사용자 검색" placeholder="이름 또는 아이디로 검색..." oninput="filterUserSelect()" onfocus="filterUserSelect()" style="margin-bottom: 0; width: 100%;">
+            <div id="userListStatus" role="status" style="font-size:.8rem;color:var(--text-muted);margin-top:8px;">특별관리 대상자를 불러오는 중입니다.</div>
+            <div id="searchResults" class="search-results-list show">
+              <div style="padding:16px;color:var(--text-muted);font-size:.85rem;">목록을 불러오는 중입니다.</div>
             </div>
           </div>
           <!-- 숨겨진 셀렉트 박스 (기존 로직 호환용) -->
