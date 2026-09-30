@@ -1,6 +1,7 @@
 // admin-inbody.js
 let currentUser = null;
 let selectedUserId = null;
+let selectedUserLabel = '';
 let selectedFile = null;
 let specialUsersData = [];
 let specialUsersLoaded = false;
@@ -26,7 +27,7 @@ function filterUserSelect() {
     const text = `${u.name || '이름없음'} (@${u.username || ''})`;
     return text.toLowerCase().includes(query);
   }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
-  if (status) status.textContent = `${matches.length}명 표시 · 목록에서 대상자를 선택하거나 이름으로 검색하세요.`;
+  if (status) status.textContent = `${matches.length}명 표시 · 특별관리 대상자만 표시됩니다.${selectedUserLabel ? ` 현재 선택: ${selectedUserLabel}` : ''}`;
 
   if (matches.length > 0) {
     resultsList.classList.add('show');
@@ -56,20 +57,21 @@ function filterUserSelect() {
     resultsList.classList.add('show');
     resultsList.innerHTML = `<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">${specialUsersData.length ? '조건에 맞는 대상자가 없습니다.' : '특별관리 대상자가 없습니다.'}</div>`;
   }
+  if (selectedUserId) {
+    if (![...select.options].some(option => option.value === selectedUserId)) {
+      const selectedOption = document.createElement('option');
+      selectedOption.value = selectedUserId;
+      selectedOption.textContent = selectedUserLabel;
+      select.appendChild(selectedOption);
+    }
+    select.value = selectedUserId;
+  }
 }
 
 function selectUserFromResult(userId, label) {
   selectedUserId = userId;
-  document.getElementById('userSelect').value = userId;
-  document.getElementById('userSearch').value = label;
-  document.getElementById('searchResults').classList.remove('show');
-  document.getElementById('userListStatus').textContent = `${label} 선택됨`;
-  
-  // Highlight active items
-  document.querySelectorAll('.search-result-item').forEach(item => {
-    item.classList.remove('active');
-  });
-  
+  selectedUserLabel = label;
+  filterUserSelect();
   loadUserRecords();
 }
 
@@ -103,14 +105,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDragAndDrop();
   await loadSpecialUsers();
 
-  // Close search results when clicking outside
-  window.addEventListener('click', (e) => {
-    const searchResults = document.getElementById('searchResults');
-    const userSearch = document.getElementById('userSearch');
-    if (selectedUserId && searchResults && !searchResults.contains(e.target) && e.target !== userSearch) {
-      searchResults.classList.remove('show');
-    }
-  });
 });
 
 async function adminLogout() {

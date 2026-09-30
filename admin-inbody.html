@@ -114,7 +114,7 @@
     /* Search Results List */
     .search-results-list {
       margin-top: 12px;
-      max-height: 300px;
+      max-height: 320px;
       overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
@@ -170,6 +170,22 @@
     }
     .active .select-indicator {
       display: block;
+    }
+    .inbody-picker-grid {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);
+      gap: 14px;
+      align-items: end;
+    }
+    .inbody-picker-grid .form-group { min-width: 0; }
+    .inbody-picker-grid input, .inbody-picker-grid select { width: 100%; min-width: 0; box-sizing: border-box; }
+    .inbody-picker-list-title { margin-top: 18px; font-size: .88rem; font-weight: 800; color: var(--text); }
+    @media (max-width: 600px) {
+      .inbody-picker-card { padding: 14px !important; }
+      .inbody-picker-grid { grid-template-columns: minmax(0,.8fr) minmax(0,.8fr) minmax(0,1.6fr); gap: 8px; }
+      .inbody-picker-grid .form-group label { font-size: .72rem; white-space: nowrap; }
+      .inbody-picker-grid input, .inbody-picker-grid select { padding: 9px 6px; font-size: .78rem; }
+      .inbody-picker-grid input::placeholder { font-size: .74rem; }
     }
   </style>
   <link rel="stylesheet" href="css/ongil-theme.css">
@@ -233,43 +249,40 @@
         <p class="subtitle">특별관리 대상자의 인바디 기록을 업로드하고 관리합니다.</p>
       </div>
 
-      <!-- ── ADMIN FILTER BAR ── -->
-      <div class="admin-filter-bar">
-        <div class="filter-group">
-          <span class="filter-label">🚻 성별</span>
-          <select id="filterGender" class="filter-select" aria-label="성별 필터" onchange="filterUserSelect()">
-            <option value="all">전체</option>
-            <option value="남">남성</option>
-            <option value="여">여성</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">🎂 연령대</span>
-          <select id="filterAge" class="filter-select" aria-label="연령 필터" onchange="filterUserSelect()">
-            <option value="all">전체</option>
-            <option value="20">20대</option>
-            <option value="30">30대</option>
-            <option value="40">40대</option>
-            <option value="50">50대 이상</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="chart-card mb-20" style="padding: 24px;">
-        <div class="form-group" style="margin-bottom: 20px; max-width: 500px;">
-          <label>대상자 선택 (특별관리 대상자만 표시됩니다)</label>
-          <div style="position: relative;">
-            <input type="text" id="userSearch" aria-label="사용자 검색" placeholder="이름 또는 아이디로 검색..." oninput="filterUserSelect()" onfocus="filterUserSelect()" style="margin-bottom: 0; width: 100%;">
-            <div id="userListStatus" role="status" style="font-size:.8rem;color:var(--text-muted);margin-top:8px;">특별관리 대상자를 불러오는 중입니다.</div>
-            <div id="searchResults" class="search-results-list show">
-              <div style="padding:16px;color:var(--text-muted);font-size:.85rem;">목록을 불러오는 중입니다.</div>
-            </div>
+      <div class="chart-card mb-20 inbody-picker-card" style="padding: 24px;">
+        <div class="inbody-picker-grid">
+          <div class="form-group">
+            <label for="filterGender">성별</label>
+            <select id="filterGender" aria-label="성별 필터" onchange="filterUserSelect()">
+              <option value="all">전체</option>
+              <option value="남">남성</option>
+              <option value="여">여성</option>
+            </select>
           </div>
-          <!-- 숨겨진 셀렉트 박스 (기존 로직 호환용) -->
-          <select id="userSelect" aria-label="사용자 선택" onchange="loadUserRecords()" style="display: none;">
-            <option value="">사용자를 선택하세요...</option>
-          </select>
+          <div class="form-group">
+            <label for="filterAge">연령대</label>
+            <select id="filterAge" aria-label="연령 필터" onchange="filterUserSelect()">
+              <option value="all">전체</option>
+              <option value="20">20대</option>
+              <option value="30">30대</option>
+              <option value="40">40대</option>
+              <option value="50">50대 이상</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="userSearch">대상자 선택</label>
+            <input type="text" id="userSearch" aria-label="사용자 검색" placeholder="이름/아이디 검색" oninput="filterUserSelect()" autocomplete="off">
+          </div>
         </div>
+        <div class="inbody-picker-list-title">대상자 목록</div>
+        <div id="userListStatus" role="status" style="font-size:.8rem;color:var(--text-muted);margin-top:5px;">특별관리 대상자를 불러오는 중입니다.</div>
+        <div id="searchResults" class="search-results-list show">
+          <div style="padding:16px;color:var(--text-muted);font-size:.85rem;">목록을 불러오는 중입니다.</div>
+        </div>
+        <!-- 숨겨진 셀렉트 박스 (기존 로직 호환용) -->
+        <select id="userSelect" aria-label="사용자 선택" onchange="loadUserRecords()" style="display: none;">
+          <option value="">사용자를 선택하세요...</option>
+        </select>
 
         <div id="uploadSection" style="display: none;">
           <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; padding-top: 16px; border-top: 1px solid var(--border);">새 인바디 기록 업로드</h3>
