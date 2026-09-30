@@ -5,15 +5,10 @@ let userTrendChart = null;
 document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('adminLoginOverlay');
   
-  // 기본 날짜 설정: 최근 3개월
+  // 기본 조회 범위: 지난해 1월부터 이번 달까지
   const end = new Date();
-  const start = new Date();
-  start.setMonth(end.getMonth() - 3);
-  
-  const fmtMonth = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  
-  document.getElementById('growthStartMonth').value = fmtMonth(start);
-  document.getElementById('growthEndMonth').value = fmtMonth(end);
+  document.getElementById('growthStartMonth').value = `${end.getFullYear() - 1}-01`;
+  document.getElementById('growthEndMonth').value = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}`;
 
   try {
     const response = await fetch(new URL('api/admin-inbody', window.location.href).toString(), {
@@ -169,7 +164,7 @@ function renderGrowthTable(data) {
       <td data-label="체지방률 변화">${item.first.fat} → ${item.last.fat}<br>${getReverseDiffHtml(item.fatDiff, '%')}</td>
       <td data-label="종합 점수 변화">${item.first.score} → ${item.last.score}<br>${getDiffHtml(item.scoreDiff, '점')}</td>
       <td data-label="상세" style="text-align:right;">
-        <button class="btn btn-sm" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
+        <button class="btn btn-sm" aria-haspopup="dialog" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
       </td>
     `;
     
@@ -192,17 +187,19 @@ function showUserGraph(userId) {
   const item = window.currentRankingData.find(i => i.user.id === userId);
   if (!item) return;
   
-  document.getElementById('growthGraphArea').style.display = 'block';
+  const graphDialog = document.getElementById('growthGraphArea');
   document.getElementById('graphTitle').textContent = `📈 ${item.user.name || '이름없음'}님의 체성분 변화 추이`;
+  document.getElementById('graphPeriod').textContent = `${document.getElementById('growthStartMonth').value} ~ ${document.getElementById('growthEndMonth').value}`;
   
   const records = item.userRecords;
-  const labels = records.map(r => r.date.substring(5)); // MM-DD
+  const labels = records.map(r => r.date);
   const muscles = records.map(r => r.muscle);
   const fats = records.map(r => r.fat);
   
   const ctx = document.getElementById('userTrendChart');
   if (userTrendChart) userTrendChart.destroy();
-  
+  if (!graphDialog.open) graphDialog.showModal();
+
   userTrendChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -250,10 +247,12 @@ function showUserGraph(userId) {
       }
     }
   });
-  
-  document.getElementById('growthGraphArea').scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function closeGraph() {
-  document.getElementById('growthGraphArea').style.display = 'none';
+  document.getElementById('growthGraphArea').close();
 }
+
+document.getElementById('growthGraphArea').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeGraph();
+});

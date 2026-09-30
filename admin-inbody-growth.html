@@ -86,7 +86,25 @@
     
     .growth-chart-container {
       background: var(--surface-2); padding: 20px; border-radius: 12px;
-      border: 1px solid var(--border); position: relative; height: 300px;
+      border: 1px solid var(--border); position: relative;
+      height: min(55vh, 460px); min-height: 280px;
+    }
+    .graph-dialog {
+      width: min(900px, calc(100vw - 32px));
+      max-height: calc(100dvh - 32px);
+      margin: auto;
+      padding: 24px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-lg);
+    }
+    .graph-dialog::backdrop { background: rgba(20,35,55,.58); }
+    @media (max-width: 600px) {
+      .graph-dialog { padding: 16px; }
+      .growth-chart-container { height: min(52vh,380px); min-height: 240px; padding: 10px; }
     }
   </style>
   <link rel="stylesheet" href="css/ongil-theme.css">
@@ -197,20 +215,21 @@
           </div>
         </div>
         
-        <!-- 하단 그래프 영역 -->
-        <div class="chart-card" id="growthGraphArea" style="display:none;">
-          <div class="chart-card-header" style="justify-content:space-between;">
-            <div class="chart-card-title" id="graphTitle">📈 상세 트렌드</div>
-            <button class="btn btn-outline btn-sm" onclick="closeGraph()">닫기</button>
-          </div>
-          <div class="growth-chart-container">
-            <canvas id="userTrendChart"></canvas>
-          </div>
-        </div>
       </div>
       
     </main>
   </div>
+
+  <dialog class="graph-dialog" id="growthGraphArea" aria-labelledby="graphTitle">
+    <div class="chart-card-header" style="justify-content:space-between;gap:12px;">
+      <div>
+        <h2 class="chart-card-title" id="graphTitle">📈 체성분 변화 추이</h2>
+        <p id="graphPeriod" style="font-size:.82rem;color:var(--text-muted);margin-top:5px;"></p>
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="closeGraph()" aria-label="그래프 창 닫기">닫기 ✖</button>
+    </div>
+    <div class="growth-chart-container"><canvas id="userTrendChart"></canvas></div>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
   <script src="js/app.js"></script>
