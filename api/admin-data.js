@@ -246,7 +246,7 @@ module.exports = async function handler(req, res) {
     const isDashboardSummary = view === 'dashboard-summary';
     const recordSelect = isDashboardSummary
       ? 'id,user_id,record_date,weight,walking,running,water,fasting,condition,custom_exercises'
-      : 'id,user_id,record_date,weight,walking,running,water,fasting,heart_rate,condition,custom_exercises,saved_at';
+      : 'id,user_id,record_date,weight,walking,running,walking_km,running_km,water,fasting,heart_rate,condition,custom_exercises,saved_at';
     const recordsPromise = fetchRecordPages(recordSelect);
     const [profiles, inbodyDates, allRecords] = await Promise.all([profilesPromise, inbodyDatesPromise, recordsPromise]);
 

@@ -5,7 +5,7 @@ const calls = [];
 const audits = [];
 let recordPages = null;
 const profile = { id:'user-1', name:'관리자', is_admin:true, is_special:false, created_at:'2026-09-01T00:00:00Z' };
-const record = { id:'record-1', user_id:'user-1', record_date:'2026-09-29', heart_rate:72, walking:20, custom_exercises:[] };
+const record = { id:'record-1', user_id:'user-1', record_date:'2026-09-29', heart_rate:72, walking:20, walking_km:2.4, running_km:1.5, custom_exercises:[] };
 
 function stubModule(path, exports) {
   const id = require.resolve(path);
@@ -113,9 +113,12 @@ test('full admin data includes heart rate and requests only needed columns', asy
   const result = await request('/api/admin-data');
   assert.equal(result.status, 200);
   assert.equal(result.body.records[0].heartRate, 72);
+  assert.equal(result.body.records[0].walkingKm, 2.4);
+  assert.equal(result.body.records[0].runningKm, 1.5);
   assert.equal(calls.length, 3);
   const recordQuery = calls.find(path => path.startsWith('/rest/v1/daily_records?'));
   assert.match(recordQuery, /heart_rate/);
+  assert.match(recordQuery, /walking_km,running_km/);
   assert.match(recordQuery, /order=record_date.desc,id.desc/);
   assert.doesNotMatch(recordQuery, /select=\*/);
 });

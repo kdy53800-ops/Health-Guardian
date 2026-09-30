@@ -1,6 +1,25 @@
 let allUsers = [];
 let allRecords = [];
-let userTrendChart = null;
+let metricChartInstances = [];
+
+const customMinutes = record => (record.customExercises || []).reduce((sum, exercise) => sum + (Number(exercise.duration) || 0), 0);
+const positiveNumber = value => {
+  const number = Number(value);
+  return value == null || value === '' || !Number.isFinite(number) || number <= 0 ? null : number;
+};
+const growthMetrics = [
+  { label:'총 운동 시간', unit:'분', digits:0, color:'#0054a6', additive:true, value:record => (Number(record.walking) || 0) + (Number(record.running) || 0) + customMinutes(record) },
+  { label:'걷기 시간', unit:'분', digits:0, color:'#008cc6', additive:true, value:record => Number(record.walking) || 0 },
+  { label:'러닝 시간', unit:'분', digits:0, color:'#397ab8', additive:true, value:record => Number(record.running) || 0 },
+  { label:'개인 운동 시간', unit:'분', digits:0, color:'#7d77b9', additive:true, value:customMinutes },
+  { label:'걷기 거리', unit:'km', digits:1, color:'#3c9b9c', additive:true, value:record => Number(record.walkingKm) || 0 },
+  { label:'러닝 거리', unit:'km', digits:1, color:'#4f88a5', additive:true, value:record => Number(record.runningKm) || 0 },
+  { label:'체중', unit:'kg', digits:1, color:'#aa7891', value:record => positiveNumber(record.weight) },
+  { label:'심박수', unit:'bpm', digits:0, color:'#cf7276', value:record => positiveNumber(record.heartRate) },
+  { label:'수분 섭취', unit:'ml', digits:0, color:'#3f92c5', additive:true, value:record => Number(record.water) || 0 },
+  { label:'공복시간', unit:'시간', digits:0, color:'#9a72aa', value:record => positiveNumber(record.fasting) },
+  { label:'컨디션', unit:'점', digits:0, color:'#a98156', value:record => positiveNumber(record.condition), min:1, max:5 },
+];
 
 // 초기 데이터 로드 (admin.js의 fetchAdminData와 유사)
 document.addEventListener('DOMContentLoaded', async () => {
@@ -79,6 +98,7 @@ function loadGrowthData() {
     alert('시작일은 종료일보다 이전이어야 합니다.');
     return;
   }
+  window.currentRankingRange = { startStr, endStr };
   
   // 지정된 기간의 중간 지점 계산
   const midTime = startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 2;
@@ -233,65 +253,83 @@ function showUserGraph(userId) {
 
   const graphDialog = document.getElementById('growthGraphArea');
   document.getElementById('graphTitle').textContent = `📈 ${item.user.name || '이름없음'}님의 상세 트렌드`;
-  
-  const startStr = document.getElementById('growthStartDate').value;
-  const endStr = document.getElementById('growthEndDate').value;
-  document.getElementById('graphPeriod').textContent = `${startStr} ~ ${endStr} · 일별 총 운동 시간`;
-  const startDate = new Date(startStr);
-  const endDate = new Date(endStr);
-  
-  const labels = [];
-  const totalExercises = [];
-  
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${y}-${m}-${day}`;
-    labels.push(`${m}/${day}`);
-    
-    const record = item.userRecords.find(r => r.date === dateStr);
-    let todayExercise = 0;
-    if (record) {
-      const customSum = (record.customExercises || []).reduce((s, ex) => s + (ex.duration || 0), 0);
-      todayExercise = (Number(record.walking)||0) + 
-                      (Number(record.running)||0) + 
-                      customSum;
-    }
-    totalExercises.push(todayExercise);
-  }
-  
-  const ctx = document.getElementById('userTrendChart');
-  if (userTrendChart) userTrendChart.destroy();
-  if (!graphDialog.open) graphDialog.showModal();
+  const range = window.currentRankingRange;
+  document.getElementById('graphPeriod').textContent = `${range.startStr} ~ ${range.endStr} · 기록 ${item.userRecords.length}일`;
+  const records = [...item.userRecords].sort((a, b) => a.date.localeCompare(b.date));
+  const labels = records.map(record => record.date);
+  metricChartInstances.forEach(chart => chart.destroy());
+  metricChartInstances = [];
+  const chartGrid = document.getElementById('metricCharts');
+  chartGrid.replaceChildren();
 
-  userTrendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: '일일 총 운동량 (전체 운동 합산)',
-        data: totalExercises,
-        borderColor: '#06b6d4',
-        backgroundColor: 'rgba(6, 182, 212, 0.1)',
-        borderWidth: 3,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: '#06b6d4',
-        pointRadius: 4,
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: { beginAtZero: true }
-      }
+  const chartCards = growthMetrics.map(metric => {
+    const values = records.map(metric.value);
+    const measured = values.filter(value => value !== null);
+    const hasData = metric.additive ? measured.some(value => value > 0) : measured.length > 0;
+    const card = document.createElement('section');
+    card.className = 'metric-chart-card';
+    const title = document.createElement('h3');
+    title.className = 'metric-chart-title';
+    title.textContent = metric.label;
+    const summary = document.createElement('p');
+    summary.className = 'metric-chart-summary';
+    const format = value => value.toFixed(metric.digits);
+    if (!hasData) {
+      summary.textContent = '해당 기간에 기록된 값이 없습니다.';
+    } else if (metric.additive) {
+      summary.textContent = `기간 합계 ${format(measured.reduce((sum, value) => sum + value, 0))} ${metric.unit}`;
+    } else if (measured.length >= 2) {
+      const first = measured[0];
+      const last = measured[measured.length - 1];
+      const delta = last - first;
+      summary.textContent = `${format(first)} → ${format(last)} ${metric.unit} · 변화 ${delta > 0 ? '+' : ''}${format(delta)} ${metric.unit}`;
+    } else {
+      summary.textContent = `측정값 ${format(measured[0])} ${metric.unit} · 1회 기록`;
     }
+    card.append(title, summary);
+    if (hasData) {
+      const wrap = document.createElement('div');
+      wrap.className = 'metric-chart-canvas';
+      const canvas = document.createElement('canvas');
+      canvas.setAttribute('role', 'img');
+      canvas.setAttribute('aria-label', `${metric.label} 변화 그래프`);
+      wrap.appendChild(canvas);
+      card.appendChild(wrap);
+      chartGrid.appendChild(card);
+      return { metric, values, canvas };
+    }
+    chartGrid.appendChild(card);
+    return null;
+  }).filter(Boolean);
+
+  if (!graphDialog.open) graphDialog.showModal();
+  chartCards.forEach(({ metric, values, canvas }) => {
+    metricChartInstances.push(new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: `${metric.label} (${metric.unit})`,
+          data: values,
+          borderColor: metric.color,
+          backgroundColor: metric.color,
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.25,
+          spanGaps: false,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 5 } },
+          y: { beginAtZero: !!metric.additive, min:metric.min, max:metric.max, ticks: { maxTicksLimit: 5 } },
+        },
+      },
+    }));
   });
 }
 
