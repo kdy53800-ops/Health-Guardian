@@ -6,6 +6,13 @@ let selectedFile = null;
 let specialUsersData = [];
 let specialUsersLoaded = false;
 
+function profileGenderCode(value) {
+  const gender = String(value || '').trim().toLowerCase();
+  if (['남', '남성', 'm', 'male'].includes(gender)) return '남';
+  if (['여', '여성', 'f', 'female'].includes(gender)) return '여';
+  return '';
+}
+
 function filterUserSelect() {
   const query = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
   const gender = document.getElementById('filterGender')?.value || 'all';
@@ -21,7 +28,7 @@ function filterUserSelect() {
   resultsList.innerHTML = '';
   
   const matches = specialUsersData.filter(u => {
-    if (gender !== 'all' && u.gender !== gender) return false;
+    if (gender !== 'all' && profileGenderCode(u.gender) !== gender) return false;
     const age = Number(u.birthyear) ? new Date().getFullYear() - Number(u.birthyear) + 1 : null;
     if (ageFilter !== 'all' && (!age || (ageFilter === '50' ? age < 50 : age < Number(ageFilter) || age >= Number(ageFilter) + 10))) return false;
     const text = `${u.name || '이름없음'} (@${u.username || ''})`;
@@ -33,10 +40,15 @@ function filterUserSelect() {
     resultsList.classList.add('show');
     matches.forEach(u => {
       const age = Number(u.birthyear) ? new Date().getFullYear() - Number(u.birthyear) + 1 : null;
+      const genderCode = profileGenderCode(u.gender);
+      const genderLabel = genderCode === '남' ? '남성' : genderCode === '여' ? '여성' : '성별 미확인';
+      const ageLabel = age ? `${age}세` : '연령 미확인';
+      const displayName = u.name || '이름없음';
+      const selectedLabel = `${displayName} · ${genderLabel} · ${ageLabel}`;
       // Hidden select update
       const option = document.createElement('option');
       option.value = u.id;
-      option.textContent = `${u.name || '이름없음'} (${u.username})`;
+      option.textContent = selectedLabel;
       select.appendChild(option);
 
       // List item creation
@@ -45,12 +57,12 @@ function filterUserSelect() {
       item.className = `search-result-item ${selectedUserId === u.id ? 'active' : ''}`;
       item.innerHTML = `
         <div class="user-info-brief">
-          <span class="user-name-id">${escapeHtml(u.name || '이름없음')} <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted); ml-4">@${escapeHtml(u.username)}</span></span>
-          <span class="user-meta-brief">${escapeHtml(u.gender || '-')} / ${age ? `${age}세` : '연령 미확인'}</span>
+          <span class="user-name-id">${escapeHtml(displayName)}</span>
+          <span class="user-meta-brief">${genderLabel} · ${ageLabel}</span>
         </div>
         <div class="select-indicator">선택됨</div>
       `;
-      item.onclick = () => selectUserFromResult(u.id, `${u.name || '이름없음'} (@${u.username})`);
+      item.onclick = () => selectUserFromResult(u.id, selectedLabel);
       resultsList.appendChild(item);
     });
   } else {
