@@ -55,6 +55,50 @@ test('inbody user list skips health records and preserves admin audit', async ()
   assert.equal(audits[0].options.targetType, 'users');
 });
 
+test('user management receives only record summaries', async () => {
+  calls.length = 0;
+  const result = await request('/api/admin-data?view=users-summary');
+  assert.equal(result.status, 200);
+  assert.equal(result.body.records, undefined);
+  assert.equal(result.body.users[0].recordCount, 1);
+  assert.equal(result.body.users[0].lastDate, '2026-09-29');
+  assert.deepEqual(result.body.users[0].recordMonths, ['2026-09']);
+  const recordQuery = calls.find(path => path.startsWith('/rest/v1/daily_records?'));
+  assert.match(recordQuery, /select=id,user_id,record_date/);
+  assert.doesNotMatch(recordQuery, /custom_exercises|heart_rate/);
+  assert.equal(calls.length, 2);
+});
+
+test('user detail fetches only the selected user records', async () => {
+  calls.length = 0;
+  audits.length = 0;
+  const userId = '11111111-1111-4111-8111-111111111111';
+  const result = await request(`/api/admin-data?view=user-detail&userId=${userId}`);
+  assert.equal(result.status, 200);
+  assert.equal(result.body.records[0].heartRate, 72);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /user_id=eq.11111111-1111-4111-8111-111111111111/);
+  assert.equal(audits[0].action, 'view_admin_user_detail');
+  assert.equal(audits[0].options.targetId, userId);
+});
+
+test('invalid user detail id is rejected before querying', async () => {
+  calls.length = 0;
+  const result = await request('/api/admin-data?view=user-detail&userId=bad-id');
+  assert.equal(result.status, 400);
+  assert.equal(calls.length, 0);
+});
+
+test('dashboard summary omits detailed exercise arrays', async () => {
+  calls.length = 0;
+  const result = await request('/api/admin-data?view=dashboard-summary');
+  assert.equal(result.status, 200);
+  assert.equal(result.body.records[0].customExercises, undefined);
+  assert.equal(result.body.records[0].walking, 20);
+  const recordQuery = calls.find(path => path.startsWith('/rest/v1/daily_records?'));
+  assert.doesNotMatch(recordQuery, /heart_rate|saved_at/);
+});
+
 test('full admin data includes heart rate and requests only needed columns', async () => {
   calls.length = 0;
   const result = await request('/api/admin-data');

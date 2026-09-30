@@ -83,7 +83,11 @@ async function readApiJson(response) {
 
 async function fetchAdminData() {
   try {
-    const response = await fetch(new URL('api/admin-data', window.location.href).toString(), {
+    const endpoint = new URL('api/admin-data', window.location.href);
+    const page = location.pathname.split('/').pop();
+    if (page === 'admin-users.html') endpoint.searchParams.set('view', 'users-summary');
+    if (page === 'admin.html') endpoint.searchParams.set('view', 'dashboard-summary');
+    const response = await fetch(endpoint.toString(), {
       method: 'GET',
       credentials: 'include',
       headers: { Accept: 'application/json' },
@@ -204,6 +208,7 @@ function renderDemoDataNotice(isDemo) {
 
 const AUDIT_ACTION_LABELS = {
   view_admin_dashboard: '전체 건강 기록 조회',
+  view_admin_user_detail: '사용자 건강 기록 상세 조회',
   view_inbody_records: '인바디 기록 조회',
   view_inbody_overview: '인바디 통계 조회',
   view_inbody_image: '인바디 이미지 조회',
@@ -263,7 +268,7 @@ function renderAll() {
 
 function adminRecordMinutes(record) {
   return (Number(record.walking) || 0) + (Number(record.running) || 0)
-    + (record.customExercises || []).reduce((total, exercise) => total + (Number(exercise.duration) || 0), 0);
+    + (Number(record.customMinutes) || (record.customExercises || []).reduce((total, exercise) => total + (Number(exercise.duration) || 0), 0));
 }
 
 function dateDaysAgo(days) {
@@ -350,9 +355,22 @@ function renderAttentionBoard() {
     </div>`).join('');
 }
 
-function exportAdminRecords() {
+async function exportAdminRecords() {
+  let exportRecords = allRecords;
+  try {
+    const endpoint = new URL('api/admin-data', window.location.href);
+    endpoint.searchParams.set('view', 'export');
+    const response = await fetch(endpoint.toString(), { credentials:'include', headers:{ Accept:'application/json' } });
+    const payload = await readApiJson(response);
+    if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || 'CSV 데이터를 불러오지 못했습니다.');
+    const validIds = new Set(allUsers.map(user => String(user.id)));
+    exportRecords = (payload.records || []).filter(record => validIds.has(String(record.userId)) && (!filterMonth || String(record.date).startsWith(filterMonth)));
+  } catch (error) {
+    showToast(error.message || 'CSV 내보내기에 실패했습니다.', 'error');
+    return;
+  }
   const userMap = new Map(allUsers.map(user => [String(user.id), user]));
-  const rows = allRecords.map(record => {
+  const rows = exportRecords.map(record => {
     const user = userMap.get(String(record.userId)) || {};
     return [user.name || user.username || '사용자', user.username || '', record.date,
       record.weight || '', record.walking || 0, record.running || 0,
@@ -386,8 +404,7 @@ function renderPlatformStats() {
   const activeLabel = filterMonth ? `${targetMonth.slice(5)}월 참여 인원` : '이번 달 참여 인원';
 
   const totalExMins = allRecords.reduce((sum, record) => {
-    const customSum = (record.customExercises || []).reduce((s, ex) => s + (Number(ex.duration) || 0), 0);
-    return sum + (Number(record.walking) || 0) + (Number(record.running) || 0) + customSum;
+    return sum + adminRecordMinutes(record);
   }, 0);
 
   const stats = [
@@ -592,7 +609,7 @@ function renderExerciseAvgChart() {
 
     if (ex.type === 'custom') {
       allRecords.forEach(r => {
-        const customSum = (r.customExercises || []).reduce((s, e) => s + (e.duration || 0), 0);
+        const customSum = Number(r.customMinutes) || (r.customExercises || []).reduce((s, e) => s + (Number(e.duration) || 0), 0);
         if (customSum > 0) {
           validRecords.push(r);
           sum += customSum;
@@ -766,11 +783,6 @@ function renderRanking() {
 
 function renderUserMgmt() {
   const q = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
-  const recordsByUser = new Map();
-  allRecords.forEach(record => {
-    if (!recordsByUser.has(record.userId)) recordsByUser.set(record.userId, []);
-    recordsByUser.get(record.userId).push(record);
-  });
   
   // 1. 기본 필터링 (검색어)
   let filtered = allUsers.filter(user => (
@@ -783,14 +795,11 @@ function renderUserMgmt() {
 
   // 2. 정렬을 위한 데이터 준비 (각 사용자별 지표 계산)
   const mapped = filtered.map(user => {
-    const recs = recordsByUser.get(user.id) || [];
-    const streak = calcStreak(recs);
-    const lastDate = recs.reduce((latest, record) => record.date > latest ? record.date : latest, '');
     return {
       ...user,
-      records: recs.length,
-      streak: streak,
-      lastDate: lastDate
+      records: Number(user.recordCount) || 0,
+      streak: Number(user.streak) || 0,
+      lastDate: user.lastDate || ''
     };
   });
 
@@ -898,13 +907,37 @@ function updatePageSize() {
 
 let udChartActivity = null;
 let udChartCat = null;
+let userDetailRequest = 0;
 
-function viewUser(userId) {
+async function viewUser(userId) {
   const user = allUsers.find(item => item.id === userId);
-  const recs = (allRecords || []).filter(record => record.userId === userId).sort((a, b) => (a.date < b.date ? 1 : -1));
   if (!user) return;
+  const requestId = ++userDetailRequest;
+  document.getElementById('udAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
+  document.getElementById('udName').textContent = user.name || '-';
+  document.getElementById('udMeta').textContent = '건강기록을 불러오는 중입니다…';
+  document.getElementById('udStats').innerHTML = '';
+  document.getElementById('udRecordBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;">기록을 불러오는 중입니다…</td></tr>';
+  switchUdTab(0);
+  document.getElementById('userDetailModal').style.display = 'block';
+  try {
+    const endpoint = new URL('api/admin-data', window.location.href);
+    endpoint.searchParams.set('view', 'user-detail');
+    endpoint.searchParams.set('userId', userId);
+    const response = await fetch(endpoint.toString(), { credentials:'include', headers:{ Accept:'application/json' } });
+    const payload = await readApiJson(response);
+    if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || '사용자 기록을 불러오지 못했습니다.');
+    if (requestId !== userDetailRequest) return;
+    renderUserDetail(user, (payload.records || []).sort((a, b) => String(b.date).localeCompare(String(a.date))));
+  } catch (error) {
+    if (requestId !== userDetailRequest) return;
+    document.getElementById('udMeta').textContent = error.message || '기록 조회에 실패했습니다.';
+    document.getElementById('udRecordBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;">기록 조회에 실패했습니다. 다시 열어 주세요.</td></tr>';
+  }
+}
 
-  const sum = key => recs.reduce((acc, record) => acc + (record[key] || 0), 0);
+function renderUserDetail(user, recs) {
+  const userId = user.id;
   const streak = calcStreak(recs);
   const avgCond = recs.length ? (recs.reduce((acc, record) => acc + (record.condition || 3), 0) / recs.length).toFixed(1) : '-';
 
@@ -1010,10 +1043,12 @@ function viewUser(userId) {
     if (udChartCat) udChartCat.destroy();
 
     if (!usedCats.length) {
-      ctx2.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text-muted);font-size:.85rem;">카테고리 데이터 없음</div>';
+      ctx2.style.display = 'none';
       document.getElementById('udCatList').innerHTML = '';
       return;
     }
+
+    ctx2.style.display = '';
 
     udChartCat = new Chart(ctx2, {
       type: 'doughnut',
@@ -1049,6 +1084,7 @@ function viewUser(userId) {
 }
 
 function closeUserDetail() {
+  userDetailRequest += 1;
   const modal = document.getElementById('userDetailModal');
   if (modal) modal.style.display = 'none';
 }
@@ -1107,7 +1143,8 @@ async function deleteUser() {
 
 function applyFilter() {
   const currentYear = new Date().getFullYear();
-  const recordUserIds = new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
+  const isUserPage = location.pathname.split('/').pop() === 'admin-users.html';
+  const recordUserIds = isUserPage ? null : new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
 
   allUsers = fetchedUsers.filter(u => {
     // 1. 특별관리 필터
@@ -1135,7 +1172,9 @@ function applyFilter() {
     
     // 4. 기록 기반 필터 (가입일 대신 기록 유무 기준)
     // 월별 필터가 있을 경우, 해당 월에 기록이 있는 사용자만 포함
-    if (!recordUserIds.has(u.id)) return false;
+    if (isUserPage) {
+      if (!u.recordCount || (filterMonth && !(u.recordMonths || []).includes(filterMonth))) return false;
+    } else if (!recordUserIds.has(u.id)) return false;
     
     return true;
   });
