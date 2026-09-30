@@ -30,6 +30,7 @@ function buildUserRecords(user, userIndex) {
       pushups:0,
       situps:0,
       water:1500 + ((index + userIndex) % 5) * 200,
+      heartRate:68 + ((index + userIndex) % 7) * 3,
       fasting:11 + (index % 3),
       diet:'가상 데이터',
       condition:3 + (index % 3),

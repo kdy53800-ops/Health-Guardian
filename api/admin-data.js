@@ -33,6 +33,7 @@ function mapRecord(row) {
     userId: row.user_id,
     date: row.record_date,
     weight: Number(row.weight) || 0,
+    heartRate: Number(row.heart_rate) || 0,
     walking: Number(row.walking) || 0,
     running: Number(row.running) || 0,
     walkingKm: Number(row.walking_km) || 0,
@@ -77,37 +78,46 @@ module.exports = async function handler(req, res) {
     }
 
     if (auth.session.provider === 'test') {
-      sendJson(res, 200, { ok:true, ...buildTestAdminData(), demo:true });
+      const data = buildTestAdminData();
+      sendJson(res, 200, requestUrl.searchParams.get('view') === 'users'
+        ? { ok:true, users:data.users, demo:true }
+        : { ok:true, ...data, demo:true });
       return;
     }
 
-    // 1. 프로필과 인바디 최근 측정일을 함께 조회
-    const [profiles, inbodyDates] = await Promise.all([
-      fetchSupabase('/rest/v1/profiles?select=*&order=created_at.asc', {
-        headers: { Accept: 'application/json' },
-      }),
-      fetchSupabase('/rest/v1/inbody_records?select=user_id,record_date&order=record_date.desc&limit=1000', {
-        headers: { Accept: 'application/json' },
-      }),
-    ]);
+    const profilesPromise = fetchSupabase('/rest/v1/profiles?select=id,name,username,email,phone,is_admin,is_special,created_at,auth_provider,gender,birthyear&order=created_at.asc', {
+      headers: { Accept: 'application/json' },
+    });
+    if (requestUrl.searchParams.get('view') === 'users') {
+      const profiles = await profilesPromise;
+      await writeAdminAudit(auth, 'view_admin_dashboard', {
+        targetType: 'users',
+        details: { userCount: Array.isArray(profiles) ? profiles.length : 0 },
+      });
+      sendJson(res, 200, { ok:true, users:Array.isArray(profiles) ? profiles.map(mapProfile) : [] });
+      return;
+    }
+
+    // 독립적인 조회는 함께 시작해 첫 화면의 대기 시간을 줄입니다.
+    const inbodyDatesPromise = fetchSupabase('/rest/v1/inbody_records?select=user_id,record_date&order=record_date.desc&limit=1000', {
+      headers: { Accept: 'application/json' },
+    });
 
     // 2. 일별 기록은 1000건 제한을 피하기 위해 페이지네이션 수행 (최대 30,000건까지)
-    let allRecords = [];
-    for (let i = 0; i < 30; i++) {
-      const from = i * 1000;
-      const to = from + 999;
-      const records = await fetchSupabase(`/rest/v1/daily_records?select=*&order=record_date.desc&limit=1000&offset=${from}`, {
-        headers: { 
-          Accept: 'application/json',
-          'Range-Unit': 'items',
-          'Range': `${from}-${to}` 
-        },
-      });
-
-      if (!Array.isArray(records) || records.length === 0) break;
-      allRecords = allRecords.concat(records);
-      if (records.length < 1000) break;
-    }
+    const recordsPromise = (async () => {
+      const allRecords = [];
+      for (let i = 0; i < 30; i++) {
+        const from = i * 1000;
+        const records = await fetchSupabase(`/rest/v1/daily_records?select=id,user_id,record_date,weight,walking,running,water,fasting,heart_rate,condition,custom_exercises,saved_at&order=record_date.desc,id.desc&limit=1000&offset=${from}`, {
+          headers: { Accept: 'application/json' },
+        });
+        if (!Array.isArray(records) || records.length === 0) break;
+        allRecords.push(...records);
+        if (records.length < 1000) break;
+      }
+      return allRecords;
+    })();
+    const [profiles, inbodyDates, allRecords] = await Promise.all([profilesPromise, inbodyDatesPromise, recordsPromise]);
 
     const inbodyLatest = {};
     if (Array.isArray(inbodyDates)) {

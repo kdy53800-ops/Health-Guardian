@@ -412,12 +412,17 @@ function renderPlatformStats() {
 let chartDaily = null;
 let chartUserGrowth = null;
 let chartExerciseAvg = null;
+let chartLoadListenerAttached = false;
 
 function renderCharts() {
   if (typeof Chart === 'undefined') {
-    console.error('Chart.js is not loaded.');
+    if (!chartLoadListenerAttached) {
+      chartLoadListenerAttached = true;
+      document.getElementById('adminChartScript')?.addEventListener('load', renderCharts, { once:true });
+    }
     return;
   }
+  chartLoadListenerAttached = false;
   renderDailyChart();
   renderUserGrowthChart();
   renderExerciseAvgChart();
@@ -434,6 +439,8 @@ function formatPhone(phone) {
 function renderDailyChart() {
   const labels = [];
   const counts = [];
+  const recordsPerDay = new Map();
+  allRecords.forEach(record => recordsPerDay.set(record.date, (recordsPerDay.get(record.date) || 0) + 1));
   
   if (filterMonth) {
     // 특정 월 필터 시: 해당 월의 1일부터 마지막 날까지 표시
@@ -443,7 +450,7 @@ function renderDailyChart() {
     for (let d = 1; d <= lastDay; d++) {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       labels.push(`${month}/${d}`);
-      counts.push(allRecords.filter(record => record.date === dateStr).length);
+      counts.push(recordsPerDay.get(dateStr) || 0);
     }
   } else {
     // 기본: 최근 30일
@@ -452,7 +459,7 @@ function renderDailyChart() {
       d.setDate(d.getDate() - i);
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       labels.push(dateStr.slice(5));
-      counts.push(allRecords.filter(record => record.date === dateStr).length);
+      counts.push(recordsPerDay.get(dateStr) || 0);
     }
   }
 
@@ -608,11 +615,6 @@ function renderExerciseAvgChart() {
   if (!ctx) return;
   if (chartExerciseAvg) chartExerciseAvg.destroy();
 
-  if (averages.every(val => val === 0)) {
-    ctx.parentElement.innerHTML = '<div style="height:250px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem;">기록 데이터 없음</div>';
-    return;
-  }
-
   chartExerciseAvg = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -764,6 +766,11 @@ function renderRanking() {
 
 function renderUserMgmt() {
   const q = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
+  const recordsByUser = new Map();
+  allRecords.forEach(record => {
+    if (!recordsByUser.has(record.userId)) recordsByUser.set(record.userId, []);
+    recordsByUser.get(record.userId).push(record);
+  });
   
   // 1. 기본 필터링 (검색어)
   let filtered = allUsers.filter(user => (
@@ -776,9 +783,9 @@ function renderUserMgmt() {
 
   // 2. 정렬을 위한 데이터 준비 (각 사용자별 지표 계산)
   const mapped = filtered.map(user => {
-    const recs = allRecords.filter(record => record.userId === user.id);
+    const recs = recordsByUser.get(user.id) || [];
     const streak = calcStreak(recs);
-    const lastDate = recs.length ? recs.map(record => record.date).sort()[recs.length - 1] : '';
+    const lastDate = recs.reduce((latest, record) => record.date > latest ? record.date : latest, '');
     return {
       ...user,
       records: recs.length,
@@ -1100,6 +1107,7 @@ async function deleteUser() {
 
 function applyFilter() {
   const currentYear = new Date().getFullYear();
+  const recordUserIds = new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
 
   allUsers = fetchedUsers.filter(u => {
     // 1. 특별관리 필터
@@ -1127,14 +1135,7 @@ function applyFilter() {
     
     // 4. 기록 기반 필터 (가입일 대신 기록 유무 기준)
     // 월별 필터가 있을 경우, 해당 월에 기록이 있는 사용자만 포함
-    if (filterMonth) {
-      const hasRecordInMonth = fetchedRecords.some(r => r.userId === u.id && String(r.date).startsWith(filterMonth));
-      if (!hasRecordInMonth) return false;
-    } else {
-      // 월별 필터가 없을 경우, 전체 기간 중 한 번이라도 기록이 있는 사용자만 포함 (사용자 요청 사항)
-      const hasAnyRecord = fetchedRecords.some(r => r.userId === u.id);
-      if (!hasAnyRecord) return false;
-    }
+    if (!recordUserIds.has(u.id)) return false;
     
     return true;
   });

@@ -109,7 +109,9 @@ async function adminLogout() {
 
 async function loadSpecialUsers() {
   try {
-    const response = await fetch(new URL('api/admin-data', window.location.href).toString(), {
+    const endpoint = new URL('api/admin-data', window.location.href);
+    endpoint.searchParams.set('view', 'users');
+    const response = await fetch(endpoint.toString(), {
       method: 'GET',
       credentials: 'include',
       headers: { Accept: 'application/json' },
