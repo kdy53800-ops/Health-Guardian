@@ -286,15 +286,16 @@
         </select>
 
         <div id="uploadSection" style="display: none;">
-          <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; padding-top: 16px; border-top: 1px solid var(--border);">새 인바디 기록 업로드</h3>
+          <h3 id="recordFormTitle" style="font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; padding-top: 16px; border-top: 1px solid var(--border);">새 인바디 기록 업로드</h3>
           
           <div class="file-drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
             <div style="font-size: 2rem; margin-bottom: 10px;">📸</div>
             <div style="font-weight: 700; color: var(--text);">인바디 결과지 이미지 업로드</div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">클릭하거나 이미지를 끌어다 놓으세요</div>
-            <input type="file" id="fileInput" aria-label="인바디 결과 이미지" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+            <input type="file" id="fileInput" aria-label="인바디 결과 이미지" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="handleFileSelect(event)">
             <img id="imagePreview" class="preview-image" alt="미리보기">
           </div>
+          <div id="existingImageStatus" style="display:none;font-size:.85rem;color:var(--text-muted);margin:-8px 0 18px;"></div>
 
           <div class="form-grid">
             <div class="form-group">
@@ -336,6 +337,7 @@
           </div>
 
           <div style="text-align: right; margin-top: 20px;">
+            <button type="button" class="btn btn-outline" id="btnCancelEdit" onclick="resetRecordForm()" style="display:none;min-width:100px;margin-right:8px;">수정 취소</button>
             <button class="btn btn-primary" id="btnSave" onclick="saveRecord()" style="min-width: 140px;">저장하기</button>
           </div>
         </div>

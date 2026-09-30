@@ -3,6 +3,8 @@ let currentUser = null;
 let selectedUserId = null;
 let selectedUserLabel = '';
 let selectedFile = null;
+let editingRecordId = null;
+let currentRecords = [];
 let specialUsersData = [];
 let specialUsersLoaded = false;
 let userListExpanded = true;
@@ -104,8 +106,72 @@ function selectUserFromResult(userId, label) {
   selectedUserLabel = label;
   userListExpanded = false;
   document.getElementById('userSearch').value = '';
+  resetRecordForm();
   filterUserSelect();
   loadUserRecords();
+}
+
+function resetRecordForm() {
+  editingRecordId = null;
+  for (const id of ['weight', 'skeletalMuscle', 'bodyFatMass', 'bmi', 'bodyFatPercent', 'ecwRatio', 'inbodyScore', 'phaseAngle']) {
+    document.getElementById(id).value = '';
+  }
+  const today = new Date();
+  document.getElementById('recordDate').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  document.getElementById('fileInput').value = '';
+  const preview = document.getElementById('imagePreview');
+  preview.removeAttribute('src');
+  preview.style.display = 'none';
+  document.getElementById('existingImageStatus').replaceChildren();
+  document.getElementById('existingImageStatus').style.display = 'none';
+  document.getElementById('recordFormTitle').textContent = '새 인바디 기록 업로드';
+  document.getElementById('btnSave').textContent = '저장하기';
+  document.getElementById('btnCancelEdit').style.display = 'none';
+  selectedFile = null;
+}
+
+function editRecord(recordId) {
+  const record = currentRecords.find(item => String(item.id) === String(recordId));
+  if (!record) {
+    alert('기록을 다시 불러온 뒤 수정해 주세요.');
+    return;
+  }
+  editingRecordId = record.id;
+  const fields = {
+    recordDate: record.record_date,
+    weight: record.weight,
+    skeletalMuscle: record.skeletal_muscle,
+    bodyFatMass: record.body_fat_mass,
+    bmi: record.bmi,
+    bodyFatPercent: record.body_fat_percent,
+    ecwRatio: record.ecw_ratio,
+    inbodyScore: record.inbody_score,
+    phaseAngle: record.phase_angle,
+  };
+  for (const [id, value] of Object.entries(fields)) {
+    document.getElementById(id).value = value ?? '';
+  }
+  document.getElementById('fileInput').value = '';
+  const preview = document.getElementById('imagePreview');
+  preview.removeAttribute('src');
+  preview.style.display = 'none';
+  selectedFile = null;
+  const imageStatus = document.getElementById('existingImageStatus');
+  imageStatus.replaceChildren();
+  imageStatus.style.display = 'block';
+  imageStatus.append(record.image_url ? '기존 이미지는 새 파일을 선택하지 않으면 유지됩니다. ' : '등록된 이미지가 없습니다. 새 이미지를 추가할 수 있습니다.');
+  if (record.image_url) {
+    const link = document.createElement('a');
+    link.href = record.image_url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = '현재 이미지 보기';
+    imageStatus.appendChild(link);
+  }
+  document.getElementById('recordFormTitle').textContent = '기존 인바디 기록 수정';
+  document.getElementById('btnSave').textContent = '수정 저장하기';
+  document.getElementById('btnCancelEdit').style.display = 'inline-flex';
+  document.getElementById('uploadSection').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -186,11 +252,15 @@ async function loadSpecialUsers() {
 }
 
 async function loadUserRecords() {
+  const previousUserId = selectedUserId;
   selectedUserId = document.getElementById('userSelect').value;
+  if (previousUserId !== selectedUserId) resetRecordForm();
+  const requestedUserId = selectedUserId;
   const uploadSection = document.getElementById('uploadSection');
   const historySection = document.getElementById('historySection');
   
   if (!selectedUserId) {
+    currentRecords = [];
     uploadSection.style.display = 'none';
     historySection.style.display = 'none';
     return;
@@ -200,7 +270,7 @@ async function loadUserRecords() {
   historySection.style.display = 'block';
 
   const listEl = document.getElementById('recordListBody');
-  listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">불러오는 중...</td></tr>';
+  listEl.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;">불러오는 중...</td></tr>';
 
   try {
     const res = await fetch(new URL(`api/admin-inbody?userId=${selectedUserId}`, window.location.href).toString(), {
@@ -219,25 +289,27 @@ async function loadUserRecords() {
 
     if (!res.ok || !result.ok) throw new Error(result.message || '로드 실패');
     
-    renderRecords(result.records);
+    if (selectedUserId === requestedUserId) renderRecords(result.records);
   } catch (err) {
     if (window.location.protocol === 'file:') {
       const allInBody = JSON.parse(localStorage.getItem('inbody_records') || '[]');
       const userInBody = allInBody.filter(r => r.userId === selectedUserId);
-      renderRecords(userInBody);
+      if (selectedUserId === requestedUserId) renderRecords(userInBody);
     } else {
       console.error('Error loading records:', err);
-      listEl.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
+      if (selectedUserId === requestedUserId) listEl.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:red;">기록을 불러오는데 실패했습니다.</td></tr>';
     }
   }
 }
 
 function renderRecords(records) {
+  currentRecords = Array.isArray(records) ? records : [];
+  if (editingRecordId && !currentRecords.some(record => String(record.id) === String(editingRecordId))) resetRecordForm();
   const tbody = document.getElementById('recordListBody');
   tbody.innerHTML = '';
   
   if (!records || records.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px; color: var(--text-muted);">기록이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 20px; color: var(--text-muted);">기록이 없습니다.</td></tr>';
     return;
   }
   
@@ -247,16 +319,17 @@ function renderRecords(records) {
       <td data-label="측정일자"><strong>${escapeHtml(r.record_date)}</strong></td>
       <td data-label="체중">${r.weight} kg</td>
       <td data-label="골격근량">${r.skeletal_muscle} kg</td>
-      <td data-label="체지방량">${r.body_fat_mass !== undefined ? r.body_fat_mass + ' kg' : '-'}</td>
-      <td data-label="BMI">${r.bmi !== undefined ? r.bmi : '-'}</td>
+      <td data-label="체지방량">${r.body_fat_mass != null ? r.body_fat_mass + ' kg' : '-'}</td>
+      <td data-label="BMI">${r.bmi != null ? r.bmi : '-'}</td>
       <td data-label="체지방률">${r.body_fat_percent} %</td>
-      <td data-label="세포외수분비">${r.ecw_ratio !== undefined ? r.ecw_ratio : '-'}</td>
-      <td data-label="위상각">${r.phase_angle !== undefined ? r.phase_angle : '-'}</td>
+      <td data-label="세포외수분비">${r.ecw_ratio != null ? r.ecw_ratio : '-'}</td>
+      <td data-label="위상각">${r.phase_angle != null ? r.phase_angle : '-'}</td>
       <td data-label="점수">${r.inbody_score} 점</td>
       <td data-label="이미지">
         ${r.image_url ? `<a href="${escapeAttribute(r.image_url)}" target="_blank" rel="noopener" style="color: var(--primary); text-decoration: underline; font-size: 0.8rem;">보기</a>` : '<span style="color:var(--text-muted);font-size:0.8rem;">없음</span>'}
       </td>
       <td data-label="관리">
+        <button class="btn btn-outline btn-sm" data-record-id="${escapeAttribute(r.id)}" onclick="editRecord(this.dataset.recordId)" style="margin-right:6px;">수정</button>
         <button class="btn" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;padding:4px 8px;font-size:0.75rem;" data-record-id="${escapeAttribute(r.id)}" onclick="deleteRecord(this.dataset.recordId)">삭제</button>
       </td>
     `;
@@ -298,17 +371,29 @@ function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
   
-  if (!file.type.startsWith('image/')) {
-    alert('이미지 파일만 업로드 가능합니다.');
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    alert('JPG, PNG, WebP 이미지만 업로드할 수 있습니다.');
+    e.target.value = '';
+    selectedFile = null;
+    document.getElementById('imagePreview').style.display = 'none';
     return;
   }
   if (file.size > 8 * 1024 * 1024) {
     alert('원본 이미지는 8MB 이하만 선택할 수 있습니다.');
     e.target.value = '';
+    selectedFile = null;
+    document.getElementById('imagePreview').style.display = 'none';
     return;
   }
   
   selectedFile = file;
+  if (editingRecordId) {
+    const record = currentRecords.find(item => String(item.id) === String(editingRecordId));
+    const imageStatus = document.getElementById('existingImageStatus');
+    imageStatus.firstChild.textContent = record?.image_url
+      ? '저장하면 기존 이미지가 선택한 파일로 교체됩니다. '
+      : '저장하면 선택한 이미지가 이 기록에 추가됩니다. ';
+  }
   
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -348,9 +433,11 @@ async function saveRecord() {
   }
 
   const btn = document.getElementById('btnSave');
-  const originalText = btn.textContent;
+  const cancelBtn = document.getElementById('btnCancelEdit');
+  const recordId = editingRecordId;
   btn.textContent = '저장 중...';
   btn.disabled = true;
+  cancelBtn.disabled = true;
 
   try {
     let imageBase64 = null;
@@ -405,6 +492,7 @@ async function saveRecord() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId: selectedUserId,
+        recordId,
         date,
         weight,
         skeletalMuscle,
@@ -434,45 +522,23 @@ async function saveRecord() {
 
     if (!res.ok || !result.ok) throw new Error(result.message || '저장 실패');
     
-    alert('저장되었습니다.');
-    
-    // Reset form
-    document.getElementById('weight').value = '';
-    document.getElementById('skeletalMuscle').value = '';
-    document.getElementById('bodyFatMass').value = '';
-    document.getElementById('bmi').value = '';
-    document.getElementById('bodyFatPercent').value = '';
-    document.getElementById('ecwRatio').value = '';
-    document.getElementById('inbodyScore').value = '';
-    document.getElementById('phaseAngle').value = '';
-    document.getElementById('fileInput').value = '';
-    document.getElementById('imagePreview').style.display = 'none';
-    selectedFile = null;
-    
+    alert(recordId ? '기록이 수정되었습니다.' : '저장되었습니다.');
+    resetRecordForm();
     loadUserRecords(); // Reload list
     
   } catch (err) {
     if (window.location.protocol === 'file:') {
-      alert('[로컬 테스트 모드] 가상으로 저장되었습니다.');
-      document.getElementById('weight').value = '';
-      document.getElementById('skeletalMuscle').value = '';
-      document.getElementById('bodyFatMass').value = '';
-      document.getElementById('bmi').value = '';
-      document.getElementById('bodyFatPercent').value = '';
-      document.getElementById('ecwRatio').value = '';
-      document.getElementById('inbodyScore').value = '';
-      document.getElementById('phaseAngle').value = '';
-      document.getElementById('fileInput').value = '';
-      document.getElementById('imagePreview').style.display = 'none';
-      selectedFile = null;
+      alert(recordId ? '[로컬 테스트 모드] 가상으로 수정되었습니다.' : '[로컬 테스트 모드] 가상으로 저장되었습니다.');
+      resetRecordForm();
       loadUserRecords();
       return;
     }
     console.error('Error saving record:', err);
     alert('저장 중 오류가 발생했습니다: ' + err.message);
   } finally {
-    btn.textContent = originalText;
+    btn.textContent = editingRecordId ? '수정 저장하기' : '저장하기';
     btn.disabled = false;
+    cancelBtn.disabled = false;
   }
 }
 
@@ -495,6 +561,7 @@ async function deleteRecord(id) {
     if (!res.ok || !result.ok) throw new Error(result.message || '삭제 실패');
     
     alert('삭제되었습니다.');
+    if (String(editingRecordId) === String(id)) resetRecordForm();
     loadUserRecords();
   } catch (err) {
     if (window.location.protocol === 'file:') {

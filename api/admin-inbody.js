@@ -171,7 +171,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // --- POST: Save or Update record ---
+    // --- POST: Create or edit a record ---
     if (req.method === 'POST') {
       const body = await readBody(req);
       if (!body) {
@@ -179,11 +179,16 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const { userId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, phaseAngle, imageBase64, fileName } = body;
+      const { userId, recordId, date, weight, skeletalMuscle, bodyFatMass, bmi, bodyFatPercent, ecwRatio, inbodyScore, phaseAngle, imageBase64, fileName } = body;
 
       const safeUserId = String(userId || '').trim();
       if (!safeUserId || !/^[A-Za-z0-9_-]{1,100}$/.test(safeUserId) || !date) {
         sendJson(res, 400, { ok: false, message: 'Missing required fields' });
+        return;
+      }
+      const safeRecordId = recordId == null || recordId === '' ? null : String(recordId).trim();
+      if (safeRecordId && !/^[A-Za-z0-9_-]{1,100}$/.test(safeRecordId)) {
+        sendJson(res, 400, { ok: false, message: '수정할 기록 ID가 올바르지 않습니다.' });
         return;
       }
 
@@ -206,11 +211,23 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const existingRows = await fetchSupabase(
-        `/rest/v1/inbody_records?select=id,image_url&user_id=eq.${encodeURIComponent(safeUserId)}&record_date=eq.${encodeURIComponent(recordDate)}&limit=1`,
+      const existingRows = safeRecordId ? await fetchSupabase(
+        `/rest/v1/inbody_records?select=id,record_date,image_url&id=eq.${encodeURIComponent(safeRecordId)}&user_id=eq.${encodeURIComponent(safeUserId)}&limit=1`,
+        { headers: { Accept: 'application/json' } }
+      ) : [];
+      const existing = Array.isArray(existingRows) && existingRows[0] ? existingRows[0] : null;
+      if (safeRecordId && !existing) {
+        sendJson(res, 404, { ok: false, message: '수정할 기록을 찾을 수 없습니다.' });
+        return;
+      }
+      const dateRows = await fetchSupabase(
+        `/rest/v1/inbody_records?select=id&user_id=eq.${encodeURIComponent(safeUserId)}&record_date=eq.${encodeURIComponent(recordDate)}&limit=1`,
         { headers: { Accept: 'application/json' } }
       );
-      const existing = Array.isArray(existingRows) && existingRows[0] ? existingRows[0] : null;
+      if (Array.isArray(dateRows) && dateRows.some(row => row.id !== safeRecordId)) {
+        sendJson(res, 409, { ok: false, message: '해당 측정일의 기록이 이미 있습니다. 기존 기록의 수정 버튼을 사용해 주세요.' });
+        return;
+      }
 
       let imageUrl = null;
       if (imageBase64 && fileName) {
@@ -237,9 +254,7 @@ module.exports = async function handler(req, res) {
         imageUrl = uploadPath;
       }
 
-      const recordId = existing && existing.id ? existing.id : `inbody_${Date.now()}_${Math.random().toString(36).slice(2,11)}`;
       const payload = {
-        id: recordId,
         user_id: safeUserId,
         record_date: recordDate,
         weight: values.weight,
@@ -251,24 +266,33 @@ module.exports = async function handler(req, res) {
         inbody_score: values.inbodyScore,
         phase_angle: values.phaseAngle,
       };
+      if (!safeRecordId) payload.id = `inbody_${Date.now()}_${Math.random().toString(36).slice(2,11)}`;
       if (imageUrl) payload.image_url = imageUrl;
-      else if (existing && existing.image_url) payload.image_url = existing.image_url;
 
       let dbRes;
       try {
-        dbRes = await fetchSupabase('/rest/v1/inbody_records?on_conflict=user_id,record_date', {
-          method: 'POST',
+        const savePath = safeRecordId
+          ? `/rest/v1/inbody_records?id=eq.${encodeURIComponent(safeRecordId)}&user_id=eq.${encodeURIComponent(safeUserId)}`
+          : '/rest/v1/inbody_records';
+        dbRes = await fetchSupabase(savePath, {
+          method: safeRecordId ? 'PATCH' : 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates,return=representation'
+            'Prefer': 'return=representation'
           },
           body: JSON.stringify(payload)
         });
+        if (!Array.isArray(dbRes) || dbRes.length === 0) {
+          throw Object.assign(new Error('수정할 기록을 찾을 수 없습니다.'), { statusCode: 404 });
+        }
       } catch (error) {
         if (imageUrl) {
           try { await fetchSupabase(`/storage/v1/object/${imageUrl}`, { method: 'DELETE' }); } catch (cleanupError) {
             console.warn('[AdminInbodyAPI] Failed to clean up uploaded image:', cleanupError.message);
           }
+        }
+        if (error.status === 409) {
+          throw Object.assign(new Error('해당 측정일의 기록이 이미 있습니다.'), { statusCode: 409 });
         }
         throw error;
       }
@@ -281,7 +305,10 @@ module.exports = async function handler(req, res) {
           console.warn('[AdminInbodyAPI] Failed to delete replaced image:', cleanupError.message);
         }
       }
-      await writeAdminAudit(auth, 'upsert_inbody_record', { targetType: 'user', targetId: safeUserId, details: { recordDate, hasImage: !!imageUrl } });
+      await writeAdminAudit(auth, safeRecordId ? 'update_inbody_record' : 'upsert_inbody_record', {
+        targetType: 'user', targetId: safeUserId,
+        details: { recordId: safeRecordId || payload.id, recordDate, hasImage: !!imageUrl },
+      });
       sendJson(res, 200, { ok: true, data: dbRes });
       return;
     }
