@@ -791,10 +791,8 @@ const HealthNotifications = {
   async refreshSubscription(user) {
     if (!user || user.authProvider === 'test' || !this.serverConfigured || !this.isEnabled(user.id)
       || !this.vapidPublicKey || !('Notification' in window) || Notification.permission !== 'granted') return;
-    const registration = await navigator.serviceWorker.ready;
-    const previous = await registration.pushManager.getSubscription();
     const subscription = await this.getPushSubscription();
-    if (!previous || previous !== subscription) await this.saveSchedule(user, true, subscription);
+    await this.saveSchedule(user, true, subscription);
   },
 
   async saveSchedule(user, enabled, subscription = null) {

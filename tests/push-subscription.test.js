@@ -63,6 +63,28 @@ test('push subscription stays in place when its key matches', async () => {
   assert.equal(subscribed.length, 0);
 });
 
+test('enabled real-account subscription is registered again when the app opens', async () => {
+  const keyBytes = Uint8Array.from({ length: 65 }, (_, index) => index);
+  const existing = { endpoint: 'https://push.example/device-1', options: { applicationServerKey: keyBytes.buffer } };
+  const { context, subscribed } = createContext(existing, null);
+  context.window.Notification = context.Notification;
+  vm.runInContext(`
+    HealthNotifications.vapidPublicKey = '${Buffer.from(keyBytes).toString('base64url')}';
+    HealthNotifications.serverConfigured = true;
+    HealthNotifications.setEnabled('naver-user', true);
+    HealthNotifications.saveSchedule = async (user, enabled, subscription) => {
+      HealthNotifications.syncResult = { userId: user.id, enabled, endpoint: subscription.endpoint };
+    };
+  `, context);
+
+  await vm.runInContext("HealthNotifications.refreshSubscription({ id: 'naver-user', authProvider: 'naver' })", context);
+
+  assert.equal(subscribed.length, 0);
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(HealthNotifications.syncResult)', context)), {
+    userId: 'naver-user', enabled: true, endpoint: existing.endpoint,
+  });
+});
+
 test('open-page reminder honors the recorded-day setting', async () => {
   const { context, notifications } = createContext(null, null);
   vm.runInContext(`
