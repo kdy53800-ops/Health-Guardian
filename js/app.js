@@ -927,11 +927,19 @@ const HealthNotifications = {
     }
     button.hidden = false;
     if (saveButton) saveButton.hidden = !enabled;
-    if (quickActions) quickActions.hidden = !enabled;
-    button.textContent = enabled ? '예약 알림 끄기' : '지정 시각 알림 받기';
+    if (quickActions) {
+      quickActions.hidden = !enabled;
+      quickActions.querySelector('#healthNotificationSnooze').hidden = user.authProvider === 'test';
+      quickActions.querySelector('#healthNotificationDismiss').hidden = user.authProvider === 'test';
+    }
+    button.textContent = user.authProvider === 'test'
+      ? (enabled ? '화면 열림 알림 끄기' : '화면 열림 알림 켜기')
+      : (enabled ? '예약 알림 끄기' : '지정 시각 알림 받기');
     button.classList.toggle('enabled', enabled);
     status.textContent = Notification.permission === 'denied'
       ? '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용할 수 있습니다.'
+      : user.authProvider === 'test'
+      ? '테스트 계정은 서버 예약 알림에 연결되지 않습니다. 이 화면을 열어 둔 동안에만 선택한 시각에 알림을 표시합니다. 앱을 닫아도 울리는 알림은 실제 계정에서 설정해 주세요.'
       : (enabled ? `${this.formatReminderDays(reminderDays)} ${this.getReminderTime(user.id)}에 필요한 알림을 알려드립니다.` : '요일과 시각을 선택한 뒤 동의한 경우에만 알림을 보냅니다.');
   },
 
@@ -1003,7 +1011,7 @@ const HealthNotifications = {
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) await subscription.unsubscribe();
         this.updatePermissionUI(user);
-        showToast('예약 건강 알림을 껐습니다.', 'default');
+        showToast(user.authProvider === 'test' ? '화면 열림 알림을 껐습니다.' : '예약 건강 알림을 껐습니다.', 'default');
       } catch (error) { showToast(error.message || '알림 설정을 변경하지 못했습니다.', 'error'); }
       return;
     }
@@ -1018,7 +1026,9 @@ const HealthNotifications = {
       const subscription = user.authProvider === 'test' ? null : await this.getPushSubscription();
       await this.saveSchedule(user, true, subscription);
       this.updatePermissionUI(user);
-      showToast(`${this.getReminderTime(user.id)} 예약 알림을 켰습니다.`, 'success');
+      showToast(user.authProvider === 'test'
+        ? `${this.getReminderTime(user.id)} 화면 열림 알림을 켰습니다. 앱을 닫으면 울리지 않습니다.`
+        : `${this.getReminderTime(user.id)} 예약 알림을 켰습니다.`, 'success');
     } catch (error) {
       this.setEnabled(user.id, false);
       this.updatePermissionUI(user);
@@ -1031,7 +1041,7 @@ const HealthNotifications = {
       const subscription = user.authProvider === 'test' ? null : await this.getPushSubscription();
       await this.saveSchedule(user, true, subscription);
       this.updatePermissionUI(user);
-      showToast('알림 설정을 저장했습니다.', 'success');
+      showToast(user.authProvider === 'test' ? '화면 열림 알림 설정을 저장했습니다.' : '알림 설정을 저장했습니다.', 'success');
     } catch (error) { showToast(error.message || '알림 시각을 저장하지 못했습니다.', 'error'); }
   },
 
@@ -1043,22 +1053,25 @@ const HealthNotifications = {
   },
 
   async deliver(user, force = false) {
-    if (!this.isEnabled(user.id) || Notification.permission !== 'granted' || !this.alerts.length) return;
+    if (!this.isEnabled(user.id) || Notification.permission !== 'granted') return;
+    const recordedToday = Records.getUserRecords(user.id).some(record => record && record.date === today());
+    if (recordedToday && this.getSkipIfRecorded(user.id)) return;
+    const alerts = this.alerts.length ? this.alerts : [{
+      icon: recordedToday ? '✅' : '📝',
+      title: recordedToday ? '오늘의 기록을 확인하고 몸의 변화를 돌아보세요.' : '오늘의 건강 기록을 남겨보세요.',
+    }];
     const seenKey = `${KEYS.NOTIFICATION_SEEN}_${user.id}`;
-    const signature = `${today()}:${this.alerts.map(alert => alert.type).sort().join(',')}`;
+    const signature = `${today()}:${alerts.map(alert => alert.type || alert.title).sort().join(',')}`;
     if (!force && localStorage.getItem(seenKey) === signature) return;
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification('건강지킴이 알림', {
-      body: this.alerts.map(alert => `${alert.icon} ${alert.title}`).join('\n'),
+      body: alerts.map(alert => `${alert.icon} ${alert.title}`).join('\n'),
       icon: '/images/app-icon-192.png',
       badge: '/images/app-icon-192.png',
       tag: `health-reminder-${today()}`,
       renotify: false,
       data: { url: '/dashboard.html' },
-      actions: [
-        { action: 'snooze-30', title: '30분 후' },
-        { action: 'dismiss-today', title: '오늘은 그만' },
-      ],
+      actions: [],
     });
     localStorage.setItem(seenKey, signature);
   },
@@ -1142,7 +1155,7 @@ function openNotificationCenter() {
         <div id="healthNotificationList" class="health-notification-list"></div>
         <div class="health-notification-consent">
           <div class="health-notification-setting"><label>알림 시각</label><input type="hidden" id="healthNotificationTime" value="20:00"><button type="button" id="healthNotificationTimeButton" class="health-time-button" aria-label="알림 시각 선택"><span aria-hidden="true">🕐</span><strong id="healthNotificationTimeText">오후 8:00</strong></button></div>
-          <div class="health-notification-consent-copy"><strong>예약 PWA 알림</strong><p id="healthNotificationStatus"></p></div>
+          <div class="health-notification-consent-copy"><strong>${user.authProvider === 'test' ? '화면 열림 알림 (테스트 계정)' : '예약 PWA 알림'}</strong><p id="healthNotificationStatus"></p></div>
           <div class="health-notification-actions"><button type="button" id="healthNotificationSaveTime" hidden>설정 저장</button><button type="button" id="healthNotificationToggle"></button></div>
           <div class="health-notification-schedule">
             <div class="health-notification-schedule-title"><span>알림 요일</span><button type="button" id="healthNotificationWeekdays">주말 제외</button></div>
