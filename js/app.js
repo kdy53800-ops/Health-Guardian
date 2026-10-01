@@ -976,7 +976,7 @@ const HealthNotifications = {
     showToast(action === 'dismiss-today' ? '오늘은 건강 알림을 보내지 않습니다.' : '30분 후 다시 알려드릴게요.', 'success');
   },
 
-  async testNotification() {
+  async testNotification(user) {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       throw new Error('이 브라우저에서는 알림 테스트를 지원하지 않습니다.');
     }
@@ -989,6 +989,20 @@ const HealthNotifications = {
       throw new Error('브라우저 알림 권한을 허용해 주세요.');
     }
     const registration = await navigator.serviceWorker.ready;
+    if (user && user.authProvider !== 'test') {
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) throw new Error('이 기기의 서버 알림 등록이 없습니다. 예약 알림을 껐다가 다시 켜주세요.');
+      const endpoint = new URL('api/check-session', window.location.href);
+      endpoint.searchParams.set('view', 'notification-test');
+      const response = await fetch(endpoint.toString(), {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload || !payload.ok) throw new Error((payload && payload.message) || '서버 테스트 알림을 보내지 못했습니다.');
+      showToast('서버에서 테스트 알림을 보냈습니다. 기기의 알림 영역을 확인해 주세요.', 'success');
+      return;
+    }
     await registration.showNotification('건강지킴이 테스트 알림', {
       body: '알림이 정상적으로 표시되고 있습니다.',
       icon: '/images/app-icon-192.png',
@@ -998,7 +1012,7 @@ const HealthNotifications = {
       data: { url: '/dashboard.html' },
       actions: [],
     });
-    showToast('테스트 알림을 보냈습니다. 기기의 알림 영역을 확인해 주세요.', 'success');
+    showToast('기기 표시 테스트를 마쳤습니다. 테스트 계정은 서버 예약 알림을 지원하지 않습니다.', 'success');
   },
 
   async toggle(user) {
@@ -1141,7 +1155,7 @@ function openNotificationCenter() {
             <li>‘지정 시각 알림 받기’를 누른 뒤 기기의 알림 권한 요청이 나타나면 허용하세요.</li>
             <li>설정을 바꾼 뒤에는 ‘설정 저장’을 누르세요. ‘테스트 알림 보내기’로 기기에 표시되는지도 확인할 수 있습니다.</li>
           </ol>
-          <p>알림이 보이지 않으면 기기의 알림 설정과 방해 금지 모드를 확인하세요. 테스트 알림은 기기 표시 여부를 확인하며, 예약 알림은 선택한 요일·시각과 기록 상태에 따라 발송됩니다.</p>
+          <p>알림이 보이지 않으면 기기의 알림 설정과 방해 금지 모드를 확인하세요. 실제 계정의 ‘테스트 알림 보내기’는 서버를 거쳐 기기로 발송합니다. 예약 알림은 선택한 요일·시각과 기록 상태에 따라 발송됩니다.</p>
           ${isPwaInstalled() ? '' : '<button type="button" class="health-notification-install-help">앱 설치·설치 방법 보기</button>'}
         </div>
       </details>` : '';
@@ -1181,7 +1195,7 @@ function openNotificationCenter() {
     overlay.querySelector('#healthNotificationTest').addEventListener('click', event => {
       const button = event.currentTarget;
       button.disabled = true;
-      HealthNotifications.testNotification().catch(error => showToast(error.message || '테스트 알림을 보내지 못했습니다.', 'error')).finally(() => { button.disabled = false; });
+      HealthNotifications.testNotification(Auth.getUser()).catch(error => showToast(error.message || '테스트 알림을 보내지 못했습니다.', 'error')).finally(() => { button.disabled = false; });
     });
     overlay.querySelector('#healthNotificationSnooze').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'snooze-30').catch(error => showToast(error.message, 'error')));
     overlay.querySelector('#healthNotificationDismiss').addEventListener('click', () => HealthNotifications.action(Auth.getUser(), 'dismiss-today').catch(error => showToast(error.message, 'error')));

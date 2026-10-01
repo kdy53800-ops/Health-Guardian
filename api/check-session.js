@@ -238,6 +238,57 @@ async function handleNotificationAction(res, session, body) {
   sendJson(res, 200, { ok: true, action, snoozedUntil: patch.snoozed_until || null });
 }
 
+async function handleNotificationTest(res, session, body) {
+  if (session.provider === 'test') {
+    sendJson(res, 400, { ok: false, message: '테스트 계정은 서버 푸시 알림을 사용할 수 없습니다.' });
+    return;
+  }
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    sendJson(res, 503, { ok: false, message: '서버 푸시 설정이 준비되지 않았습니다.' });
+    return;
+  }
+  const endpoint = body && String(body.endpoint || '');
+  if (!endpoint.startsWith('https://') || endpoint.length > 2000) {
+    sendJson(res, 400, { ok: false, message: '기기 알림 등록 정보가 올바르지 않습니다.' });
+    return;
+  }
+  const profiles = await fetchSupabase(`/rest/v1/profiles?select=id,is_blocked&id=eq.${encodeEq(session.uid)}&limit=1`, { headers: { Accept: 'application/json' } });
+  const profile = Array.isArray(profiles) && profiles[0] ? profiles[0] : null;
+  if (!profile || profile.is_blocked) {
+    sendJson(res, 403, { ok: false, message: '계정 상태를 확인할 수 없습니다.' });
+    return;
+  }
+  const subscriptions = await fetchSupabase(`/rest/v1/push_subscriptions?select=subscription&user_id=eq.${encodeEq(session.uid)}&endpoint=eq.${encodeEq(endpoint)}&limit=1`, { headers: { Accept: 'application/json' } });
+  const subscription = Array.isArray(subscriptions) && subscriptions[0] ? subscriptions[0].subscription : null;
+  if (!subscription) {
+    sendJson(res, 409, { ok: false, message: '이 기기가 서버에 등록되지 않았습니다. 예약 알림을 껐다가 다시 켜주세요.' });
+    return;
+  }
+  const webpush = require('web-push');
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'https://health-guardian-snh.vercel.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+  try {
+    await webpush.sendNotification(subscription, JSON.stringify({
+      title: '건강지킴이 서버 테스트 알림',
+      body: '서버에서 보낸 알림이 기기에 도착했습니다.',
+      url: '/dashboard.html',
+      tag: `health-server-test-${Date.now()}`,
+      actions: false,
+    }), { TTL: 60 });
+  } catch (error) {
+    if (error && (error.statusCode === 404 || error.statusCode === 410)) {
+      await fetchSupabase(`/rest/v1/push_subscriptions?user_id=eq.${encodeEq(session.uid)}&endpoint=eq.${encodeEq(endpoint)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+      sendJson(res, 410, { ok: false, message: '기기 알림 등록이 만료됐습니다. 예약 알림을 껐다가 다시 켜주세요.' });
+      return;
+    }
+    console.warn('[PushTest] Send failed:', error && error.statusCode, error && error.message);
+    sendJson(res, 502, { ok: false, message: error && [401, 403].includes(error.statusCode)
+      ? '서버 푸시 키가 이 기기의 등록 정보와 일치하지 않습니다. 예약 알림을 껐다가 다시 켜주세요.'
+      : '서버에서 기기로 알림을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.' });
+    return;
+  }
+  sendJson(res, 200, { ok: true, sent: true });
+}
+
 module.exports = async function handler(req, res) {
   const requestUrl = new URL(req.url, 'http://localhost');
   if (requestUrl.searchParams.get('task') === 'send-reminders') {
@@ -261,6 +312,11 @@ module.exports = async function handler(req, res) {
     if (requestUrl.searchParams.get('view') === 'notification-action') {
       if (req.method !== 'POST') { sendJson(res, 405, { ok: false, message: 'Method Not Allowed' }); return; }
       await handleNotificationAction(res, session, await readBody(req));
+      return;
+    }
+    if (requestUrl.searchParams.get('view') === 'notification-test') {
+      if (req.method !== 'POST') { sendJson(res, 405, { ok: false, message: 'Method Not Allowed' }); return; }
+      await handleNotificationTest(res, session, await readBody(req));
       return;
     }
     if (req.method !== 'GET') { sendJson(res, 405, { ok: false, message: 'Method Not Allowed' }); return; }

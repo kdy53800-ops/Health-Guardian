@@ -79,3 +79,39 @@ test('open-page reminder honors the recorded-day setting', async () => {
   assert.match(notifications[0].options.body, /오늘의 기록을 확인/);
   assert.equal(notifications[0].options.actions.length, 0);
 });
+
+test('real-account test notification uses the server and the saved device endpoint', async () => {
+  const existing = { endpoint: 'https://push.example/device-1' };
+  const { context, notifications } = createContext(existing, null);
+  const requests = [];
+  context.window.Notification = context.Notification;
+  context.window.location = { href: 'https://health-guardian-snh.vercel.app/dashboard.html' };
+  context.URL = URL;
+  vm.runInContext('showToast = () => {}', context);
+  context.fetch = async (url, options) => {
+    requests.push({ url, options });
+    return { ok: true, async json() { return { ok: true, sent: true }; } };
+  };
+
+  await vm.runInContext("HealthNotifications.testNotification({ id: 'naver-user', authProvider: 'naver' })", context);
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://health-guardian-snh.vercel.app/api/check-session?view=notification-test');
+  assert.equal(requests[0].options.method, 'POST');
+  assert.equal(JSON.parse(requests[0].options.body).endpoint, existing.endpoint);
+  assert.equal(notifications.length, 0);
+});
+
+test('server test failure is shown instead of a local success notification', async () => {
+  const { context, notifications } = createContext({ endpoint: 'https://push.example/device-1' }, null);
+  context.window.Notification = context.Notification;
+  context.window.location = { href: 'https://health-guardian-snh.vercel.app/dashboard.html' };
+  context.URL = URL;
+  context.fetch = async () => ({ ok: false, async json() { return { ok: false, message: '기기 등록 오류' }; } });
+
+  await assert.rejects(
+    vm.runInContext("HealthNotifications.testNotification({ id: 'naver-user', authProvider: 'naver' })", context),
+    /기기 등록 오류/
+  );
+  assert.equal(notifications.length, 0);
+});
