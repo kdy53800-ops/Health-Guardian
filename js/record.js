@@ -695,10 +695,9 @@ function renderRoutineQuickList() {
   const available = currentUser.authProvider === 'test' || routineServerReady;
   section.hidden = !available || recordRoutines.length === 0;
   list.innerHTML = section.hidden ? '' : recordRoutines.map((routine, index) => `
-    <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${index})" aria-label="${escapeAttribute(routine.name)} 루틴 적용">
+    <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${index})" aria-label="${escapeAttribute(routine.name)} 루틴 내용 확인 후 적용">
       <strong>${escapeHtml(routine.name)}</strong>
       <small>${escapeHtml(routineSummary(routine))}</small>
-      <span class="routine-quick-action">내용 확인 후 적용 →</span>
     </button>`).join('');
 }
 
