@@ -32,28 +32,21 @@
       margin-bottom: 0;
     }
 
-    /* A small decorative star marks empty inputs without implying they are required. */
-    #recordForm .form-group:has(.form-control:placeholder-shown) > .form-label::after,
-    #recordForm .section-card:has(#fMemo:placeholder-shown) .section-card-header h3::after {
-      content: '✦';
-      display: inline-block;
-      margin-left: 5px;
-      color: var(--primary);
-      font-size: .7em;
-      vertical-align: top;
-      animation: empty-field-star 2.4s ease-in-out infinite;
+    /* Empty fields gently pulse between their usual border and a muted red. */
+    #recordForm .form-control:placeholder-shown:not(:focus),
+    #recordForm #fDate:required:invalid:not(:focus) {
+      animation: empty-field-border 2.6s ease-in-out infinite;
     }
-    #recordForm .basic-info-date:has(#fDate:invalid) .required {
-      animation: empty-field-star 2.4s ease-in-out infinite;
-    }
-    @keyframes empty-field-star {
-      0%, 100% { opacity: .3; }
-      50% { opacity: 1; }
+    @keyframes empty-field-border {
+      0%, 100% { border-color: #cfddeb; }
+      50% { border-color: #c87575; }
     }
     @media (prefers-reduced-motion: reduce) {
-      #recordForm .form-group:has(.form-control:placeholder-shown) > .form-label::after,
-      #recordForm .section-card:has(#fMemo:placeholder-shown) .section-card-header h3::after,
-      #recordForm .basic-info-date:has(#fDate:invalid) .required { animation: none; opacity: 1; }
+      #recordForm .form-control:placeholder-shown:not(:focus),
+      #recordForm #fDate:required:invalid:not(:focus) {
+        animation: none;
+        border-color: #c87575;
+      }
     }
 
     @media (max-width: 1020px) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-guardian-shell-v90';
+const CACHE_NAME = 'health-guardian-shell-v91';
 const APP_SHELL = [
   '/', '/index.html', '/dashboard.html', '/record.html', '/history.html', '/monthly.html', '/inbody.html',
   '/terms.html', '/privacy.html',
