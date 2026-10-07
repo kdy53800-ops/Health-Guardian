@@ -730,12 +730,22 @@ function renderRoutineQuickList() {
   const list = document.getElementById('routineQuickList');
   if (!section || !list) return;
   const available = currentUser.authProvider === 'test' || routineServerReady;
-  section.hidden = !available || recordRoutines.length === 0;
-  list.innerHTML = section.hidden ? '' : recordRoutines.map((routine, index) => `
-    <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${index})" aria-label="${escapeAttribute(routine.name)} 루틴 내용 확인 후 적용">
-      <strong>${escapeHtml(routine.name)}</strong>
-      <small>${escapeHtml(routineSummary(routine))}</small>
-    </button>`).join('');
+  section.hidden = !available;
+  list.innerHTML = section.hidden ? '' : Array.from({ length: MAX_RECORD_ROUTINES }, (_, index) => {
+    const slot = index + 1;
+    const routineIndex = recordRoutines.findIndex((item, itemIndex) => (item.slot || itemIndex + 1) === slot);
+    if (routineIndex < 0) return `
+      <div class="routine-quick-card routine-quick-placeholder" aria-label="${slot}번 루틴 빈 자리">
+        <strong>루틴 ${slot}</strong>
+        <small>비어 있음</small>
+      </div>`;
+    const routine = recordRoutines[routineIndex];
+    return `
+      <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${routineIndex})" aria-label="${slot}번 ${escapeAttribute(routine.name)} 루틴 내용 확인 후 적용">
+        <strong>${slot}. ${escapeHtml(routine.name)}</strong>
+        <small>${escapeHtml(routineSummary(routine))}</small>
+      </button>`;
+  }).join('');
 }
 
 function updateRoutineCount() {
@@ -751,7 +761,7 @@ function renderRecordRoutines() {
   if (!list) return;
   list.innerHTML = recordRoutines.length ? recordRoutines.map((routine, index) => `
     <div class="routine-slot">
-      <div class="routine-slot-heading"><strong>${escapeHtml(routine.name)}</strong><small>${index + 1}/${MAX_RECORD_ROUTINES}</small></div>
+      <div class="routine-slot-heading"><strong>${escapeHtml(routine.name)}</strong><small>${routine.slot || index + 1}/${MAX_RECORD_ROUTINES}</small></div>
       <p class="routine-slot-summary">${escapeHtml(routineSummary(routine))}</p>
       <div class="routine-slot-actions">
         <button type="button" onclick="applyRecordRoutine(${index})">내용 확인 후 적용</button>

@@ -179,11 +179,26 @@ test('a routine deleted on another device is not restored from an old local cach
   assert.equal(vm.runInContext('recordRoutines.length', context), 0);
 });
 
-test('quick routine cards stay hidden when no routine is saved', () => {
+test('five quick routine slots remain visible when no routine is saved', () => {
   const { context, fields } = createPage();
   vm.runInContext('updateRoutineCount()', context);
-  assert.equal(fields.get('routineQuickSection').hidden, true);
-  assert.equal(fields.get('routineQuickList').innerHTML, '');
+  assert.equal(fields.get('routineQuickSection').hidden, false);
+  assert.equal((fields.get('routineQuickList').innerHTML.match(/routine-quick-placeholder/g) || []).length, 5);
+});
+
+test('saved routines keep their numbered slots with placeholders between them', () => {
+  const { context, fields } = createPage();
+  vm.runInContext(`recordRoutines = [
+    normalizeRoutine({ id:'second', slot:2, name:'걷기', walking:30, customExercises:[] }),
+    normalizeRoutine({ id:'fifth', slot:5, name:'근력', customExercises:[{name:'덤벨 운동', duration:20}] })
+  ]; updateRoutineCount()`, context);
+  const html = fields.get('routineQuickList').innerHTML;
+  assert.equal((html.match(/class="routine-quick-card/g) || []).length, 5);
+  assert.equal((html.match(/routine-quick-placeholder/g) || []).length, 3);
+  assert.ok(html.indexOf('루틴 1') < html.indexOf('2. 걷기'));
+  assert.ok(html.indexOf('2. 걷기') < html.indexOf('루틴 3'));
+  assert.ok(html.indexOf('루틴 4') < html.indexOf('5. 근력'));
+  assert.match(html, /applyRecordRoutine\(1\)/);
 });
 
 test('new-record default date can be changed per account and survives reopening', () => {
