@@ -198,7 +198,7 @@
     .routine-quick-heading { display:flex; align-items:baseline; gap:8px; margin:0 0 7px; color:var(--text); font-size:.78rem; }
     .routine-quick-heading span { color:var(--text-muted); font-size:.7rem; }
     .routine-quick-list { display:flex; gap:7px; overflow-x:auto; padding:1px 2px 6px; scroll-snap-type:x proximity; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
-    .routine-quick-card { flex:0 0 clamp(155px,20%,200px); min-height:66px; padding:9px 26px 9px 10px; border:1px solid var(--border); border-radius:11px; background:var(--surface); color:var(--text); text-align:left; font:inherit; cursor:pointer; scroll-snap-align:start; position:relative; }
+    .routine-quick-card { flex:1 0 8rem; min-height:66px; padding:9px 26px 9px 10px; border:1px solid var(--border); border-radius:11px; background:var(--surface); color:var(--text); text-align:left; font:inherit; cursor:pointer; scroll-snap-align:start; position:relative; }
     .routine-quick-card::after { content:'›'; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--primary); font-size:1.1rem; }
     .routine-quick-card:not(.routine-quick-placeholder):hover, .routine-quick-card:focus-visible { border-color:var(--primary); outline:2px solid transparent; background:var(--surface-2); }
     .routine-quick-card strong { display:block; font-size:.8rem; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -461,7 +461,6 @@
       .record-quick-buttons { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
       .record-quick-buttons .btn { min-width:0; white-space:normal; }
       .routine-quick-section { margin:-2px 0 11px; }
-      .routine-quick-card { flex-basis:min(52vw,190px); }
       .record-status-stack { gap:2px; }
       .draft-status, .sync-status { min-height:20px; font-size:.72rem; }
       .cond-btn { min-width: 56px; padding: 8px 4px; }
