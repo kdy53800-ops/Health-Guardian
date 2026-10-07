@@ -602,8 +602,26 @@ function routineSummary(routine) {
   const parts = [];
   if (routine.walking || routine.walkingKm) parts.push(`걷기 ${routine.walking}분${routine.walkingKm ? ` · ${routine.walkingKm}km` : ''}`);
   if (routine.running || routine.runningKm) parts.push(`러닝 ${routine.running}분${routine.runningKm ? ` · ${routine.runningKm}km` : ''}`);
-  if (routine.customExercises.length) parts.push(`개인 운동 ${routine.customExercises.length}종목`);
+  if (routine.customExercises.length) {
+    const names = routine.customExercises.slice(0, 2).map(exercise => exercise.name).join('·');
+    const rest = routine.customExercises.length > 2 ? ` 외 ${routine.customExercises.length - 2}종목` : '';
+    parts.push(`${names}${rest}`);
+  }
   return parts.join(' / ');
+}
+
+function renderRoutineQuickList() {
+  const section = document.getElementById('routineQuickSection');
+  const list = document.getElementById('routineQuickList');
+  if (!section || !list) return;
+  const available = currentUser.authProvider === 'test' || routineServerReady;
+  section.hidden = !available || recordRoutines.length === 0;
+  list.innerHTML = section.hidden ? '' : recordRoutines.map((routine, index) => `
+    <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${index})" aria-label="${escapeAttribute(routine.name)} 루틴 적용">
+      <strong>${escapeHtml(routine.name)}</strong>
+      <small>${escapeHtml(routineSummary(routine))}</small>
+      <span class="routine-quick-action">현재 기록에 적용 →</span>
+    </button>`).join('');
 }
 
 function updateRoutineCount() {
@@ -611,6 +629,7 @@ function updateRoutineCount() {
   if (count) count.textContent = `${recordRoutines.length}/${MAX_RECORD_ROUTINES}`;
   const button = document.getElementById('openRoutineBtn');
   if (button) button.disabled = currentUser.authProvider !== 'test' && !routineServerReady;
+  renderRoutineQuickList();
 }
 
 function renderRecordRoutines() {
@@ -696,7 +715,8 @@ function applyRecordRoutine(index) {
   updateProgress('fRunning', 'progressRunning', 'pctRunning', 'running');
   updateSummary();
   scheduleDraftSave();
-  document.getElementById('routineDialog').close();
+  const dialog = document.getElementById('routineDialog');
+  if (dialog && dialog.open) dialog.close();
   showToast(`‘${routine.name}’ 루틴을 적용했습니다. 내용을 확인한 뒤 기록을 저장해 주세요.`, 'success');
 }
 

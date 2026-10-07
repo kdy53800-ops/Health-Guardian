@@ -14,6 +14,8 @@ function createPage() {
   fields.set('routineCount', { textContent: '' });
   fields.set('openRoutineBtn', { disabled: true });
   fields.set('routineList', { innerHTML: '' });
+  fields.set('routineQuickSection', { hidden: true });
+  fields.set('routineQuickList', { innerHTML: '' });
   fields.set('saveRoutineBtn', { disabled: false });
   fields.set('routineSaveHint', { textContent: '' });
   fields.set('routineDialog', { close() {}, showModal() {} });
@@ -53,6 +55,8 @@ test('routines save at most four exercise templates for the current account', as
   assert.equal(fields.get('routineCount').textContent, '4/4');
   assert.equal(fields.get('saveRoutineBtn').disabled, true);
   assert.equal(storage.has('HealthGuardian_recordRoutines_v1_user-1'), true);
+  assert.equal(fields.get('routineQuickSection').hidden, false);
+  assert.equal((fields.get('routineQuickList').innerHTML.match(/class="routine-quick-card"/g) || []).length, 4);
   vm.runInContext("currentUser = { id: 'user-2' }; recordRoutines = loadRecordRoutines()", context);
   assert.equal(vm.runInContext('recordRoutines.length', context), 0);
 });
@@ -145,4 +149,11 @@ test('a routine deleted on another device is not restored from an old local cach
 
   assert.deepEqual(calls, ['GET']);
   assert.equal(vm.runInContext('recordRoutines.length', context), 0);
+});
+
+test('quick routine cards stay hidden when no routine is saved', () => {
+  const { context, fields } = createPage();
+  vm.runInContext('updateRoutineCount()', context);
+  assert.equal(fields.get('routineQuickSection').hidden, true);
+  assert.equal(fields.get('routineQuickList').innerHTML, '');
 });

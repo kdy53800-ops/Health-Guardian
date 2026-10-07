@@ -193,6 +193,16 @@
     }
 
     .record-quick-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+    .routine-quick-section { margin:-8px 0 20px; min-width:0; }
+    .routine-quick-section[hidden] { display:none; }
+    .routine-quick-heading { display:flex; align-items:baseline; gap:8px; margin:0 0 9px; color:var(--text); font-size:.85rem; }
+    .routine-quick-heading span { color:var(--text-muted); font-size:.73rem; }
+    .routine-quick-list { display:flex; gap:10px; overflow-x:auto; padding:1px 2px 8px; scroll-snap-type:x proximity; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
+    .routine-quick-card { flex:0 0 clamp(190px,23%,250px); min-height:105px; padding:13px; border:1px solid var(--border); border-radius:14px; background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); text-align:left; font:inherit; cursor:pointer; scroll-snap-align:start; }
+    .routine-quick-card:hover, .routine-quick-card:focus-visible { border-color:var(--primary); outline:2px solid transparent; background:var(--surface-2); }
+    .routine-quick-card strong { display:block; font-size:.88rem; margin-bottom:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .routine-quick-card small { display:-webkit-box; min-height:2.7em; overflow:hidden; color:var(--text-secondary); font-size:.73rem; line-height:1.35; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+    .routine-quick-card .routine-quick-action { display:block; margin-top:7px; color:var(--primary); font-size:.75rem; font-weight:800; }
     .routine-list { display:grid; gap:10px; max-height:55dvh; overflow-y:auto; }
     .routine-slot { padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
     .routine-slot-heading { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
@@ -429,6 +439,8 @@
       .record-quick-actions .btn { width: 100%; }
       .record-quick-buttons { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
       .record-quick-buttons .btn { min-width:0; white-space:normal; }
+      .routine-quick-section { margin:-2px 0 14px; }
+      .routine-quick-card { flex-basis:min(74vw,250px); }
       .record-status-stack { gap:2px; }
       .draft-status, .sync-status { min-height:20px; font-size:.72rem; }
       .cond-btn { min-width: 56px; padding: 8px 4px; }
@@ -928,6 +940,11 @@
           </div>
         </div>
       </div>
+
+      <section id="routineQuickSection" class="routine-quick-section" aria-label="저장한 운동 루틴 빠른 적용" hidden>
+        <div class="routine-quick-heading"><strong>📌 저장한 루틴</strong><span>옆으로 밀어 선택하세요</span></div>
+        <div id="routineQuickList" class="routine-quick-list"></div>
+      </section>
 
       <form id="recordForm" onsubmit="handleSave(event)">
 
