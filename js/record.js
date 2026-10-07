@@ -78,6 +78,7 @@ const GOAL_LABELS = {
 
 // 날짜 중복 모달에서 참조할 기존 기록
 let pendingDuplicateRecord = null;
+let replacingRecord = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof Auth.checkAndRestoreSession === 'function') {
@@ -122,18 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 날짜 변경 시 기존 기록 여부 확인
   document.getElementById('fDate').addEventListener('change', function() {
-    if (editingId) return; // 수정 모드에서는 체크 안 함
-    const dateVal = this.value;
-    if (!dateVal) return;
-    const existing = userRecords.find(record => record.date === dateVal);
-    if (existing) {
-      pendingDuplicateRecord = existing;
-      const modal = document.getElementById('duplicateModal');
-      document.getElementById('duplicateModalDate').textContent =
-        `${formatDate(dateVal)} 날짜에 이미 작성된 기록이 있습니다.\n기존 기록을 불러올까요?`;
-      modal.style.display = 'flex';
-    }
-    updateSummary();
+    handleRecordDateChange(this.value);
   });
 
   initGoalEditors();
@@ -854,6 +844,7 @@ function setFasting(hours) {
 function loadExistingRecord() {
   if (!pendingDuplicateRecord) return;
   clearRecordDraft();
+  setReplacingRecord(null);
   editingId = pendingDuplicateRecord.id;
   populateForm(pendingDuplicateRecord);
   document.getElementById('saveBtn').textContent = '✏️ 수정 저장';
@@ -861,6 +852,41 @@ function loadExistingRecord() {
   updateRecentRecordButton();
   closeDuplicateModal();
   showToast('기존 기록을 불러왔습니다 📂', 'default');
+}
+
+function showDuplicateModal(record) {
+  pendingDuplicateRecord = record;
+  document.getElementById('duplicateModalDate').textContent = `${formatDate(record.date)} 날짜에 이미 작성된 기록이 있습니다.`;
+  document.getElementById('duplicateModal').style.display = 'flex';
+}
+
+function handleRecordDateChange(dateVal) {
+  if (editingId) return;
+  if (replacingRecord && replacingRecord.date !== dateVal) setReplacingRecord(null);
+  if (!dateVal) return;
+  const existing = userRecords.find(record => record.date === dateVal);
+  if (existing && (!replacingRecord || replacingRecord.id !== existing.id)) showDuplicateModal(existing);
+  updateSummary();
+}
+
+function setReplacingRecord(record) {
+  replacingRecord = record ? { id: record.id, date: record.date } : null;
+  const notice = document.getElementById('replaceRecordNotice');
+  if (notice) notice.hidden = !replacingRecord;
+  const saveButton = document.getElementById('saveBtn');
+  if (saveButton && !editingId) saveButton.textContent = replacingRecord ? '💾 기존 기록 대체 저장' : '💾 기록 저장하기';
+}
+
+function startNewRecordForExistingDate() {
+  if (!pendingDuplicateRecord) return;
+  const record = pendingDuplicateRecord;
+  if (editingId) {
+    editingId = null;
+    updateRecentRecordButton();
+  }
+  setReplacingRecord(record);
+  closeDuplicateModal();
+  showToast('새로 작성하여 저장하면 이 날짜의 이전 기록이 사라집니다.', 'default');
 }
 
 function closeDuplicateModal() {
@@ -1060,18 +1086,14 @@ async function handleSave(e) {
   // 신규 작성 중 같은 날짜에 기록이 있으면 모달로 재확인
   if (!editingId) {
     const dup = userRecords.find(record => record.date === dateVal);
-    if (dup) {
-      pendingDuplicateRecord = dup;
-      const modal = document.getElementById('duplicateModal');
-      document.getElementById('duplicateModalDate').textContent =
-        `${formatDate(dateVal)} 날짜에 이미 작성된 기록이 있습니다.\n기존 기록을 덮어쓰거나 불러올 수 있습니다.`;
-      modal.style.display = 'flex';
+    if (dup && (!replacingRecord || replacingRecord.date !== dateVal)) {
+      showDuplicateModal(dup);
       return; // 저장 중단 — 사용자가 선택하도록
     }
   }
 
   const record = {
-    id: editingId || genId(),
+    id: editingId || (replacingRecord && replacingRecord.date === dateVal ? replacingRecord.id : genId()),
     userId: currentUser.id,
     date: dateVal,
     weight:     parseFloat(document.getElementById('fWeight').value)     || 0,
@@ -1107,14 +1129,11 @@ async function handleSave(e) {
   } catch (error) {
     console.error('[RecordSave]', error);
     if (error.code === 'duplicate_date' && error.existingRecord) {
-      pendingDuplicateRecord = error.existingRecord;
-      const modal = document.getElementById('duplicateModal');
-      document.getElementById('duplicateModalDate').textContent =
-        `${formatDate(dateVal)} 날짜에 이미 작성된 기록이 있습니다.\n기존 기록을 덮어쓰거나 불러올 수 있습니다.`;
-      modal.style.display = 'flex';
+      setReplacingRecord(null);
+      showDuplicateModal(error.existingRecord);
       isSaving = false;
       saveButton.disabled = false;
-      saveButton.textContent = originalButtonText;
+      saveButton.textContent = editingId ? originalButtonText : '💾 기록 저장하기';
       return;
     }
     showToast(error.message || '기록 저장 중 오류가 발생했습니다.', 'error');

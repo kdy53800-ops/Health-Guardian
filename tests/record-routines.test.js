@@ -22,6 +22,10 @@ function createPage() {
   fields.set('recordImportDialog', { open: false, close() { this.open = false; }, showModal() { this.open = true; } });
   fields.set('recordImportTitle', { textContent: '' });
   fields.set('recordImportContent', { innerHTML: '' });
+  fields.set('duplicateModal', { style: { display: 'none' } });
+  fields.set('duplicateModalDate', { textContent: '' });
+  fields.set('replaceRecordNotice', { hidden: true });
+  fields.set('saveBtn', { textContent: '💾 기록 저장하기', disabled: false });
   for (let index = 1; index <= 5; index++) {
     fields.set(`cond${index}`, { classList: { toggle() {} }, setAttribute() {} });
   }
@@ -36,6 +40,8 @@ function createPage() {
       removeItem: key => storage.delete(key),
     },
     console,
+    setTimeout: () => 0,
+    clearTimeout: () => {},
     Event: class Event { constructor(type) { this.type = type; } },
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8'), context);
@@ -222,4 +228,48 @@ test('a date-only draft does not override the selected default on reopening', ()
   vm.runInContext('restoreRecordDraft()', context);
   assert.equal(fields.get('fDate').value, '2026-10-07');
   assert.equal(storage.has('HealthGuardian_recordDraft_v1_user-1_new'), false);
+});
+
+test('new writing replaces an existing date only after the user chooses replacement', async () => {
+  const { context, fields } = createPage();
+  const date = vm.runInContext('today()', context);
+  fields.get('fDate').value = date;
+  fields.get('fWalking').value = '45';
+  vm.runInContext('userRecords = [{ id:"existing", userId:"user-1", date:today(), walking:20 }]', context);
+  const saved = [];
+  context.testSaved = saved;
+  vm.runInContext('Records.saveAsync = async record => { testSaved.push(record); return record; }', context);
+  const submit = { preventDefault() {}, currentTarget: { reportValidity: () => true } };
+
+  await vm.runInContext('handleSave(testSubmit)', Object.assign(context, { testSubmit: submit }));
+  assert.equal(saved.length, 0);
+  assert.equal(fields.get('duplicateModal').style.display, 'flex');
+
+  vm.runInContext('startNewRecordForExistingDate()', context);
+  assert.equal(fields.get('replaceRecordNotice').hidden, false);
+  assert.match(fields.get('saveBtn').textContent, /기존 기록 대체 저장/);
+  assert.equal(fields.get('fWalking').value, '45');
+
+  await vm.runInContext('handleSave(testSubmit)', context);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].id, 'existing');
+  assert.equal(saved[0].walking, 45);
+  assert.equal(vm.runInContext('userRecords.length', context), 1);
+});
+
+test('changing the date cancels the existing-record replacement choice', () => {
+  const { context, fields } = createPage();
+  vm.runInContext('userRecords = [{ id:"existing", date:today() }]; showDuplicateModal(userRecords[0]); startNewRecordForExistingDate()', context);
+  vm.runInContext("handleRecordDateChange('2026-01-01')", context);
+  assert.equal(vm.runInContext('replacingRecord', context), null);
+  assert.equal(fields.get('replaceRecordNotice').hidden, true);
+  assert.equal(fields.get('saveBtn').textContent, '💾 기록 저장하기');
+});
+
+test('choosing new writing during an edit targets the conflicting date instead of the original edit', () => {
+  const { context, fields } = createPage();
+  vm.runInContext('editingId = "original"; userRecords = [{ id:"conflicting", date:today() }]; showDuplicateModal(userRecords[0]); startNewRecordForExistingDate()', context);
+  assert.equal(vm.runInContext('editingId', context), null);
+  assert.equal(vm.runInContext('replacingRecord.id', context), 'conflicting');
+  assert.equal(fields.get('saveBtn').textContent, '💾 기존 기록 대체 저장');
 });

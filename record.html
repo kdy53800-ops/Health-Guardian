@@ -193,6 +193,8 @@
     }
 
     .record-quick-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+    .record-replace-notice { margin:-4px 0 14px; padding:10px 12px; border:1px solid #f4c48c; border-radius:10px; background:#fff7ed; color:#9a3412; font-size:.8rem; font-weight:700; line-height:1.5; }
+    .record-replace-notice[hidden] { display:none; }
     .routine-quick-section { margin:-8px 0 14px; min-width:0; container: routine-slots / inline-size; }
     .routine-quick-section[hidden] { display:none; }
     .routine-quick-heading { display:flex; align-items:baseline; gap:8px; margin:0 0 7px; color:var(--text); font-size:.78rem; }
@@ -952,7 +954,7 @@
 
       <div class="record-quick-actions" aria-label="빠른 기록 도구">
         <div class="record-quick-buttons">
-          <button type="button" class="btn btn-outline btn-sm" id="openRoutineBtn" onclick="openRoutineDialog()" disabled>📌 나의 루틴 <span id="routineCount">0/4</span></button>
+          <button type="button" class="btn btn-outline btn-sm" id="openRoutineBtn" onclick="openRoutineDialog()" disabled>📌 나의 루틴 <span id="routineCount">0/5</span></button>
           <button type="button" class="btn btn-outline btn-sm" id="loadRecentBtn" onclick="loadRecentRecord()">🕒 최근 기록 불러오기</button>
         </div>
         <div class="record-status-stack">
@@ -964,6 +966,8 @@
           </div>
         </div>
       </div>
+
+      <p id="replaceRecordNotice" class="record-replace-notice" role="status" hidden>⚠️ 저장하면 이 날짜의 이전 기록이 사라지고 새 내용으로 대체됩니다.</p>
 
       <section id="routineQuickSection" class="routine-quick-section" aria-label="저장한 운동 루틴 빠른 적용" hidden>
         <div class="routine-quick-heading"><strong>📌 저장한 루틴</strong><span>총 5칸 · 옆으로 밀기</span></div>
@@ -1331,6 +1335,7 @@
           이미 작성된 기록이 있어요
         </h3>
         <p id="duplicateModalDate" style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;"></p>
+        <p style="font-size:0.82rem; color:#9a3412; line-height:1.5; margin-top:10px;">⚠️ ‘새로 작성하기’를 선택해 저장하면 이전 기록이 사라집니다.</p>
       </div>
       <div style="display:flex; flex-direction:column; gap:10px;">
         <button id="btnLoadExisting" onclick="loadExistingRecord()" style="
@@ -1341,7 +1346,7 @@
         " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
           📂 기존 기록 불러오기
         </button>
-        <button onclick="closeDuplicateModal()" style="
+        <button onclick="startNewRecordForExistingDate()" style="
           padding:13px; border:1.5px solid var(--border); border-radius:var(--radius-md);
           background:none; color:var(--text-secondary);
           font-family:inherit; font-size:0.9rem; font-weight:600;
