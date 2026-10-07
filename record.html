@@ -220,6 +220,20 @@
     .routine-save-row small { color:var(--text-muted); line-height:1.4; }
     #routineDialog { max-height:min(90dvh,780px); overflow-y:auto; }
     #routineDialog .routine-list { max-height:min(38dvh,300px); }
+    #recordImportDialog { width:min(520px,calc(100% - 24px)); max-height:min(88dvh,720px); overflow-y:auto; }
+    .record-import-note { margin:8px 0 14px; color:var(--text-secondary); font-size:.8rem; line-height:1.5; }
+    .record-import-warning { padding:10px 12px; border-radius:10px; background:#fff7ed; color:#9a3412; font-size:.78rem; font-weight:700; }
+    .record-import-values { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0; }
+    .record-import-values > div { min-width:0; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); }
+    .record-import-values dt { color:var(--text-muted); font-size:.73rem; }
+    .record-import-values dd { margin:3px 0 0; color:var(--text); font-size:.88rem; font-weight:800; overflow-wrap:anywhere; }
+    #recordImportContent h4 { margin:16px 0 8px; font-size:.84rem; }
+    .record-import-exercises { display:grid; gap:7px; max-height:26dvh; overflow-y:auto; margin:0; padding:0; list-style:none; }
+    .record-import-exercises li { display:flex; justify-content:space-between; gap:8px; padding:9px 11px; border:1px solid var(--border); border-radius:9px; font-size:.76rem; }
+    .record-import-exercises li span { color:var(--text-secondary); text-align:right; }
+    .record-import-empty { color:var(--text-muted); font-size:.78rem; }
+    .record-import-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+    .record-import-actions button { flex:1 1 140px; min-height:44px; }
 
     .draft-status {
       display: flex;
@@ -1265,6 +1279,19 @@
     <div class="routine-save-row">
       <button type="button" class="btn btn-primary btn-sm" id="saveRoutineBtn" onclick="saveCurrentRoutine()">루틴 저장</button>
       <small id="routineSaveHint">운동 내용을 먼저 입력해 주세요.</small>
+    </div>
+  </dialog>
+
+  <dialog id="recordImportDialog" class="exercise-shortcut-dialog" aria-labelledby="recordImportTitle" onclose="pendingRecordImport=null" onclick="if(event.target===this) closeRecordImportPreview()">
+    <div class="exercise-shortcut-dialog-header">
+      <h3 id="recordImportTitle">불러올 내용 확인</h3>
+      <button type="button" class="exercise-shortcut-dialog-close" aria-label="불러오기 취소" onclick="closeRecordImportPreview()">×</button>
+    </div>
+    <div id="recordImportContent"></div>
+    <div class="record-import-actions">
+      <button type="button" class="btn btn-outline btn-sm" onclick="closeRecordImportPreview()">취소</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="confirmRecordImport(true)">불러와서 수정하기</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="confirmRecordImport(false)">이대로 불러오기</button>
     </div>
   </dialog>
 

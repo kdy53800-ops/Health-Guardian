@@ -30,6 +30,7 @@ let recordRoutines = [];
 let routineServerReady = false;
 let activeStrengthTemplate = 1;
 let exerciseShortcutTrigger = null;
+let pendingRecordImport = null;
 
 const STRENGTH_TEMPLATES = [
   { label: '가볍게 2세트 × 12회', sets: 2, reps: 12, duration: 20 },
@@ -436,7 +437,7 @@ function updateRecentRecordButton() {
   button.disabled = !!editingId || !userRecords.length;
   button.title = editingId
     ? '수정 중에는 최근 기록을 불러올 수 없습니다.'
-    : (userRecords.length ? '가장 최근 기록의 입력값을 현재 날짜에 적용합니다.' : '불러올 기록이 없습니다.');
+    : (userRecords.length ? '가장 최근 기록의 내용을 확인한 뒤 현재 날짜에 불러옵니다.' : '불러올 기록이 없습니다.');
 }
 
 function loadRecentRecord() {
@@ -450,12 +451,89 @@ function loadRecentRecord() {
     return;
   }
 
-  const preservedDate = targetDate;
-  populateForm({ ...recent, date: preservedDate, memo: '' });
-  document.getElementById('fDate').value = preservedDate;
-  editingId = null;
+  openRecordImportPreview('recent', recent);
+}
+
+function importExerciseDetails(exercises) {
+  return exercises.length ? `<ul class="record-import-exercises">${exercises.map(exercise => {
+    const details = [`${Number(exercise.duration) || 0}분`];
+    if (exercise.category === '근력') details.push(`${Number(exercise.sets) || 0}세트 × ${Number(exercise.reps) || 0}회`);
+    if (exercise.intensity) details.push(`강도 ${exercise.intensity}`);
+    return `<li><strong>${escapeHtml(exercise.name || '')}</strong><span>${escapeHtml(details.join(' · '))}</span></li>`;
+  }).join('')}</ul>` : '<p class="record-import-empty">개인 운동 없음</p>';
+}
+
+function importValue(label, value, unit = '') {
+  return `<div><dt>${escapeHtml(label)}</dt><dd>${value === '' || value == null ? '—' : `${escapeHtml(String(value))}${unit}`}</dd></div>`;
+}
+
+function openRecordImportPreview(type, item) {
+  const dialog = document.getElementById('recordImportDialog');
+  const content = document.getElementById('recordImportContent');
+  if (!dialog || !content) return;
+  pendingRecordImport = { type, item };
+  const isRoutine = type === 'routine';
+  const title = isRoutine ? `‘${item.name}’ 루틴 확인` : `${formatDate(item.date)} 기록 확인`;
+  document.getElementById('recordImportTitle').textContent = title;
+  const details = [
+    importValue('걷기', item.walking, '분'), importValue('걷기 거리', item.walkingKm, 'km'),
+    importValue('러닝', item.running, '분'), importValue('러닝 거리', item.runningKm, 'km'),
+  ];
+  if (!isRoutine) details.push(
+    importValue('체중', item.weight, 'kg'), importValue('심박수', item.heartRate, 'bpm'),
+    importValue('수분 섭취', item.water, 'ml'), importValue('공복 시간', item.fasting, '시간'),
+    importValue('컨디션', item.condition, '/5'),
+  );
+  const hasCurrentInput = isRoutine
+    ? ['fWalking', 'fWalkingKm', 'fRunning', 'fRunningKm'].some(id => document.getElementById(id).value !== '') || customExercises.length > 0
+    : RECORD_FIELD_IDS.some(id => id !== 'fDate' && document.getElementById(id).value !== '') || customExercises.length > 0;
+  content.innerHTML = `
+    <p class="record-import-note">${isRoutine
+      ? '운동 항목만 불러옵니다. 날짜와 건강 지표는 그대로 둡니다.'
+      : '현재 선택한 날짜는 유지하며, 이전 기록의 메모는 불러오지 않습니다.'}</p>
+    ${hasCurrentInput ? '<p class="record-import-warning">현재 입력한 해당 항목은 불러온 내용으로 바뀝니다.</p>' : ''}
+    <dl class="record-import-values">${details.join('')}</dl>
+    <h4>개인 운동</h4>${importExerciseDetails(Array.isArray(item.customExercises) ? item.customExercises : [])}
+    ${!isRoutine && item.memo ? `<p class="record-import-note">이전 메모: ${escapeHtml(item.memo)}</p>` : ''}`;
+  const routineDialog = document.getElementById('routineDialog');
+  if (routineDialog && routineDialog.open) routineDialog.close();
+  dialog.showModal();
+}
+
+function closeRecordImportPreview() {
+  const dialog = document.getElementById('recordImportDialog');
+  if (dialog && dialog.open) dialog.close();
+  pendingRecordImport = null;
+}
+
+function confirmRecordImport(editAfterImport = false) {
+  if (!pendingRecordImport) return;
+  const { type, item } = pendingRecordImport;
+  if (type === 'routine') {
+    for (const [id, value] of Object.entries({
+      fWalking: item.walking, fWalkingKm: item.walkingKm,
+      fRunning: item.running, fRunningKm: item.runningKm,
+    })) document.getElementById(id).value = value || '';
+    customExercises = item.customExercises.map(exercise => ({ ...exercise, id: genId() }));
+    renderCustomExList();
+    updateProgress('fWalking', 'progressWalking', 'pctWalking', 'walking');
+    updateProgress('fRunning', 'progressRunning', 'pctRunning', 'running');
+  } else {
+    const preservedDate = document.getElementById('fDate').value;
+    populateForm({ ...item, date: preservedDate, memo: '' });
+    document.getElementById('fDate').value = preservedDate;
+  }
+  updateSummary();
   scheduleDraftSave();
-  showToast(`${formatDate(recent.date)} 기록을 불러왔습니다. 날짜와 내용을 확인해 주세요.`, 'success');
+  closeRecordImportPreview();
+  showToast(editAfterImport ? '내용을 불러왔습니다. 필요한 항목을 수정한 뒤 기록을 저장해 주세요.' : '내용을 불러왔습니다. 확인한 뒤 기록을 저장해 주세요.', 'success');
+  if (editAfterImport) {
+    const focusTarget = document.getElementById(type === 'routine' ? 'fWalking' : 'fWeight');
+    if (focusTarget) {
+      focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      focusTarget.focus({ preventScroll: true });
+    }
+  }
 }
 
 function routineStorageKey() {
@@ -620,7 +698,7 @@ function renderRoutineQuickList() {
     <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${index})" aria-label="${escapeAttribute(routine.name)} 루틴 적용">
       <strong>${escapeHtml(routine.name)}</strong>
       <small>${escapeHtml(routineSummary(routine))}</small>
-      <span class="routine-quick-action">현재 기록에 적용 →</span>
+      <span class="routine-quick-action">내용 확인 후 적용 →</span>
     </button>`).join('');
 }
 
@@ -640,7 +718,7 @@ function renderRecordRoutines() {
       <div class="routine-slot-heading"><strong>${escapeHtml(routine.name)}</strong><small>${index + 1}/${MAX_RECORD_ROUTINES}</small></div>
       <p class="routine-slot-summary">${escapeHtml(routineSummary(routine))}</p>
       <div class="routine-slot-actions">
-        <button type="button" onclick="applyRecordRoutine(${index})">현재 기록에 적용</button>
+        <button type="button" onclick="applyRecordRoutine(${index})">내용 확인 후 적용</button>
         <button type="button" onclick="replaceRecordRoutine(${index})">현재 입력으로 갱신</button>
         <button type="button" class="routine-delete" onclick="deleteRecordRoutine(${index})">삭제</button>
       </div>
@@ -702,22 +780,7 @@ async function replaceRecordRoutine(index) {
 function applyRecordRoutine(index) {
   const routine = recordRoutines[index];
   if (!routine) return;
-  const hasCurrentInput = ['fWalking', 'fWalkingKm', 'fRunning', 'fRunningKm']
-    .some(id => document.getElementById(id).value !== '') || customExercises.length > 0;
-  if (hasCurrentInput && !window.confirm(`현재 입력한 운동을 ‘${routine.name}’ 루틴으로 바꿀까요? 날짜와 건강 지표는 유지됩니다.`)) return;
-  for (const [id, value] of Object.entries({
-    fWalking: routine.walking, fWalkingKm: routine.walkingKm,
-    fRunning: routine.running, fRunningKm: routine.runningKm,
-  })) document.getElementById(id).value = value || '';
-  customExercises = routine.customExercises.map(exercise => ({ ...exercise, id: genId() }));
-  renderCustomExList();
-  updateProgress('fWalking', 'progressWalking', 'pctWalking', 'walking');
-  updateProgress('fRunning', 'progressRunning', 'pctRunning', 'running');
-  updateSummary();
-  scheduleDraftSave();
-  const dialog = document.getElementById('routineDialog');
-  if (dialog && dialog.open) dialog.close();
-  showToast(`‘${routine.name}’ 루틴을 적용했습니다. 내용을 확인한 뒤 기록을 저장해 주세요.`, 'success');
+  openRecordImportPreview('routine', routine);
 }
 
 async function deleteRecordRoutine(index) {

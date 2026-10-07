@@ -18,7 +18,14 @@ function createPage() {
   fields.set('routineQuickList', { innerHTML: '' });
   fields.set('saveRoutineBtn', { disabled: false });
   fields.set('routineSaveHint', { textContent: '' });
-  fields.set('routineDialog', { close() {}, showModal() {} });
+  fields.set('routineDialog', { open: false, close() { this.open = false; }, showModal() { this.open = true; } });
+  fields.set('recordImportDialog', { open: false, close() { this.open = false; }, showModal() { this.open = true; } });
+  fields.set('recordImportTitle', { textContent: '' });
+  fields.set('recordImportContent', { innerHTML: '' });
+  for (let index = 1; index <= 5; index++) {
+    fields.set(`cond${index}`, { classList: { toggle() {} }, setAttribute() {} });
+  }
+  fields.set('recordForm', { dataset: {} });
   const messages = [];
   const context = vm.createContext({
     document: { addEventListener() {}, getElementById: id => fields.get(id) || null },
@@ -79,6 +86,12 @@ test('applying a routine replaces only exercise fields and creates fresh exercis
   vm.runInContext('customExercises = []', context);
   vm.runInContext('applyRecordRoutine(0)', context);
 
+  assert.equal(fields.get('fWalking').value, '10');
+  assert.equal(fields.get('recordImportDialog').open, true);
+  assert.match(fields.get('recordImportContent').innerHTML, /덤벨 운동/);
+  assert.match(fields.get('recordImportContent').innerHTML, /현재 입력한 해당 항목/);
+  vm.runInContext('confirmRecordImport(false)', context);
+
   assert.equal(fields.get('fWalking').value, 40);
   assert.equal(fields.get('fWalkingKm').value, 3.5);
   assert.equal(fields.get('fDate').value, '2026-10-07');
@@ -89,17 +102,31 @@ test('applying a routine replaces only exercise fields and creates fresh exercis
   assert.notEqual(vm.runInContext('customExercises[0].id', context), 'old');
 });
 
-test('a routine does not overwrite exercise input when replacement is declined', async () => {
+test('canceling a routine preview keeps current exercise input', async () => {
   const { context, fields } = createPage();
   fields.get('fWalking').value = '40';
   fields.get('routineName').value = '걷기 루틴';
   await vm.runInContext('saveCurrentRoutine()', context);
   fields.get('fWalking').value = '15';
-  context.window.confirm = () => false;
-
   vm.runInContext('applyRecordRoutine(0)', context);
+  vm.runInContext('closeRecordImportPreview()', context);
 
   assert.equal(fields.get('fWalking').value, '15');
+  assert.equal(fields.get('recordImportDialog').open, false);
+});
+
+test('recent record preview preserves current inputs until confirmed', () => {
+  const { context, fields } = createPage();
+  fields.get('fDate').value = '2026-10-07';
+  fields.get('fWeight').value = '65';
+  vm.runInContext(`userRecords = [{ id:'past', date:'2026-10-06', weight:67, walking:30, water:1200, memo:'지난 메모', customExercises:[] }]`, context);
+  vm.runInContext('loadRecentRecord()', context);
+  assert.equal(fields.get('fWeight').value, '65');
+  assert.match(fields.get('recordImportContent').innerHTML, /지난 메모/);
+  vm.runInContext('confirmRecordImport(false)', context);
+  assert.equal(fields.get('fDate').value, '2026-10-07');
+  assert.equal(fields.get('fWeight').value, 67);
+  assert.equal(fields.get('fMemo').value, '');
 });
 
 test('real account migrates device routine into an empty cloud slot without replacing cloud routines', async () => {
