@@ -13,6 +13,8 @@ let draftTimer = null;
 
 const RECORD_DRAFT_PREFIX = 'HealthGuardian_recordDraft_v1';
 const EXERCISE_FAVORITES_PREFIX = 'HealthGuardian_exerciseFavorites_v1';
+const RECORD_ROUTINES_PREFIX = 'HealthGuardian_recordRoutines_v1';
+const MAX_RECORD_ROUTINES = 4;
 const RECORD_FIELD_IDS = [
   'fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fRunning',
   'fWalkingKm', 'fRunningKm', 'fWater', 'fFasting', 'fMemo'
@@ -23,6 +25,7 @@ let currentExCat = '유산소'; // 현재 선택된 카테고리
 let customExercises = [];     // [{ id, category, name, duration, intensity, sets, reps }]
 let favoriteExercises = [];
 let recentExerciseTemplates = [];
+let recordRoutines = [];
 let activeStrengthTemplate = 1;
 let exerciseShortcutTrigger = null;
 
@@ -90,6 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   userRecords = await Records.getUserRecordsAsync(currentUser.id);
   favoriteExercises = loadFavoriteExercises();
   recentExerciseTemplates = buildRecentExerciseTemplates();
+  recordRoutines = loadRecordRoutines();
 
   // ?edit=ID 파라미터가 있으면 수정 모드
   const params = new URLSearchParams(window.location.search);
@@ -138,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   restoreRecordDraft();
   initDraftAutosave();
   updateRecentRecordButton();
+  updateRoutineCount();
 
   window.addEventListener('online', () => {
     updateSyncStatus('syncing');
@@ -447,6 +452,177 @@ function loadRecentRecord() {
   editingId = null;
   scheduleDraftSave();
   showToast(`${formatDate(recent.date)} 기록을 불러왔습니다. 날짜와 내용을 확인해 주세요.`, 'success');
+}
+
+function routineStorageKey() {
+  return `${RECORD_ROUTINES_PREFIX}_${currentUser.id}`;
+}
+
+function normalizeRoutine(item) {
+  if (!item || typeof item !== 'object' || !item.id || !String(item.name || '').trim()) return null;
+  const number = (value, max) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? clamp(parsed, 0, max) : 0;
+  };
+  return {
+    id: String(item.id).slice(0, 100),
+    name: String(item.name).trim().slice(0, 30),
+    walking: number(item.walking, 999),
+    walkingKm: number(item.walkingKm, 999),
+    running: number(item.running, 999),
+    runningKm: number(item.runningKm, 999),
+    customExercises: Array.isArray(item.customExercises)
+      ? item.customExercises.slice(0, 30).map(normalizeExerciseTemplate).filter(exercise => exercise.name)
+      : [],
+  };
+}
+
+function loadRecordRoutines() {
+  if (!currentUser) return [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(routineStorageKey()) || '[]');
+    return Array.isArray(saved) ? saved.slice(0, MAX_RECORD_ROUTINES).map(normalizeRoutine).filter(Boolean) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function persistRecordRoutines(next) {
+  try {
+    localStorage.setItem(routineStorageKey(), JSON.stringify(next));
+    recordRoutines = next;
+    updateRoutineCount();
+    renderRecordRoutines();
+    return true;
+  } catch (error) {
+    showToast('루틴을 이 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.', 'error');
+    return false;
+  }
+}
+
+function captureCurrentRoutine(name, id = genId()) {
+  const fields = ['fWalking', 'fWalkingKm', 'fRunning', 'fRunningKm'];
+  const invalid = fields.map(field => document.getElementById(field)).find(input => !input.checkValidity());
+  if (invalid) {
+    invalid.reportValidity();
+    return null;
+  }
+  return normalizeRoutine({
+    id, name,
+    walking: document.getElementById('fWalking').value,
+    walkingKm: document.getElementById('fWalkingKm').value,
+    running: document.getElementById('fRunning').value,
+    runningKm: document.getElementById('fRunningKm').value,
+    customExercises,
+  });
+}
+
+function routineHasExercise(routine) {
+  return !!(routine && (routine.walking || routine.running || routine.walkingKm || routine.runningKm || routine.customExercises.length));
+}
+
+function routineSummary(routine) {
+  const parts = [];
+  if (routine.walking || routine.walkingKm) parts.push(`걷기 ${routine.walking}분${routine.walkingKm ? ` · ${routine.walkingKm}km` : ''}`);
+  if (routine.running || routine.runningKm) parts.push(`러닝 ${routine.running}분${routine.runningKm ? ` · ${routine.runningKm}km` : ''}`);
+  if (routine.customExercises.length) parts.push(`개인 운동 ${routine.customExercises.length}종목`);
+  return parts.join(' / ');
+}
+
+function updateRoutineCount() {
+  const count = document.getElementById('routineCount');
+  if (count) count.textContent = `${recordRoutines.length}/${MAX_RECORD_ROUTINES}`;
+}
+
+function renderRecordRoutines() {
+  const list = document.getElementById('routineList');
+  if (!list) return;
+  list.innerHTML = recordRoutines.length ? recordRoutines.map((routine, index) => `
+    <div class="routine-slot">
+      <div class="routine-slot-heading"><strong>${escapeHtml(routine.name)}</strong><small>${index + 1}/${MAX_RECORD_ROUTINES}</small></div>
+      <p class="routine-slot-summary">${escapeHtml(routineSummary(routine))}</p>
+      <div class="routine-slot-actions">
+        <button type="button" onclick="applyRecordRoutine(${index})">현재 기록에 적용</button>
+        <button type="button" onclick="replaceRecordRoutine(${index})">현재 입력으로 갱신</button>
+        <button type="button" class="routine-delete" onclick="deleteRecordRoutine(${index})">삭제</button>
+      </div>
+    </div>`).join('') : '<p class="routine-slot-summary">저장한 루틴이 없습니다. 운동 내용을 입력하고 아래에서 첫 루틴을 저장해 보세요.</p>';
+  const saveButton = document.getElementById('saveRoutineBtn');
+  if (saveButton) saveButton.disabled = recordRoutines.length >= MAX_RECORD_ROUTINES;
+  const hint = document.getElementById('routineSaveHint');
+  if (hint) hint.textContent = recordRoutines.length >= MAX_RECORD_ROUTINES
+    ? '4개를 사용 중입니다. 기존 루틴을 갱신하거나 삭제해 주세요.'
+    : `${MAX_RECORD_ROUTINES - recordRoutines.length}개 더 저장할 수 있습니다. 이 기기에만 저장됩니다.`;
+}
+
+function openRoutineDialog() {
+  renderRecordRoutines();
+  document.getElementById('routineDialog').showModal();
+}
+
+function saveCurrentRoutine() {
+  if (recordRoutines.length >= MAX_RECORD_ROUTINES) {
+    showToast('루틴은 최대 4개까지 저장할 수 있습니다.', 'default');
+    return;
+  }
+  const nameInput = document.getElementById('routineName');
+  const name = nameInput.value.trim();
+  if (!name) {
+    nameInput.focus();
+    showToast('루틴 이름을 입력해 주세요.', 'default');
+    return;
+  }
+  const routine = captureCurrentRoutine(name);
+  if (!routine || !routineHasExercise(routine)) {
+    if (routine) showToast('걷기·러닝 또는 개인 운동을 입력한 뒤 저장해 주세요.', 'default');
+    return;
+  }
+  if (persistRecordRoutines([...recordRoutines, routine])) {
+    nameInput.value = '';
+    showToast(`‘${routine.name}’ 루틴을 저장했습니다.`, 'success');
+  }
+}
+
+function replaceRecordRoutine(index) {
+  const previous = recordRoutines[index];
+  if (!previous) return;
+  const routine = captureCurrentRoutine(previous.name, previous.id);
+  if (!routine || !routineHasExercise(routine)) {
+    if (routine) showToast('운동 내용을 입력한 뒤 갱신해 주세요.', 'default');
+    return;
+  }
+  if (!window.confirm(`‘${previous.name}’ 루틴을 현재 운동 입력으로 바꿀까요?`)) return;
+  const next = [...recordRoutines];
+  next[index] = routine;
+  if (persistRecordRoutines(next)) showToast('루틴을 갱신했습니다.', 'success');
+}
+
+function applyRecordRoutine(index) {
+  const routine = recordRoutines[index];
+  if (!routine) return;
+  const hasCurrentInput = ['fWalking', 'fWalkingKm', 'fRunning', 'fRunningKm']
+    .some(id => document.getElementById(id).value !== '') || customExercises.length > 0;
+  if (hasCurrentInput && !window.confirm(`현재 입력한 운동을 ‘${routine.name}’ 루틴으로 바꿀까요? 날짜와 건강 지표는 유지됩니다.`)) return;
+  for (const [id, value] of Object.entries({
+    fWalking: routine.walking, fWalkingKm: routine.walkingKm,
+    fRunning: routine.running, fRunningKm: routine.runningKm,
+  })) document.getElementById(id).value = value || '';
+  customExercises = routine.customExercises.map(exercise => ({ ...exercise, id: genId() }));
+  renderCustomExList();
+  updateProgress('fWalking', 'progressWalking', 'pctWalking', 'walking');
+  updateProgress('fRunning', 'progressRunning', 'pctRunning', 'running');
+  updateSummary();
+  scheduleDraftSave();
+  document.getElementById('routineDialog').close();
+  showToast(`‘${routine.name}’ 루틴을 적용했습니다. 내용을 확인한 뒤 기록을 저장해 주세요.`, 'success');
+}
+
+function deleteRecordRoutine(index) {
+  const routine = recordRoutines[index];
+  if (!routine || !window.confirm(`‘${routine.name}’ 루틴을 삭제할까요?`)) return;
+  if (persistRecordRoutines(recordRoutines.filter((_, currentIndex) => currentIndex !== index))) {
+    showToast('루틴을 삭제했습니다.', 'default');
+  }
 }
 
 function addWater(amount) {

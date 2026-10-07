@@ -192,6 +192,25 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .record-quick-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+    .routine-list { display:grid; gap:10px; max-height:55dvh; overflow-y:auto; }
+    .routine-slot { padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
+    .routine-slot-heading { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .routine-slot-heading strong { font-size:.9rem; }
+    .routine-slot-heading small { color:var(--text-muted); font-size:.72rem; }
+    .routine-slot-summary { color:var(--text-secondary); font-size:.78rem; line-height:1.5; margin-bottom:10px; }
+    .routine-slot-actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .routine-slot-actions button { min-height:40px; padding:7px 11px; border-radius:9px; border:1px solid var(--border); background:var(--surface); color:var(--text); font:inherit; font-size:.78rem; font-weight:700; cursor:pointer; }
+    .routine-slot-actions button:first-child { border-color:var(--primary); color:var(--primary); }
+    .routine-slot-actions .routine-delete { color:#b42318; }
+    .routine-name-field { display:grid; gap:6px; margin-top:14px; font-size:.8rem; font-weight:700; }
+    .routine-name-field input { width:100%; min-height:44px; padding:10px; border:1px solid var(--border); border-radius:9px; font:inherit; }
+    .routine-save-row { display:flex; align-items:center; gap:10px; margin-top:12px; }
+    .routine-save-row button { min-height:44px; }
+    .routine-save-row small { color:var(--text-muted); line-height:1.4; }
+    #routineDialog { max-height:min(90dvh,780px); overflow-y:auto; }
+    #routineDialog .routine-list { max-height:min(38dvh,300px); }
+
     .draft-status {
       display: flex;
       align-items: center;
@@ -408,6 +427,8 @@
       .form-group { margin-bottom:14px; }
       .record-quick-actions { align-items: stretch; flex-direction: column; gap:8px; margin:0 0 12px; padding:10px 14px; }
       .record-quick-actions .btn { width: 100%; }
+      .record-quick-buttons { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .record-quick-buttons .btn { min-width:0; white-space:normal; }
       .record-status-stack { gap:2px; }
       .draft-status, .sync-status { min-height:20px; font-size:.72rem; }
       .cond-btn { min-width: 56px; padding: 8px 4px; }
@@ -894,9 +915,10 @@
       </div>
 
       <div class="record-quick-actions" aria-label="빠른 기록 도구">
-        <button type="button" class="btn btn-outline btn-sm" id="loadRecentBtn" onclick="loadRecentRecord()">
-          🕒 최근 기록 불러오기
-        </button>
+        <div class="record-quick-buttons">
+          <button type="button" class="btn btn-outline btn-sm" id="openRoutineBtn" onclick="openRoutineDialog()">📌 나의 루틴 <span id="routineCount">0/4</span></button>
+          <button type="button" class="btn btn-outline btn-sm" id="loadRecentBtn" onclick="loadRecentRecord()">🕒 최근 기록 불러오기</button>
+        </div>
         <div class="record-status-stack">
           <div class="draft-status" id="draftStatus" role="status" aria-live="polite">
             <span aria-hidden="true">💾</span><span>입력 내용은 이 기기에 자동 임시 저장됩니다.</span>
@@ -1211,6 +1233,22 @@
     </div>
     <p class="exercise-shortcut-dialog-note">종목을 누르면 현재 기록에 추가됩니다.</p>
     <div class="exercise-shortcut-dialog-list" id="exerciseShortcutDialogList" onclick="handleExerciseShortcutDialogClick(event)"></div>
+  </dialog>
+
+  <dialog id="routineDialog" class="exercise-shortcut-dialog" aria-labelledby="routineDialogTitle" onclick="if(event.target===this) this.close()">
+    <div class="exercise-shortcut-dialog-header">
+      <h3 id="routineDialogTitle">📌 나의 운동 루틴</h3>
+      <button type="button" class="exercise-shortcut-dialog-close" aria-label="루틴 창 닫기" onclick="document.getElementById('routineDialog').close()">×</button>
+    </div>
+    <p class="exercise-shortcut-dialog-note">현재 운동 입력을 최대 4개까지 저장합니다. 적용해도 날짜·체중·심박수·수분·공복·컨디션·메모는 바뀌지 않습니다. 루틴은 이 기기에 저장됩니다.</p>
+    <div id="routineList" class="routine-list"></div>
+    <label class="routine-name-field" for="routineName">현재 입력을 새 루틴으로 저장
+      <input id="routineName" type="text" maxlength="30" placeholder="예: 월·수 걷기와 근력">
+    </label>
+    <div class="routine-save-row">
+      <button type="button" class="btn btn-primary btn-sm" id="saveRoutineBtn" onclick="saveCurrentRoutine()">루틴 저장</button>
+      <small id="routineSaveHint">운동 내용을 먼저 입력해 주세요.</small>
+    </div>
   </dialog>
 
   <!-- 기존 기록 확인 모달 -->

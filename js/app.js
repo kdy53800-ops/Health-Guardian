@@ -135,6 +135,8 @@ const Auth = {
     localStorage.removeItem(KEYS.NOTIFICATION_PROMPT_SEEN + '_' + user.id);
     localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id + '_days');
     localStorage.removeItem(KEYS.NOTIFICATION_PREFS + '_' + user.id + '_skip');
+    localStorage.removeItem('HealthGuardian_recordRoutines_v1_' + user.id);
+    localStorage.removeItem('HealthGuardian_exerciseFavorites_v1_' + user.id);
     const users = this.getUsers();
     this.saveUsers(users.filter(u => String(u.id) !== String(user.id)));
     localStorage.removeItem(KEYS.CURRENT_USER);
