@@ -97,7 +97,7 @@ test('applying a routine replaces only exercise fields and creates fresh exercis
   assert.equal(fields.get('recordImportDialog').open, true);
   assert.match(fields.get('recordImportContent').innerHTML, /덤벨 운동/);
   assert.match(fields.get('recordImportContent').innerHTML, /현재 입력한 해당 항목/);
-  vm.runInContext('confirmRecordImport(false)', context);
+  vm.runInContext('confirmRecordImport()', context);
 
   assert.equal(fields.get('fWalking').value, 40);
   assert.equal(fields.get('fWalkingKm').value, 3.5);
@@ -130,7 +130,7 @@ test('recent record preview preserves current inputs until confirmed', () => {
   vm.runInContext('loadRecentRecord()', context);
   assert.equal(fields.get('fWeight').value, '65');
   assert.match(fields.get('recordImportContent').innerHTML, /지난 메모/);
-  vm.runInContext('confirmRecordImport(false)', context);
+  vm.runInContext('confirmRecordImport()', context);
   assert.equal(fields.get('fDate').value, '2026-10-07');
   assert.equal(fields.get('fWeight').value, 67);
   assert.equal(fields.get('fMemo').value, '');

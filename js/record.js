@@ -521,7 +521,8 @@ function openRecordImportPreview(type, item) {
     ${hasCurrentInput ? '<p class="record-import-warning">현재 입력한 해당 항목은 불러온 내용으로 바뀝니다.</p>' : ''}
     <dl class="record-import-values">${details.join('')}</dl>
     <h4>개인 운동</h4>${importExerciseDetails(Array.isArray(item.customExercises) ? item.customExercises : [])}
-    ${!isRoutine && item.memo ? `<p class="record-import-note">이전 메모: ${escapeHtml(item.memo)}</p>` : ''}`;
+    ${!isRoutine && item.memo ? `<p class="record-import-note">이전 메모: ${escapeHtml(item.memo)}</p>` : ''}
+    <p class="record-import-note">불러온 뒤 입력 화면에서 수정할 수 있습니다. 기록은 저장 버튼을 눌러야 저장됩니다.</p>`;
   const routineDialog = document.getElementById('routineDialog');
   if (routineDialog && routineDialog.open) routineDialog.close();
   dialog.showModal();
@@ -533,7 +534,7 @@ function closeRecordImportPreview() {
   pendingRecordImport = null;
 }
 
-function confirmRecordImport(editAfterImport = false) {
+function confirmRecordImport() {
   if (!pendingRecordImport) return;
   const { type, item } = pendingRecordImport;
   if (type === 'routine') {
@@ -553,14 +554,7 @@ function confirmRecordImport(editAfterImport = false) {
   updateSummary();
   scheduleDraftSave();
   closeRecordImportPreview();
-  showToast(editAfterImport ? '내용을 불러왔습니다. 필요한 항목을 수정한 뒤 기록을 저장해 주세요.' : '내용을 불러왔습니다. 확인한 뒤 기록을 저장해 주세요.', 'success');
-  if (editAfterImport) {
-    const focusTarget = document.getElementById(type === 'routine' ? 'fWalking' : 'fWeight');
-    if (focusTarget) {
-      focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      focusTarget.focus({ preventScroll: true });
-    }
-  }
+  showToast('내용을 불러왔습니다. 필요한 항목을 수정한 뒤 기록을 저장해 주세요.', 'success');
 }
 
 function routineStorageKey() {
