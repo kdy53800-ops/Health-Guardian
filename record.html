@@ -32,6 +32,18 @@
       margin-bottom: 0;
     }
 
+    /* Empty inputs are a gentle visual cue, including optional fields. */
+    #recordForm .form-control:placeholder-shown,
+    #recordForm #fDate:required:invalid {
+      border-color: #c9b68f;
+      background: #fffdf6;
+      box-shadow: inset 0 0 0 1px rgba(166, 126, 58, .1);
+    }
+    #recordForm .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(0, 77, 191, .08);
+    }
+
     @media (max-width: 1020px) {
       .record-primary-grid { grid-template-columns: 1fr; }
     }
