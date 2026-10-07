@@ -497,7 +497,8 @@ function loadRecordRoutines() {
 }
 
 function routineApiUrl(slot = null) {
-  const url = new URL('api/record-routines', window.location.href);
+  const url = new URL('api/records', window.location.href);
+  url.searchParams.set('view', 'routines');
   if (slot != null) url.searchParams.set('slot', String(slot));
   return url.toString();
 }

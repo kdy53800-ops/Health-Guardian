@@ -220,6 +220,9 @@ async function updateRecord(userId, recordId, row) {
 }
 
 module.exports = async function handler(req, res) {
+  if (new URL(req.url, 'http://localhost').searchParams.get('view') === 'routines') {
+    return require('./_lib/record-routines')(req, res);
+  }
   if (req.method === 'OPTIONS') {
     const origin = getOrigin(req);
     res.statusCode = 204;

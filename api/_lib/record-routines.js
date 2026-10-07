@@ -1,6 +1,6 @@
 const { randomUUID } = require('crypto');
-const { requireAuthSession } = require('./_lib/admin-auth');
-const { fetchSupabase } = require('./_lib/supabase');
+const { requireAuthSession } = require('./admin-auth');
+const { fetchSupabase } = require('./supabase');
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;

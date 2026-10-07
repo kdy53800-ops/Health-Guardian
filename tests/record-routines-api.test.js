@@ -38,9 +38,9 @@ stubModule('../api/_lib/supabase', {
       .map(item => url.searchParams.get('select') === 'routine_id' ? { routine_id: item.routine_id } : item);
   },
 });
-const handler = require('../api/record-routines');
+const handler = require('../api/_lib/record-routines');
 
-async function request(method, body, url = '/api/record-routines') {
+async function request(method, body, url = '/api/records?view=routines') {
   let payload;
   const res = { statusCode: 200, setHeader() {}, end(value) { payload = JSON.parse(value); } };
   await handler({ method, url, body }, res);
@@ -59,7 +59,7 @@ test('routine API scopes reads and writes to the authenticated user', async () =
   const second = await request('GET');
   assert.deepEqual(second.body.routines, []);
   assert.equal(queries.at(-1).path.includes('user_id=eq.user-2'), true);
-  assert.equal((await request('DELETE', null, '/api/record-routines?slot=1')).status, 404);
+  assert.equal((await request('DELETE', null, '/api/records?view=routines&slot=1')).status, 404);
   assert.equal(rows.length, 1);
 });
 
