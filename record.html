@@ -419,6 +419,10 @@
       gap: 16px;
     }
     .basic-info-grid { grid-template-columns: 1fr; }
+    .record-date-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; }
+    .record-date-heading .form-label { margin-bottom:0; }
+    .record-date-default { display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); font-size:.73rem; white-space:nowrap; }
+    .record-date-default select { min-height:32px; padding:3px 7px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; font-weight:700; }
 
     @media (max-width: 600px) {
       .record-primary-grid { gap: 12px; margin-bottom: 12px; }
@@ -974,7 +978,15 @@
           </div>
           <div class="form-grid-2 basic-info-grid">
             <div class="form-group basic-info-date" style="margin-bottom:0;">
-              <label class="form-label" for="fDate">날짜 <span class="required">*</span></label>
+              <div class="record-date-heading">
+                <label class="form-label" for="fDate">날짜 <span class="required">*</span></label>
+                <label class="record-date-default" for="defaultRecordDate">새 기록 기본값
+                  <select id="defaultRecordDate" onchange="changeDefaultRecordDate(this.value)">
+                    <option value="yesterday">어제</option>
+                    <option value="today">오늘</option>
+                  </select>
+                </label>
+              </div>
               <input type="date" id="fDate" class="form-control" required oninput="updateSummary()">
             </div>
             <div class="form-group" style="margin-bottom:0;">

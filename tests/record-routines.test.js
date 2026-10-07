@@ -8,7 +8,7 @@ function createPage() {
   const storage = new Map();
   const fields = new Map();
   for (const id of ['fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fWalkingKm', 'fRunning', 'fRunningKm', 'fWater', 'fFasting', 'fCondition', 'fMemo']) {
-    fields.set(id, { value: '', checkValidity: () => true, reportValidity() {} });
+    fields.set(id, { value: '', checkValidity: () => true, reportValidity() {}, dispatchEvent() {} });
   }
   fields.set('routineName', { value: '', focus() {} });
   fields.set('routineCount', { textContent: '' });
@@ -36,6 +36,7 @@ function createPage() {
       removeItem: key => storage.delete(key),
     },
     console,
+    Event: class Event { constructor(type) { this.type = type; } },
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'record.js'), 'utf8'), context);
@@ -183,4 +184,27 @@ test('quick routine cards stay hidden when no routine is saved', () => {
   vm.runInContext('updateRoutineCount()', context);
   assert.equal(fields.get('routineQuickSection').hidden, true);
   assert.equal(fields.get('routineQuickList').innerHTML, '');
+});
+
+test('new-record default date can be changed per account and survives reopening', () => {
+  const { context, fields, storage } = createPage();
+  assert.equal(vm.runInContext('getDefaultRecordDate()', context), 'yesterday');
+  vm.runInContext("changeDefaultRecordDate('today')", context);
+  assert.equal(fields.get('fDate').value, vm.runInContext('today()', context));
+  assert.equal(storage.get('HealthGuardian_recordDefaultDate_v1_user-1'), 'today');
+  assert.equal(vm.runInContext('getDefaultRecordDate()', context), 'today');
+  vm.runInContext("editingId = 'record-1'; changeDefaultRecordDate('yesterday')", context);
+  assert.equal(fields.get('fDate').value, vm.runInContext('today()', context));
+  assert.equal(vm.runInContext('getDefaultRecordDate()', context), 'yesterday');
+});
+
+test('a date-only draft does not override the selected default on reopening', () => {
+  const { context, fields, storage } = createPage();
+  fields.get('fDate').value = '2026-10-07';
+  storage.set('HealthGuardian_recordDraft_v1_user-1_new', JSON.stringify({
+    fields: { fDate: '2026-10-06' }, condition: 3, customExercises: [], updatedAt: Date.now(),
+  }));
+  vm.runInContext('restoreRecordDraft()', context);
+  assert.equal(fields.get('fDate').value, '2026-10-07');
+  assert.equal(storage.has('HealthGuardian_recordDraft_v1_user-1_new'), false);
 });

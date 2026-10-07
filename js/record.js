@@ -15,6 +15,7 @@ const RECORD_DRAFT_PREFIX = 'HealthGuardian_recordDraft_v1';
 const EXERCISE_FAVORITES_PREFIX = 'HealthGuardian_exerciseFavorites_v1';
 const RECORD_ROUTINES_PREFIX = 'HealthGuardian_recordRoutines_v1';
 const RECORD_ROUTINES_MIGRATED_PREFIX = 'HealthGuardian_recordRoutinesMigrated_v1';
+const RECORD_DEFAULT_DATE_PREFIX = 'HealthGuardian_recordDefaultDate_v1';
 const MAX_RECORD_ROUTINES = 4;
 const RECORD_FIELD_IDS = [
   'fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fRunning',
@@ -91,6 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (dateInput) {
     dateInput.setAttribute('max', todayStr);
   }
+  const defaultDateSelect = document.getElementById('defaultRecordDate');
+  if (defaultDateSelect) defaultDateSelect.value = getDefaultRecordDate();
 
   userGoals = Goals.get(currentUser.id);
   userRecords = await Records.getUserRecordsAsync(currentUser.id);
@@ -114,8 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = 'history.html';
     }
   } else {
-    // 신규 기록: 어제 날짜 기본 세팅 (사용자 요청)
-    if (dateInput) dateInput.value = prevDay(todayStr);
+    if (dateInput) dateInput.value = getDefaultRecordDate() === 'today' ? todayStr : prevDay(todayStr);
   }
 
   // 날짜 변경 시 기존 기록 여부 확인
@@ -158,6 +160,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('records-sync-start', () => updateSyncStatus('syncing'));
   window.addEventListener('records-sync-complete', updateSyncStatus);
 });
+
+function getDefaultRecordDate() {
+  if (!currentUser) return 'yesterday';
+  try {
+    return localStorage.getItem(`${RECORD_DEFAULT_DATE_PREFIX}_${currentUser.id}`) === 'today' ? 'today' : 'yesterday';
+  } catch (error) {
+    return 'yesterday';
+  }
+}
+
+function changeDefaultRecordDate(value) {
+  if (!currentUser || !['today', 'yesterday'].includes(value)) return;
+  try {
+    localStorage.setItem(`${RECORD_DEFAULT_DATE_PREFIX}_${currentUser.id}`, value);
+  } catch (error) {
+    showToast('기본 날짜 설정을 저장하지 못했습니다.', 'error');
+    return;
+  }
+  if (editingId) return;
+  const input = document.getElementById('fDate');
+  input.value = value === 'today' ? today() : prevDay(today());
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  const form = document.getElementById('recordForm');
+  if (form && form.dataset.draftReady === '1') {
+    clearTimeout(draftTimer);
+    saveRecordDraft();
+  }
+}
 
 function favoriteStorageKey() {
   return `${EXERCISE_FAVORITES_PREFIX}_${currentUser.id}`;
@@ -394,6 +424,13 @@ function restoreRecordDraft() {
   }
   if (!draft || !draft.fields || typeof draft.fields !== 'object') return;
   if (!Number.isFinite(Number(draft.updatedAt)) || Date.now() - Number(draft.updatedAt) > 7 * 24 * 60 * 60 * 1000) {
+    localStorage.removeItem(getRecordDraftKey());
+    return;
+  }
+  const hasInput = RECORD_FIELD_IDS.some(id => id !== 'fDate' && draft.fields[id] !== '' && draft.fields[id] != null)
+    || (Array.isArray(draft.customExercises) && draft.customExercises.length > 0)
+    || (Number(draft.condition) >= 1 && Number(draft.condition) <= 5 && Number(draft.condition) !== 3);
+  if (!hasInput) {
     localStorage.removeItem(getRecordDraftKey());
     return;
   }
