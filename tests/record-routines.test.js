@@ -12,6 +12,7 @@ function createPage() {
   }
   fields.set('routineName', { value: '', focus() {} });
   fields.set('routineCount', { textContent: '' });
+  fields.set('openRoutineBtn', { disabled: true });
   fields.set('routineList', { innerHTML: '' });
   fields.set('saveRoutineBtn', { disabled: false });
   fields.set('routineSaveHint', { textContent: '' });
@@ -30,7 +31,7 @@ function createPage() {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'record.js'), 'utf8'), context);
   vm.runInContext(`
-    currentUser = { id: 'user-1' };
+    currentUser = { id: 'user-1', authProvider: 'test' };
     userGoals = { walking: 30, running: 20, water: 2000, customEx: 30 };
     showToast = (message) => testMessages.push(message);
     renderCustomExList = () => {};
@@ -41,12 +42,12 @@ function createPage() {
   return { context, fields, storage, messages };
 }
 
-test('routines save at most four exercise templates for the current account', () => {
+test('routines save at most four exercise templates for the current account', async () => {
   const { context, fields, storage } = createPage();
   fields.get('fWalking').value = '35';
   for (let index = 1; index <= 5; index++) {
     fields.get('routineName').value = `루틴 ${index}`;
-    vm.runInContext('saveCurrentRoutine()', context);
+    await vm.runInContext('saveCurrentRoutine()', context);
   }
   assert.equal(vm.runInContext('recordRoutines.length', context), 4);
   assert.equal(fields.get('routineCount').textContent, '4/4');
@@ -56,7 +57,7 @@ test('routines save at most four exercise templates for the current account', ()
   assert.equal(vm.runInContext('recordRoutines.length', context), 0);
 });
 
-test('applying a routine replaces only exercise fields and creates fresh exercise IDs', () => {
+test('applying a routine replaces only exercise fields and creates fresh exercise IDs', async () => {
   const { context, fields } = createPage();
   Object.assign(fields.get('fDate'), { value: '2026-10-07' });
   fields.get('fWeight').value = '67.1';
@@ -66,7 +67,7 @@ test('applying a routine replaces only exercise fields and creates fresh exercis
   fields.get('fWalkingKm').value = '3.5';
   vm.runInContext(`customExercises = [{ id: 'old', category: '근력', name: '덤벨 운동', duration: 25, intensity: '중', sets: 3, reps: 10 }]`, context);
   fields.get('routineName').value = '아침 루틴';
-  vm.runInContext('saveCurrentRoutine()', context);
+  await vm.runInContext('saveCurrentRoutine()', context);
 
   fields.get('fWalking').value = '10';
   fields.get('fWeight').value = '66.5';
@@ -84,15 +85,64 @@ test('applying a routine replaces only exercise fields and creates fresh exercis
   assert.notEqual(vm.runInContext('customExercises[0].id', context), 'old');
 });
 
-test('a routine does not overwrite exercise input when replacement is declined', () => {
+test('a routine does not overwrite exercise input when replacement is declined', async () => {
   const { context, fields } = createPage();
   fields.get('fWalking').value = '40';
   fields.get('routineName').value = '걷기 루틴';
-  vm.runInContext('saveCurrentRoutine()', context);
+  await vm.runInContext('saveCurrentRoutine()', context);
   fields.get('fWalking').value = '15';
   context.window.confirm = () => false;
 
   vm.runInContext('applyRecordRoutine(0)', context);
 
   assert.equal(fields.get('fWalking').value, '15');
+});
+
+test('real account migrates device routine into an empty cloud slot without replacing cloud routines', async () => {
+  const { context, storage, fields } = createPage();
+  const local = { id: 'local-1', name: '집 걷기', walking: 25, walkingKm: 2, running: 0, runningKm: 0, customExercises: [] };
+  const cloud = { id: 'cloud-1', slot: 1, name: '공원 러닝', walking: 0, walkingKm: 0, running: 30, runningKm: 4, customExercises: [] };
+  storage.set('HealthGuardian_recordRoutines_v1_user-1', JSON.stringify([local]));
+  const calls = [];
+  context.URL = URL;
+  context.window.location = { href: 'https://health-guardian-snh.vercel.app/record.html' };
+  context.fetch = async (url, options) => {
+    calls.push({ url, options });
+    const body = options.method === 'GET'
+      ? { ok: true, routines: [cloud] }
+      : { ok: true, routine: JSON.parse(options.body) };
+    return { ok: true, async json() { return body; } };
+  };
+  vm.runInContext("currentUser = { id: 'user-1', authProvider: 'naver' }; recordRoutines = loadRecordRoutines()", context);
+
+  await vm.runInContext('syncRecordRoutines()', context);
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].options.method, 'GET');
+  assert.equal(JSON.parse(calls[1].options.body).slot, 2);
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(recordRoutines.map(item => item.name))', context)), ['공원 러닝', '집 걷기']);
+  assert.equal(fields.get('openRoutineBtn').disabled, false);
+  assert.equal(JSON.parse(storage.get('HealthGuardian_recordRoutines_v1_user-1')).length, 2);
+  assert.equal(storage.get('HealthGuardian_recordRoutinesMigrated_v1_user-1'), '1');
+});
+
+test('a routine deleted on another device is not restored from an old local cache', async () => {
+  const { context, storage } = createPage();
+  storage.set('HealthGuardian_recordRoutinesMigrated_v1_user-1', '1');
+  storage.set('HealthGuardian_recordRoutines_v1_user-1', JSON.stringify([
+    { id: 'stale-1', slot: 1, name: '옛 루틴', walking: 20, customExercises: [] },
+  ]));
+  const calls = [];
+  context.URL = URL;
+  context.window.location = { href: 'https://health-guardian-snh.vercel.app/record.html' };
+  context.fetch = async (_url, options) => {
+    calls.push(options.method);
+    return { ok: true, async json() { return { ok: true, routines: [] }; } };
+  };
+  vm.runInContext("currentUser = { id: 'user-1', authProvider: 'naver' }; recordRoutines = loadRecordRoutines()", context);
+
+  await vm.runInContext('syncRecordRoutines()', context);
+
+  assert.deepEqual(calls, ['GET']);
+  assert.equal(vm.runInContext('recordRoutines.length', context), 0);
 });

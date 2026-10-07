@@ -14,6 +14,7 @@ let draftTimer = null;
 const RECORD_DRAFT_PREFIX = 'HealthGuardian_recordDraft_v1';
 const EXERCISE_FAVORITES_PREFIX = 'HealthGuardian_exerciseFavorites_v1';
 const RECORD_ROUTINES_PREFIX = 'HealthGuardian_recordRoutines_v1';
+const RECORD_ROUTINES_MIGRATED_PREFIX = 'HealthGuardian_recordRoutinesMigrated_v1';
 const MAX_RECORD_ROUTINES = 4;
 const RECORD_FIELD_IDS = [
   'fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fRunning',
@@ -26,6 +27,7 @@ let customExercises = [];     // [{ id, category, name, duration, intensity, set
 let favoriteExercises = [];
 let recentExerciseTemplates = [];
 let recordRoutines = [];
+let routineServerReady = false;
 let activeStrengthTemplate = 1;
 let exerciseShortcutTrigger = null;
 
@@ -94,6 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   favoriteExercises = loadFavoriteExercises();
   recentExerciseTemplates = buildRecentExerciseTemplates();
   recordRoutines = loadRecordRoutines();
+  routineServerReady = currentUser.authProvider === 'test';
+  await syncRecordRoutines();
 
   // ?edit=ID 파라미터가 있으면 수정 모드
   const params = new URLSearchParams(window.location.search);
@@ -458,6 +462,10 @@ function routineStorageKey() {
   return `${RECORD_ROUTINES_PREFIX}_${currentUser.id}`;
 }
 
+function routineMigrationKey() {
+  return `${RECORD_ROUTINES_MIGRATED_PREFIX}_${currentUser.id}`;
+}
+
 function normalizeRoutine(item) {
   if (!item || typeof item !== 'object' || !item.id || !String(item.name || '').trim()) return null;
   const number = (value, max) => {
@@ -466,6 +474,7 @@ function normalizeRoutine(item) {
   };
   return {
     id: String(item.id).slice(0, 100),
+    slot: Number.isInteger(Number(item.slot)) && Number(item.slot) >= 1 && Number(item.slot) <= 4 ? Number(item.slot) : null,
     name: String(item.name).trim().slice(0, 30),
     walking: number(item.walking, 999),
     walkingKm: number(item.walkingKm, 999),
@@ -487,17 +496,84 @@ function loadRecordRoutines() {
   }
 }
 
-function persistRecordRoutines(next) {
+function routineApiUrl(slot = null) {
+  const url = new URL('api/record-routines', window.location.href);
+  if (slot != null) url.searchParams.set('slot', String(slot));
+  return url.toString();
+}
+
+async function requestRoutineApi(method, routineOrSlot = null) {
+  const response = await fetch(routineApiUrl(method === 'DELETE' ? routineOrSlot : null), {
+    method,
+    credentials: 'include',
+    headers: { Accept: 'application/json', ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
+    ...(method === 'POST' ? { body: JSON.stringify(routineOrSlot) } : {}),
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload || !payload.ok) throw new Error(payload && payload.message || '루틴 서버에 연결하지 못했습니다.');
+  return payload;
+}
+
+async function syncRecordRoutines() {
+  if (currentUser.authProvider === 'test') return;
+  const local = localStorage.getItem(routineMigrationKey()) === '1' ? [] : recordRoutines;
   try {
-    localStorage.setItem(routineStorageKey(), JSON.stringify(next));
-    recordRoutines = next;
-    updateRoutineCount();
-    renderRecordRoutines();
-    return true;
+    const payload = await requestRoutineApi('GET');
+    const cloud = payload.routines.map(normalizeRoutine).filter(Boolean);
+    let unmerged = 0;
+    for (const routine of local) {
+      if (cloud.some(item => item.id === routine.id)) continue;
+      const freeSlot = [1, 2, 3, 4].find(slot => !cloud.some(item => item.slot === slot));
+      if (!freeSlot) { unmerged += 1; continue; }
+      const saved = await requestRoutineApi('POST', { ...routine, slot: freeSlot });
+      cloud.push(normalizeRoutine(saved.routine));
+    }
+    cloud.sort((a, b) => a.slot - b.slot);
+    recordRoutines = cloud;
+    routineServerReady = true;
+    if (!unmerged) {
+      localStorage.setItem(routineStorageKey(), JSON.stringify(cloud));
+      localStorage.setItem(routineMigrationKey(), '1');
+    }
+    else showToast(`${unmerged}개 기기 루틴을 옮기지 못했습니다. DB 루틴을 정리한 뒤 새로고침해 주세요.`, 'error');
+    const note = document.getElementById('routineStorageNote');
+    if (note) note.textContent = '실제 계정의 루틴은 DB에 저장되어 다른 기기에서도 사용할 수 있습니다. 기존 기기 루틴은 빈 자리에 자동으로 옮깁니다.';
   } catch (error) {
-    showToast('루틴을 이 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.', 'error');
-    return false;
+    console.warn('[RecordRoutines] Sync failed:', error.message);
+    showToast('루틴 DB에 연결하지 못했습니다. 기록 입력은 계속할 수 있습니다.', 'error');
   }
+  updateRoutineCount();
+}
+
+async function persistRecordRoutines(next, operation) {
+  if (currentUser.authProvider === 'test') {
+    try { localStorage.setItem(routineStorageKey(), JSON.stringify(next)); }
+    catch (error) {
+      showToast('루틴을 이 기기에 저장하지 못했습니다. 저장 공간을 확인해 주세요.', 'error');
+      return false;
+    }
+  }
+  if (currentUser.authProvider !== 'test') {
+    if (!routineServerReady) {
+      showToast('루틴 DB에 연결한 뒤 다시 시도해 주세요.', 'error');
+      return false;
+    }
+    try {
+      if (operation.type === 'delete') await requestRoutineApi('DELETE', operation.slot);
+      else await requestRoutineApi('POST', operation.routine);
+    } catch (error) {
+      showToast(error.message || '루틴을 DB에 저장하지 못했습니다.', 'error');
+      return false;
+    }
+  }
+  recordRoutines = next;
+  updateRoutineCount();
+  renderRecordRoutines();
+  if (currentUser.authProvider !== 'test') {
+    try { localStorage.setItem(routineStorageKey(), JSON.stringify(next)); }
+    catch (error) { console.warn('[RecordRoutines] Local cache unavailable:', error.message); }
+  }
+  return true;
 }
 
 function captureCurrentRoutine(name, id = genId()) {
@@ -532,6 +608,8 @@ function routineSummary(routine) {
 function updateRoutineCount() {
   const count = document.getElementById('routineCount');
   if (count) count.textContent = `${recordRoutines.length}/${MAX_RECORD_ROUTINES}`;
+  const button = document.getElementById('openRoutineBtn');
+  if (button) button.disabled = currentUser.authProvider !== 'test' && !routineServerReady;
 }
 
 function renderRecordRoutines() {
@@ -552,15 +630,16 @@ function renderRecordRoutines() {
   const hint = document.getElementById('routineSaveHint');
   if (hint) hint.textContent = recordRoutines.length >= MAX_RECORD_ROUTINES
     ? '4개를 사용 중입니다. 기존 루틴을 갱신하거나 삭제해 주세요.'
-    : `${MAX_RECORD_ROUTINES - recordRoutines.length}개 더 저장할 수 있습니다. 이 기기에만 저장됩니다.`;
+    : `${MAX_RECORD_ROUTINES - recordRoutines.length}개 더 저장할 수 있습니다. ${currentUser.authProvider === 'test' ? '테스트 계정은 이 기기에만 저장됩니다.' : 'DB에 저장되어 다른 기기에서도 사용할 수 있습니다.'}`;
 }
 
 function openRoutineDialog() {
+  if (currentUser.authProvider !== 'test' && !routineServerReady) return;
   renderRecordRoutines();
   document.getElementById('routineDialog').showModal();
 }
 
-function saveCurrentRoutine() {
+async function saveCurrentRoutine() {
   if (recordRoutines.length >= MAX_RECORD_ROUTINES) {
     showToast('루틴은 최대 4개까지 저장할 수 있습니다.', 'default');
     return;
@@ -577,13 +656,15 @@ function saveCurrentRoutine() {
     if (routine) showToast('걷기·러닝 또는 개인 운동을 입력한 뒤 저장해 주세요.', 'default');
     return;
   }
-  if (persistRecordRoutines([...recordRoutines, routine])) {
+  const freeSlot = [1, 2, 3, 4].find(slot => !recordRoutines.some(item => item.slot === slot));
+  routine.slot = freeSlot || recordRoutines.length + 1;
+  if (await persistRecordRoutines([...recordRoutines, routine], { type: 'save', routine })) {
     nameInput.value = '';
     showToast(`‘${routine.name}’ 루틴을 저장했습니다.`, 'success');
   }
 }
 
-function replaceRecordRoutine(index) {
+async function replaceRecordRoutine(index) {
   const previous = recordRoutines[index];
   if (!previous) return;
   const routine = captureCurrentRoutine(previous.name, previous.id);
@@ -593,8 +674,9 @@ function replaceRecordRoutine(index) {
   }
   if (!window.confirm(`‘${previous.name}’ 루틴을 현재 운동 입력으로 바꿀까요?`)) return;
   const next = [...recordRoutines];
+  routine.slot = previous.slot || index + 1;
   next[index] = routine;
-  if (persistRecordRoutines(next)) showToast('루틴을 갱신했습니다.', 'success');
+  if (await persistRecordRoutines(next, { type: 'save', routine })) showToast('루틴을 갱신했습니다.', 'success');
 }
 
 function applyRecordRoutine(index) {
@@ -617,10 +699,10 @@ function applyRecordRoutine(index) {
   showToast(`‘${routine.name}’ 루틴을 적용했습니다. 내용을 확인한 뒤 기록을 저장해 주세요.`, 'success');
 }
 
-function deleteRecordRoutine(index) {
+async function deleteRecordRoutine(index) {
   const routine = recordRoutines[index];
   if (!routine || !window.confirm(`‘${routine.name}’ 루틴을 삭제할까요?`)) return;
-  if (persistRecordRoutines(recordRoutines.filter((_, currentIndex) => currentIndex !== index))) {
+  if (await persistRecordRoutines(recordRoutines.filter((_, currentIndex) => currentIndex !== index), { type: 'delete', slot: routine.slot || index + 1 })) {
     showToast('루틴을 삭제했습니다.', 'default');
   }
 }
