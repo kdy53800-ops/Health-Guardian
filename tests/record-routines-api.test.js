@@ -63,10 +63,14 @@ test('routine API scopes reads and writes to the authenticated user', async () =
   assert.equal(rows.length, 1);
 });
 
-test('routine API rejects slot outside the four allowed places and keeps an occupied slot intact', async () => {
+test('routine API accepts slot five, rejects slot six, and keeps an occupied slot intact', async () => {
   authenticatedId = 'user-1';
-  assert.equal((await request('POST', { slot: 5, id: 'routine-5', name: '다섯 번째', walking: 20, customExercises: [] })).status, 400);
+  assert.equal((await request('POST', { slot: 5, id: 'routine-5', name: '다섯 번째', walking: 20, customExercises: [] })).status, 200);
+  assert.equal((await request('POST', { slot: 6, id: 'routine-6', name: '여섯 번째', walking: 20, customExercises: [] })).status, 400);
+  assert.equal((await request('GET')).body.routines.some(item => item.slot === 5), true);
+  assert.equal(queries.at(-1).path.includes('limit=5'), true);
   const conflict = await request('POST', { slot: 1, id: 'different', name: '덮어쓰기', walking: 20, customExercises: [] });
   assert.equal(conflict.status, 409);
   assert.equal(rows[0].name, '걷기');
+  assert.equal((await request('DELETE', null, '/api/records?view=routines&slot=5')).status, 200);
 });

@@ -16,7 +16,7 @@ const EXERCISE_FAVORITES_PREFIX = 'HealthGuardian_exerciseFavorites_v1';
 const RECORD_ROUTINES_PREFIX = 'HealthGuardian_recordRoutines_v1';
 const RECORD_ROUTINES_MIGRATED_PREFIX = 'HealthGuardian_recordRoutinesMigrated_v1';
 const RECORD_DEFAULT_DATE_PREFIX = 'HealthGuardian_recordDefaultDate_v1';
-const MAX_RECORD_ROUTINES = 4;
+const MAX_RECORD_ROUTINES = 5;
 const RECORD_FIELD_IDS = [
   'fDate', 'fWeight', 'fHeartRate', 'fWalking', 'fRunning',
   'fWalkingKm', 'fRunningKm', 'fWater', 'fFasting', 'fMemo'
@@ -589,7 +589,7 @@ function normalizeRoutine(item) {
   };
   return {
     id: String(item.id).slice(0, 100),
-    slot: Number.isInteger(Number(item.slot)) && Number(item.slot) >= 1 && Number(item.slot) <= 4 ? Number(item.slot) : null,
+    slot: Number.isInteger(Number(item.slot)) && Number(item.slot) >= 1 && Number(item.slot) <= MAX_RECORD_ROUTINES ? Number(item.slot) : null,
     name: String(item.name).trim().slice(0, 30),
     walking: number(item.walking, 999),
     walkingKm: number(item.walkingKm, 999),
@@ -639,7 +639,7 @@ async function syncRecordRoutines() {
     let unmerged = 0;
     for (const routine of local) {
       if (cloud.some(item => item.id === routine.id)) continue;
-      const freeSlot = [1, 2, 3, 4].find(slot => !cloud.some(item => item.slot === slot));
+      const freeSlot = Array.from({ length: MAX_RECORD_ROUTINES }, (_, index) => index + 1).find(slot => !cloud.some(item => item.slot === slot));
       if (!freeSlot) { unmerged += 1; continue; }
       const saved = await requestRoutineApi('POST', { ...routine, slot: freeSlot });
       cloud.push(normalizeRoutine(saved.routine));
@@ -763,7 +763,7 @@ function renderRecordRoutines() {
   if (saveButton) saveButton.disabled = recordRoutines.length >= MAX_RECORD_ROUTINES;
   const hint = document.getElementById('routineSaveHint');
   if (hint) hint.textContent = recordRoutines.length >= MAX_RECORD_ROUTINES
-    ? '4개를 사용 중입니다. 기존 루틴을 갱신하거나 삭제해 주세요.'
+    ? '5개를 사용 중입니다. 기존 루틴을 갱신하거나 삭제해 주세요.'
     : `${MAX_RECORD_ROUTINES - recordRoutines.length}개 더 저장할 수 있습니다. ${currentUser.authProvider === 'test' ? '테스트 계정은 이 기기에만 저장됩니다.' : 'DB에 저장되어 다른 기기에서도 사용할 수 있습니다.'}`;
 }
 
@@ -775,7 +775,7 @@ function openRoutineDialog() {
 
 async function saveCurrentRoutine() {
   if (recordRoutines.length >= MAX_RECORD_ROUTINES) {
-    showToast('루틴은 최대 4개까지 저장할 수 있습니다.', 'default');
+    showToast('루틴은 최대 5개까지 저장할 수 있습니다.', 'default');
     return;
   }
   const nameInput = document.getElementById('routineName');
@@ -790,7 +790,7 @@ async function saveCurrentRoutine() {
     if (routine) showToast('걷기·러닝 또는 개인 운동을 입력한 뒤 저장해 주세요.', 'default');
     return;
   }
-  const freeSlot = [1, 2, 3, 4].find(slot => !recordRoutines.some(item => item.slot === slot));
+  const freeSlot = Array.from({ length: MAX_RECORD_ROUTINES }, (_, index) => index + 1).find(slot => !recordRoutines.some(item => item.slot === slot));
   routine.slot = freeSlot || recordRoutines.length + 1;
   if (await persistRecordRoutines([...recordRoutines, routine], { type: 'save', routine })) {
     nameInput.value = '';

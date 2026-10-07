@@ -52,19 +52,19 @@ function createPage() {
   return { context, fields, storage, messages };
 }
 
-test('routines save at most four exercise templates for the current account', async () => {
+test('routines save at most five exercise templates for the current account', async () => {
   const { context, fields, storage } = createPage();
   fields.get('fWalking').value = '35';
-  for (let index = 1; index <= 5; index++) {
+  for (let index = 1; index <= 6; index++) {
     fields.get('routineName').value = `루틴 ${index}`;
     await vm.runInContext('saveCurrentRoutine()', context);
   }
-  assert.equal(vm.runInContext('recordRoutines.length', context), 4);
-  assert.equal(fields.get('routineCount').textContent, '4/4');
+  assert.equal(vm.runInContext('recordRoutines.length', context), 5);
+  assert.equal(fields.get('routineCount').textContent, '5/5');
   assert.equal(fields.get('saveRoutineBtn').disabled, true);
   assert.equal(storage.has('HealthGuardian_recordRoutines_v1_user-1'), true);
   assert.equal(fields.get('routineQuickSection').hidden, false);
-  assert.equal((fields.get('routineQuickList').innerHTML.match(/class="routine-quick-card"/g) || []).length, 4);
+  assert.equal((fields.get('routineQuickList').innerHTML.match(/class="routine-quick-card"/g) || []).length, 5);
   vm.runInContext("currentUser = { id: 'user-2' }; recordRoutines = loadRecordRoutines()", context);
   assert.equal(vm.runInContext('recordRoutines.length', context), 0);
 });

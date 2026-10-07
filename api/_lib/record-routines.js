@@ -1,6 +1,7 @@
 const { randomUUID } = require('crypto');
 const { requireAuthSession } = require('./admin-auth');
 const { fetchSupabase } = require('./supabase');
+const MAX_RECORD_ROUTINES = 5;
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -37,7 +38,7 @@ function normalizeExercise(item) {
 function normalizeRoutine(input, userId) {
   if (!input || typeof input !== 'object') throw Object.assign(new Error('루틴 정보가 필요합니다.'), { statusCode: 400 });
   const slot = Number(input.slot);
-  if (!Number.isInteger(slot) || slot < 1 || slot > 4) throw Object.assign(new Error('루틴 번호는 1~4여야 합니다.'), { statusCode: 400 });
+  if (!Number.isInteger(slot) || slot < 1 || slot > MAX_RECORD_ROUTINES) throw Object.assign(new Error(`루틴 번호는 1~${MAX_RECORD_ROUTINES}여야 합니다.`), { statusCode: 400 });
   const name = String(input.name || '').trim();
   if (!name || name.length > 30) throw Object.assign(new Error('루틴 이름은 1~30자여야 합니다.'), { statusCode: 400 });
   if (!Array.isArray(input.customExercises) || input.customExercises.length > 30) throw Object.assign(new Error('개인 운동은 최대 30종목까지 저장할 수 있습니다.'), { statusCode: 400 });
@@ -93,7 +94,7 @@ module.exports = async function handler(req, res) {
     if (auth.isTest) return sendJson(res, 403, { ok: false, message: '테스트 계정 루틴은 기기에만 저장됩니다.' });
     const userId = auth.id;
     if (req.method === 'GET') {
-      const rows = await fetchSupabase(`/rest/v1/record_routines?select=*&user_id=eq.${encodeEq(userId)}&order=slot.asc&limit=4`, { headers: { Accept: 'application/json' } });
+      const rows = await fetchSupabase(`/rest/v1/record_routines?select=*&user_id=eq.${encodeEq(userId)}&order=slot.asc&limit=${MAX_RECORD_ROUTINES}`, { headers: { Accept: 'application/json' } });
       return sendJson(res, 200, { ok: true, routines: Array.isArray(rows) ? rows.map(mapRow) : [] });
     }
     if (req.method === 'POST') {
@@ -115,7 +116,7 @@ module.exports = async function handler(req, res) {
     }
     if (req.method === 'DELETE') {
       const slot = Number(new URL(req.url, 'http://localhost').searchParams.get('slot'));
-      if (!Number.isInteger(slot) || slot < 1 || slot > 4) return sendJson(res, 400, { ok: false, message: '루틴 번호가 올바르지 않습니다.' });
+      if (!Number.isInteger(slot) || slot < 1 || slot > MAX_RECORD_ROUTINES) return sendJson(res, 400, { ok: false, message: '루틴 번호가 올바르지 않습니다.' });
       const deleted = await fetchSupabase(`/rest/v1/record_routines?user_id=eq.${encodeEq(userId)}&slot=eq.${slot}`, { method: 'DELETE', headers: { Prefer: 'return=representation' } });
       if (!Array.isArray(deleted) || !deleted.length) return sendJson(res, 404, { ok: false, message: '루틴을 찾을 수 없습니다.' });
       return sendJson(res, 200, { ok: true });
