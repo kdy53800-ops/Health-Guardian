@@ -10,6 +10,7 @@ let editingId = null;
 let selectedCondition = 3;
 let isSaving = false;
 let draftTimer = null;
+let recordDateManuallySelected = false;
 
 const RECORD_DRAFT_PREFIX = 'HealthGuardian_recordDraft_v1';
 const EXERCISE_FAVORITES_PREFIX = 'HealthGuardian_exerciseFavorites_v1';
@@ -123,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 날짜 변경 시 기존 기록 여부 확인
   document.getElementById('fDate').addEventListener('change', function() {
+    recordDateManuallySelected = true;
     handleRecordDateChange(this.value);
   });
 
@@ -172,6 +174,7 @@ function changeDefaultRecordDate(value) {
   const input = document.getElementById('fDate');
   input.value = value === 'today' ? today() : prevDay(today());
   input.dispatchEvent(new Event('change', { bubbles: true }));
+  recordDateManuallySelected = false;
   const form = document.getElementById('recordForm');
   if (form && form.dataset.draftReady === '1') {
     clearTimeout(draftTimer);
@@ -359,6 +362,7 @@ function collectDraft() {
   });
   return {
     fields,
+    dateAuto: !recordDateManuallySelected,
     condition: selectedCondition,
     customExercises: customExercises.map(item => ({ ...item })),
     updatedAt: Date.now(),
@@ -425,12 +429,17 @@ function restoreRecordDraft() {
     return;
   }
 
+  const defaultDate = getDefaultRecordDate() === 'today' ? today() : prevDay(today());
+  const oldAutoDate = draft.fields.fDate === prevDay(defaultDate);
+  const shouldRefreshDate = !editingId && (draft.dateAuto === true || (draft.dateAuto == null && oldAutoDate));
+  const dateWasRefreshed = shouldRefreshDate && draft.fields.fDate !== defaultDate;
   RECORD_FIELD_IDS.forEach(id => {
     const input = document.getElementById(id);
     if (input && Object.prototype.hasOwnProperty.call(draft.fields, id)) {
-      input.value = draft.fields[id];
+      input.value = id === 'fDate' && shouldRefreshDate ? defaultDate : draft.fields[id];
     }
   });
+  recordDateManuallySelected = draft.dateAuto === false || (draft.dateAuto == null && !oldAutoDate);
   if (Number(draft.condition) >= 1 && Number(draft.condition) <= 5) {
     setCondition(Number(draft.condition));
   }
@@ -447,7 +456,9 @@ function restoreRecordDraft() {
     const capKey = key.charAt(0).toUpperCase() + key.slice(1);
     updateProgress(id, `progress${capKey}`, `pct${capKey}`, key);
   });
-  setDraftStatus('이전에 입력하던 내용을 복원했습니다.', 'restored');
+  setDraftStatus(dateWasRefreshed
+    ? '이전 입력을 복원하고 날짜를 새 기록 기본값으로 맞췄습니다.'
+    : '이전에 입력하던 내용을 복원했습니다.', 'restored');
 }
 
 function initDraftAutosave() {
