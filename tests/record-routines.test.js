@@ -230,7 +230,7 @@ test('a date-only draft does not override the selected default on reopening', ()
   assert.equal(storage.has('HealthGuardian_recordDraft_v1_user-1_new'), false);
 });
 
-test('restored input follows today across midnight but preserves a date chosen by the user', () => {
+test('reopening a new record restores input but resets a manually chosen date to today', () => {
   const { context, fields, storage } = createPage();
   storage.set('HealthGuardian_recordDefaultDate_v1_user-1', 'today');
   const currentDate = vm.runInContext('today()', context);
@@ -242,12 +242,28 @@ test('restored input follows today across midnight but preserves a date chosen b
   vm.runInContext('restoreRecordDraft()', context);
   assert.equal(fields.get('fDate').value, currentDate);
   assert.equal(fields.get('fWalking').value, '30');
-  assert.equal(vm.runInContext('collectDraft().dateAuto', context), true);
 
   storage.set(draftKey, JSON.stringify({ ...draft, dateAuto: false }));
   vm.runInContext('restoreRecordDraft()', context);
+  assert.equal(fields.get('fDate').value, currentDate);
+  assert.equal(fields.get('fWalking').value, '30');
+
+  storage.set('HealthGuardian_recordDefaultDate_v1_user-1', 'yesterday');
+  storage.set(draftKey, JSON.stringify({ ...draft, fields: { ...draft.fields, fDate: currentDate } }));
+  vm.runInContext('restoreRecordDraft()', context);
   assert.equal(fields.get('fDate').value, previousDate);
-  assert.equal(vm.runInContext('collectDraft().dateAuto', context), false);
+});
+
+test('reopening an existing record keeps its edited date', () => {
+  const { context, fields, storage } = createPage();
+  const previousDate = vm.runInContext('prevDay(today())', context);
+  vm.runInContext("editingId = 'record-1'", context);
+  storage.set('HealthGuardian_recordDraft_v1_user-1_edit_record-1', JSON.stringify({
+    fields: { fDate: previousDate, fWalking: '30' }, condition: 3, customExercises: [], updatedAt: Date.now(),
+  }));
+  vm.runInContext('restoreRecordDraft()', context);
+  assert.equal(fields.get('fDate').value, previousDate);
+  assert.equal(fields.get('fWalking').value, '30');
 });
 
 test('new writing replaces an existing date only after the user chooses replacement', async () => {
