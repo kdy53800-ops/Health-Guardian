@@ -1,0 +1,115 @@
+    const APP_NAME = 'HealthGuardian';
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function injectData() {
+      const userRaw = localStorage.getItem(APP_NAME + '_currentUser');
+      const resultEl = document.getElementById('result');
+
+      if (!userRaw) {
+        resultEl.className = 'error';
+        resultEl.innerHTML = '❌ 로그인된 사용자가 없습니다.<br><a href="index.html">로그인 페이지로 이동</a>';
+        resultEl.style.display = 'block';
+        return;
+      }
+
+      const user = JSON.parse(userRaw);
+      const userId = user.id;
+
+      const allRaw = localStorage.getItem(APP_NAME + '_records');
+      const all = allRaw ? JSON.parse(allRaw) : [];
+      const existingDates = new Set(all.filter(r => r.userId === userId).map(r => r.date));
+
+      const samples = [
+        {
+          id: genId(), userId,
+          date: '2026-04-09',
+          weight: 72.5, walking: 40, running: 0, walkingKm: 3.2, runningKm: 0,
+          water: 1800, fasting: 14, diet: '균형',
+          condition: 4,
+          memo: '산책 후 요가로 마무리. 컨디션 양호!',
+          customExercises: [
+            { id: genId(), category: '유연성', name: '요가', duration: 30, intensity: '중' }
+          ],
+          savedAt: '2026-04-09T20:00:00.000Z'
+        },
+        {
+          id: genId(), userId,
+          date: '2026-04-08',
+          weight: 72.8, walking: 20, running: 25, walkingKm: 1.5, runningKm: 3.8,
+          water: 2500, fasting: 16, diet: '고단백',
+          condition: 5,
+          memo: '러닝 3.8km 달성! 덤벨까지 완료. 기분 최고🔥',
+          customExercises: [
+            { id: genId(), category: '근력', name: '덤벨 운동', duration: 40, intensity: '상' },
+            { id: genId(), category: '유산소', name: '자전거', duration: 20, intensity: '중' }
+          ],
+          savedAt: '2026-04-08T19:30:00.000Z'
+        },
+        {
+          id: genId(), userId,
+          date: '2026-04-07',
+          weight: 73.0, walking: 60, running: 0, walkingKm: 4.5, runningKm: 0,
+          water: 1500, fasting: 12, diet: '채식',
+          condition: 3,
+          memo: '가벼운 산책 위주. 스트레칭으로 피로 해소.',
+          customExercises: [
+            { id: genId(), category: '유연성', name: '스트레칭', duration: 20, intensity: '하' }
+          ],
+          savedAt: '2026-04-07T21:00:00.000Z'
+        },
+        {
+          id: genId(), userId,
+          date: '2026-04-05',
+          weight: 73.2, walking: 0, running: 30, walkingKm: 0, runningKm: 4.5,
+          water: 2200, fasting: 13, diet: '균형',
+          condition: 4,
+          memo: '주말 운동 루틴 완벽 이행. 배드민턴까지 땀 흠뻑!',
+          customExercises: [
+            { id: genId(), category: '스포츠', name: '배드민턴', duration: 60, intensity: '상' }
+          ],
+          savedAt: '2026-04-05T17:00:00.000Z'
+        },
+        {
+          id: genId(), userId,
+          date: '2026-04-04',
+          weight: 73.5, walking: 30, running: 10, walkingKm: 2.0, runningKm: 1.5,
+          water: 1700, fasting: 10, diet: '외식',
+          condition: 2,
+          memo: '몸이 좀 무겁다. 가볍게 필라테스로 마무리.',
+          customExercises: [
+            { id: genId(), category: '유연성', name: '필라테스', duration: 45, intensity: '중' }
+          ],
+          savedAt: '2026-04-04T20:30:00.000Z'
+        }
+      ];
+
+      let added = 0;
+      let skipped = 0;
+      const addedList = [];
+
+      samples.forEach(s => {
+        if (!existingDates.has(s.date)) {
+          all.push(s);
+          added++;
+          addedList.push(s.date + ' (' + ['','😔','😕','😊','😄','🤩'][s.condition] + ' ' + s.memo.slice(0, 20) + '...)');
+        } else {
+          skipped++;
+        }
+      });
+
+      localStorage.setItem(APP_NAME + '_records', JSON.stringify(all));
+
+      resultEl.className = 'success';
+      resultEl.style.display = 'block';
+
+      const listHTML = addedList.map(item => `<div class="record-item">✅ ${item}</div>`).join('');
+      resultEl.innerHTML = `
+        <strong>✅ 완료! ${added}개 추가됨 (${skipped}개 날짜 중복 건너뜀)</strong>
+        <div class="record-list">${listHTML}</div>
+        <a class="go-btn" href="dashboard.html">📊 대시보드로 이동</a>
+        <a class="go-btn" style="background:#004DBF; color:white; margin-top:6px" href="history.html">📋 기록 목록 보기</a>
+      `;
+    }

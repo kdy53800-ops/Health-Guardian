@@ -225,7 +225,7 @@ function renderGrowthTable(data) {
       <td data-label="성장 점수" style="font-weight:900; color:${scoreColor};">${item.growthScore > 0 ? '+' : ''}${item.growthScore} 점 <span style="font-size:0.8rem;margin-left:4px;">${arrow}</span></td>
       <td data-label="평균 운동량">${item.dailyAvg}</td>
       <td data-label="상세" style="text-align:right;">
-        <button class="btn btn-sm" aria-haspopup="dialog" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
+        <button class="btn btn-sm" aria-haspopup="dialog" data-user-id="${escapeAttribute(item.user.id)}" onclick="showUserGraph(this.dataset.userId)">그래프 보기</button>
       </td>
     `;
     

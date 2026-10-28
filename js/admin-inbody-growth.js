@@ -175,7 +175,7 @@ function renderGrowthTable(data) {
       <td data-label="체지방률 변화">${item.first.fat} → ${item.last.fat}<br>${getReverseDiffHtml(item.fatDiff, '%')}</td>
       <td data-label="종합 점수 변화">${item.first.score} → ${item.last.score}<br>${getDiffHtml(item.scoreDiff, '점')}</td>
       <td data-label="상세" style="text-align:right;">
-        <button class="btn btn-sm" aria-haspopup="dialog" onclick="showUserGraph('${item.user.id}')">그래프 보기</button>
+        <button class="btn btn-sm" aria-haspopup="dialog" data-user-id="${escapeAttribute(item.user.id)}" onclick="showUserGraph(this.dataset.userId)">그래프 보기</button>
       </td>
     `;
     

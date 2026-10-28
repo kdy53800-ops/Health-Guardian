@@ -86,7 +86,7 @@ function renderCalendar(year, month, recMap, totalDays) {
     const cond = rec ? COND_EMOJIS[rec.condition || 3] : '';
     cells += `
       <div class="cal-cell${rec ? ' cal-has' : ''}${isToday ? ' cal-today' : ''}${isFuture ? ' cal-future' : ''}"
-           ${rec ? `onclick="showRecordSummary('${rec.id}')" title="${dateStr} 기록 요약 보기"` : ''}>
+           ${rec ? `data-record-id="${escapeAttribute(rec.id)}" onclick="showRecordSummary(this.dataset.recordId)" title="${dateStr} 기록 요약 보기"` : ''}>
         <span class="cal-num" style="color:${numColor};${rec&&!isToday?'font-weight:800;':''}">${d}</span>
         ${cond ? `<span class="cal-cond-emoji">${cond}</span>` : ''}
         ${rec  ? `<span class="cal-dot"></span>` : ''}

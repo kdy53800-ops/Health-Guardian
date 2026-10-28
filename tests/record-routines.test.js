@@ -204,7 +204,7 @@ test('saved routines keep their numbered slots with placeholders between them', 
   assert.ok(html.indexOf('루틴 1') < html.indexOf('2. 걷기'));
   assert.ok(html.indexOf('2. 걷기') < html.indexOf('루틴 3'));
   assert.ok(html.indexOf('루틴 4') < html.indexOf('5. 근력'));
-  assert.match(html, /applyRecordRoutine\(1\)/);
+  assert.match(html, /data-routine-index="1" onclick="applyRecordRoutine\(Number\(this\.dataset\.routineIndex\)\)"/);
 });
 
 test('new-record default date can be changed per account and survives reopening', () => {

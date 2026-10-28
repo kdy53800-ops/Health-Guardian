@@ -306,17 +306,17 @@ function renderExerciseShortcuts() {
   const templateList = document.getElementById('strengthTemplateList');
   if (favorites) {
     favorites.innerHTML = favoriteExercises.length
-      ? favoriteExercises.map((item, index) => `<button type="button" class="quick-exercise-chip" onclick="addFavoriteExercise(${index})">${EX_CAT_CFG[item.category].icon} ${escapeHtml(item.name)}</button>`).join('')
+      ? favoriteExercises.map((item, index) => `<button type="button" class="quick-exercise-chip" data-index="${index}" onclick="addFavoriteExercise(Number(this.dataset.index))">${EX_CAT_CFG[item.category].icon} ${escapeHtml(item.name)}</button>`).join('')
       : '<span class="exercise-shortcut-empty">종목 옆 ☆를 눌러 추가해 보세요.</span>';
   }
   if (recent) {
     recent.innerHTML = recentExerciseTemplates.length
-      ? recentExerciseTemplates.map((item, index) => `<button type="button" class="quick-exercise-chip" onclick="addRecentExercise(${index})">${EX_CAT_CFG[item.category].icon} ${escapeHtml(item.name)}</button>`).join('')
+      ? recentExerciseTemplates.map((item, index) => `<button type="button" class="quick-exercise-chip" data-index="${index}" onclick="addRecentExercise(Number(this.dataset.index))">${EX_CAT_CFG[item.category].icon} ${escapeHtml(item.name)}</button>`).join('')
       : '<span class="exercise-shortcut-empty">운동을 저장하면 최근 종목이 표시됩니다.</span>';
   }
   if (templateGroup) templateGroup.hidden = currentExCat !== '근력';
   if (templateList) {
-    templateList.innerHTML = STRENGTH_TEMPLATES.map((item, index) => `<button type="button" class="set-template-chip ${index === activeStrengthTemplate ? 'active' : ''}" aria-pressed="${index === activeStrengthTemplate}" onclick="selectStrengthTemplate(${index})">${escapeHtml(item.label)}</button>`).join('');
+    templateList.innerHTML = STRENGTH_TEMPLATES.map((item, index) => `<button type="button" class="set-template-chip ${index === activeStrengthTemplate ? 'active' : ''}" aria-pressed="${index === activeStrengthTemplate}" data-index="${index}" onclick="selectStrengthTemplate(Number(this.dataset.index))">${escapeHtml(item.label)}</button>`).join('');
   }
 }
 
@@ -729,7 +729,7 @@ function renderRoutineQuickList() {
       </div>`;
     const routine = recordRoutines[routineIndex];
     return `
-      <button type="button" class="routine-quick-card" onclick="applyRecordRoutine(${routineIndex})" aria-label="${slot}번 ${escapeAttribute(routine.name)} 루틴 내용 확인 후 적용">
+      <button type="button" class="routine-quick-card" data-routine-index="${routineIndex}" onclick="applyRecordRoutine(Number(this.dataset.routineIndex))" aria-label="${slot}번 ${escapeAttribute(routine.name)} 루틴 내용 확인 후 적용">
         <strong>${slot}. ${escapeHtml(routine.name)}</strong>
         <small>${escapeHtml(routineSummary(routine))}</small>
       </button>`;
@@ -752,9 +752,9 @@ function renderRecordRoutines() {
       <div class="routine-slot-heading"><strong>${escapeHtml(routine.name)}</strong><small>${routine.slot || index + 1}/${MAX_RECORD_ROUTINES}</small></div>
       <p class="routine-slot-summary">${escapeHtml(routineSummary(routine))}</p>
       <div class="routine-slot-actions">
-        <button type="button" onclick="applyRecordRoutine(${index})">내용 확인 후 적용</button>
-        <button type="button" onclick="replaceRecordRoutine(${index})">현재 입력으로 갱신</button>
-        <button type="button" class="routine-delete" onclick="deleteRecordRoutine(${index})">삭제</button>
+        <button type="button" data-routine-index="${index}" onclick="applyRecordRoutine(Number(this.dataset.routineIndex))">내용 확인 후 적용</button>
+        <button type="button" data-routine-index="${index}" onclick="replaceRecordRoutine(Number(this.dataset.routineIndex))">현재 입력으로 갱신</button>
+        <button type="button" class="routine-delete" data-routine-index="${index}" onclick="deleteRecordRoutine(Number(this.dataset.routineIndex))">삭제</button>
       </div>
     </div>`).join('') : '<p class="routine-slot-summary">저장한 루틴이 없습니다. 운동 내용을 입력하고 아래에서 첫 루틴을 저장해 보세요.</p>';
   const saveButton = document.getElementById('saveRoutineBtn');
@@ -1167,11 +1167,12 @@ function renderExPresets(cat) {
 
   el.innerHTML = cfg.presets.map(name => `
     <span class="preset-item">
-      <button type="button" class="preset-chip" onclick="addCustomExerciseWithName('${name}')">${cfg.icon} ${name}</button>
+      <button type="button" class="preset-chip" data-exercise-name="${escapeAttribute(name)}" onclick="addCustomExerciseWithName(this.dataset.exerciseName)">${cfg.icon} ${name}</button>
       <button type="button" class="favorite-toggle ${isFavoriteExercise({ category: cat, name }) ? 'active' : ''}"
         aria-label="${escapeAttribute(name)} 즐겨찾기 ${isFavoriteExercise({ category: cat, name }) ? '해제' : '추가'}"
         aria-pressed="${isFavoriteExercise({ category: cat, name })}"
-        onclick="toggleFavoriteExercise('${cat}','${name}')">★</button>
+        data-exercise-category="${escapeAttribute(cat)}" data-exercise-name="${escapeAttribute(name)}"
+        onclick="toggleFavoriteExercise(this.dataset.exerciseCategory,this.dataset.exerciseName)">★</button>
     </span>
   `).join('');
 }
