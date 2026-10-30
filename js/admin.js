@@ -16,6 +16,8 @@ let filterSpecialOnly = false;
 let filterGender = 'all';
 let filterAge = 'all';
 let filterMonth = '';
+let rankingStartDate = '';
+let rankingEndDate = '';
 
 // 사용자 관리 페이지네이션 및 정렬 상태
 let userMgmtPage = 1;
@@ -1145,13 +1147,20 @@ async function deleteUser() {
   }
 }
 
+function matchesAdminRecordPeriod(record) {
+  const date = String(record.date || '').split('T')[0];
+  return (!filterMonth || date.startsWith(filterMonth))
+    && (!rankingStartDate || date >= rankingStartDate)
+    && (!rankingEndDate || date <= rankingEndDate);
+}
+
 function applyFilter() {
   const currentYear = new Date().getFullYear();
   const isUserPage = location.pathname.split('/').pop() === 'admin-users.html';
   const isDashboardPage = location.pathname.split('/').pop() === 'admin.html';
   const recordUserIds = isUserPage ? null : dashboardRollups
     ? new Set(dashboardRollups.filter(item => item.recordCount > 0).map(item => item.userId))
-    : new Set(fetchedRecords.filter(r => !filterMonth || String(r.date).startsWith(filterMonth)).map(r => r.userId));
+    : new Set(fetchedRecords.filter(matchesAdminRecordPeriod).map(r => r.userId));
 
   allUsers = fetchedUsers.filter(u => {
     // 1. 특별관리 필터
@@ -1189,10 +1198,14 @@ function applyFilter() {
   const validIds = new Set(allUsers.map(u => u.id));
   allRecords = fetchedRecords.filter(r => {
     if (!validIds.has(r.userId)) return false;
-    if (filterMonth && !String(r.date).startsWith(filterMonth)) return false;
+    if (!matchesAdminRecordPeriod(r)) return false;
     return true;
   });
 
+  const periodLabel = document.getElementById('rankingPeriodLabel');
+  if (periodLabel) periodLabel.textContent = rankingStartDate || rankingEndDate
+    ? `${rankingStartDate || '처음'} ~ ${rankingEndDate || '마지막'} 기록 기준 (시작일·종료일 포함)`
+    : '전체 기간의 기록 기준';
   renderAll();
 }
 
@@ -1201,6 +1214,17 @@ async function updateFilters() {
   const aSelect = document.getElementById('filterAge');
   const sSelect = document.getElementById('filterSpecial');
   const mSelect = document.getElementById('filterMonth');
+  const startInput = document.getElementById('rankingStartDate');
+  const endInput = document.getElementById('rankingEndDate');
+  if (startInput && endInput) {
+    if (startInput.value && endInput.value && startInput.value > endInput.value) {
+      showToast('종료일은 시작일과 같거나 이후 날짜로 선택해 주세요.', 'error');
+      syncFilterUI();
+      return;
+    }
+    rankingStartDate = startInput.value;
+    rankingEndDate = endInput.value;
+  }
   
   if (gSelect) filterGender = gSelect.value;
   if (aSelect) filterAge = aSelect.value;
@@ -1237,6 +1261,17 @@ function syncFilterUI() {
   if (aSelect) aSelect.value = filterAge;
   if (sSelect) sSelect.value = filterSpecialOnly ? 'special' : 'all';
   if (mSelect) mSelect.value = filterMonth;
+  const startInput = document.getElementById('rankingStartDate');
+  const endInput = document.getElementById('rankingEndDate');
+  if (startInput) startInput.value = rankingStartDate;
+  if (endInput) endInput.value = rankingEndDate;
+}
+
+function resetRankingPeriod() {
+  rankingStartDate = '';
+  rankingEndDate = '';
+  syncFilterUI();
+  applyFilter();
 }
 
 
